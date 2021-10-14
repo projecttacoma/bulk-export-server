@@ -1,17 +1,16 @@
 const mongoUtil = require('../util/mongo');
-const supportedResources = require('../util/supportedResources');
 
 async function main() {
   // Use connect method to connect to the server
   await mongoUtil.client.connect();
   console.log('Connected successfully to server');
 
-  const creations = supportedResources.map(async resourceType => {
-    await (await mongoUtil.db.createCollection(resourceType)).createIndex({ id: 1 }, { unique: true });
-    console.log('Created collection', resourceType);
+  const collections = await mongoUtil.db.listCollections().toArray();
+  const deletions = collections.map(async c => {
+    console.log('Deleting collection', c.name);
+    return mongoUtil.db.dropCollection(c.name);
   });
-
-  await Promise.all(creations);
+  await Promise.all(deletions);
   return 'done.';
 }
 
