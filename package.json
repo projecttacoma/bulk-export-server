@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/projecttacoma/bulk-export-server#readme",
   "dependencies": {
+    "dotenv": "^10.0.0",
     "fastify": "^3.22.0",
     "fastify-plugin": "^3.0.0",
     "mongodb": "^4.1.3"
