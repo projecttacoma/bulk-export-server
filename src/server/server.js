@@ -1,18 +1,22 @@
-// Require the framework and instantiate it
-const fastify = require('fastify')({ logger: true })
+const fastify = require("fastify")({ logger: true });
+const bulkstatus = require("../services/bulkstatus.service");
+const { bulkExport } = require("../services/export.service");
+const mongoUtil = require("../util/mongo");
 
-// Declare a route
-fastify.get('/', async (request, reply) => {
-  return { hello: 'world' }
-})
+// Declare export route
+fastify.get("/$export", bulkExport);
+
+// Declare bulkstatus route
+fastify.get("/bulkstatus/:clientId", bulkstatus.checkBulkStatus);
 
 // Run the server!
 const start = async () => {
   try {
-    await fastify.listen(3000)
+    await fastify.listen(3000);
+    await mongoUtil.client.connect();
   } catch (err) {
-    fastify.log.error(err)
-    process.exit(1)
+    fastify.log.error(err);
+    process.exit(1);
   }
-}
-start()
+};
+start();
