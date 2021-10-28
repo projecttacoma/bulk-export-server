@@ -35,7 +35,6 @@ function validateExportParams(request, reply) {
   ];
   if (request.query._outputFormat) {
     if (!ACCEPTEDOUTPUTFORMATS.includes(request.query._outputFormat)) {
-      //reply.code(400);
       reply
         .code(400)
         .send(
