@@ -12,7 +12,7 @@
   {
     "id": "KNOWN_ERROR_REQUEST",
     "status": "Error",
-    "error": { "code": "ErrorCode", "message": "Known Error Occurred!" }
+    "error": { "code": null, "message": "Known Error Occurred!" }
   },
   {
     "id": "UNKNOWN_ERROR_REQUEST",

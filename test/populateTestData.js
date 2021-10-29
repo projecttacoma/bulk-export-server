@@ -16,7 +16,7 @@ async function cleanUpDb() {
 const bulkStatusSetup = async () => {
   await client.connect();
   const promises = testStatuses.map(async (status) => {
-    await createTestResource(status, "bulkImportStatuses");
+    await createTestResource(status, "bulkExportStatuses");
   });
   await Promise.all(promises);
 };

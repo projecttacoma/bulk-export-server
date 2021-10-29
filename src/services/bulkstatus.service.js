@@ -1,5 +1,10 @@
 const { getBulkExportStatus } = require("../util/mongo.controller");
 
+/**
+ * Checks the status of the bulk export request.
+ * @param {*} request the request object passed in by the user
+ * @param {*} reply the response object
+ */
 async function checkBulkStatus(request, reply) {
   const clientId = request.params.clientId;
   const bulkStatus = await getBulkExportStatus(clientId);

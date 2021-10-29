@@ -3,8 +3,8 @@ const supportedResources = require("../util/supportedResources");
 
 /**
  * Exports data from a FHIR server.
- * @param {*} args the args object passed in by the user
- * @param {*} req the request object passed in by the user
+ * @param {*} request the request object passed in by the user
+ * @param {*} reply the response object
  */
 const bulkExport = async (request, reply) => {
   request.log.info("Base >>> $export");
@@ -22,6 +22,7 @@ const bulkExport = async (request, reply) => {
 /**
  * Checks that the parameters input to $export are valid.
  * @param {Object} request http request object
+ * @param {*} reply the response object
  */
 function validateExportParams(request, reply) {
   /**
