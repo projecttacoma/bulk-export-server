@@ -9,6 +9,8 @@
     "test:watch": "jest --watchAll --runInBand",
     "test:watch:coverage": "jest --watchAll --runInBand --collectCoverage",
     "start": "node ./src/server/server.js",
+    "prettier": "prettier --check \"**/*.js\"",
+    "prettier:fix": "prettier --write \"**/*.js\"",
     "db:setup": "node src/scripts/createCollections.js",
     "db:delete": "node src/scripts/deleteCollections.js",
     "db:reset": "npm run db:delete && npm run db:setup",

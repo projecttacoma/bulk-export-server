@@ -90,7 +90,7 @@ const findResourcesWithAggregation = async (query, resourceType) => {
  * which can be queried to get updates on the status of the bulk export
  * @returns the id of the inserted client
  */
- const addPendingBulkExportRequest = async () => {
+const addPendingBulkExportRequest = async () => {
   const collection = db.collection('bulkExportStatuses');
   const clientId = uuidv4();
   const bulkExportClient = {
@@ -110,7 +110,7 @@ const findResourcesWithAggregation = async (query, resourceType) => {
  * @param {string} clientId The id signifying the bulk status request
  * @returns The bulkstatus entry for the passed in clientId
  */
- const getBulkExportStatus = async clientId => {
+const getBulkExportStatus = async clientId => {
   const status = await findResourceById(clientId, 'bulkExportStatuses');
   return status;
 };

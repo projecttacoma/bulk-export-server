@@ -1,5 +1,5 @@
-const { db, client } = require("../src/util/mongo");
-const testStatuses = require("./fixtures/testBulkStatus.json");
+const { db, client } = require('../src/util/mongo');
+const testStatuses = require('./fixtures/testBulkStatus.json');
 
 const createTestResource = async (data, resourceType) => {
   const collection = db.collection(resourceType);
@@ -15,8 +15,8 @@ async function cleanUpDb() {
 
 const bulkStatusSetup = async () => {
   await client.connect();
-  const promises = testStatuses.map(async (status) => {
-    await createTestResource(status, "bulkExportStatuses");
+  const promises = testStatuses.map(async status => {
+    await createTestResource(status, 'bulkExportStatuses');
   });
   await Promise.all(promises);
 };
