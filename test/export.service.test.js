@@ -1,4 +1,5 @@
 const { client } = require('../src/util/mongo');
+const { db } = require('../src/util/mongo');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
@@ -6,6 +7,7 @@ describe('Check barebones bulk export logic', () => {
   beforeEach(async () => {
     await client.connect();
     await app.ready();
+    await db.createCollection('bulkExportStatuses');
   });
   test('check 202 returned and content-location populated', async () => {
     await supertest(app.server)
@@ -42,17 +44,8 @@ describe('Check barebones bulk export logic', () => {
       .expect(400)
       .then(response => {
         expect(JSON.parse(response.text).message).toEqual(
-          'The following resourceType is not supported for _type param for $export: invalid'
+          'The following resourceTypes are not supported for _type param for $export: invalid.'
         );
-      });
-  });
-
-  test('check 400 returned for unsupported _since param', async () => {
-    await supertest(app.server)
-      .get('/$export?_since=date')
-      .expect(400)
-      .then(response => {
-        expect(JSON.parse(response.text).message).toEqual('The _since parameter is not yet supported for $export');
       });
   });
 
@@ -67,7 +60,18 @@ describe('Check barebones bulk export logic', () => {
       });
   });
 
+  test('DB is not populated when unrecognized param is in request', async () => {
+    const numEntries = await db.collection('bulkExportStatuses').countDocuments({});
+    await supertest(app.server)
+      .get('/$export?_unrecognizedparam=invalid')
+      .expect(400)
+      .then(async () => {
+        expect(await db.collection('bulkExportStatuses').countDocuments({})).toEqual(numEntries);
+      });
+  });
+
   afterEach(async () => {
+    await db.dropDatabase();
     await client.close();
   });
 });

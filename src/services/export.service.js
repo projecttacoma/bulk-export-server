@@ -10,7 +10,6 @@ const bulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
-
     reply.code(202).header('Content-location', `/bulkstatus/${clientEntry}`).send();
   }
 };
@@ -54,7 +53,7 @@ function validateExportParams(request, reply) {
         .code(400)
         .send(
           new Error(
-            `The following resourceTypes is not supported for _type param for $export: ${unsupportedTypes.join(', ')}.`
+            `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(', ')}.`
           )
         );
       return false;

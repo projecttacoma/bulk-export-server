@@ -1,8 +1,10 @@
 const { db } = require('./mongo');
 const { v4: uuidv4 } = require('uuid');
 
-// constant(s) for bulk export status strings
+// constants for bulk export status strings
 const BULKSTATUS_INPROGRESS = 'In Progress';
+const BULKSTATUS_COMPLETED = 'Completed';
+const BUlKSTATUS_FAILED = 'Failed';
 
 /**
  * creates a new document in the specified collection
@@ -127,5 +129,8 @@ module.exports = {
   updateResource,
   getBulkExportStatus,
   findResourcesWithAggregation,
-  addPendingBulkExportRequest
+  addPendingBulkExportRequest,
+  BULKSTATUS_INPROGRESS,
+  BULKSTATUS_COMPLETED,
+  BUlKSTATUS_FAILED
 };
