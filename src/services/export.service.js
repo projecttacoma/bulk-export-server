@@ -52,10 +52,6 @@ function validateExportParams(request, reply) {
     });
   }
 
-  if (request.query._since) {
-    reply.code(400).send(new Error(`The _since parameter is not yet supported for $export`));
-  }
-
   let unrecognizedParams = [];
   Object.keys(request.query).forEach(param => {
     if (!['_outputFormat', '_type'].includes(param)) {
