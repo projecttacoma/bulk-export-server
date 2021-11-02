@@ -1,6 +1,6 @@
 const mongoUtil = require('../util/mongo');
 
-const server = require('./app')({ logger: true });
+const server = require('./app')({ logger: { prettyPrint: true } });
 
 const start = async () => {
   try {

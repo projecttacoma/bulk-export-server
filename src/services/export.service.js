@@ -7,17 +7,17 @@ const supportedResources = require('../util/supportedResources');
  * @param {*} reply the response object
  */
 const bulkExport = async (request, reply) => {
-  request.log.info('Base >>> $export');
+  if (validateExportParams(request, reply)) {
+    request.log.info('Base >>> $export');
+    const clientEntry = await addPendingBulkExportRequest();
 
-  const clientEntry = await addPendingBulkExportRequest();
-
-  validateExportParams(request, reply);
-
-  reply.code(202).header('Content-location', `/bulkstatus/${clientEntry}`).send();
+    reply.code(202).header('Content-location', `/bulkstatus/${clientEntry}`).send();
+  }
 };
 
 /**
- * Checks that the parameters input to $export are valid.
+ * Checks that the parameters input to $export are valid. Returns true if all the
+ * export params are valid, meaning no errors were thrown in the process.
  * @param {Object} request http request object
  * @param {*} reply the response object
  */
@@ -36,20 +36,29 @@ function validateExportParams(request, reply) {
             `The following output format is not supported for _outputFormat param for $export: ${request.query._outputFormat}`
           )
         );
+      return false;
     }
   }
 
   if (request.query._type) {
     // type filter is comma-delimited
-    const types = request.query._type.split(',');
-
-    types.forEach(type => {
+    const requestTypes = request.query._type.split(',');
+    let unsupportedTypes = [];
+    requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
-        reply
-          .code(400)
-          .send(new Error(`The following resourceType is not supported for _type param for $export: ${type}`));
+        unsupportedTypes.push(type);
       }
     });
+    if (unsupportedTypes.length > 0) {
+      reply
+        .code(400)
+        .send(
+          new Error(
+            `The following resourceTypes is not supported for _type param for $export: ${unsupportedTypes.join(', ')}.`
+          )
+        );
+      return false;
+    }
   }
 
   let unrecognizedParams = [];
@@ -62,7 +71,9 @@ function validateExportParams(request, reply) {
     reply
       .code(400)
       .send(new Error(`The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`));
+    return false;
   }
+  return true;
 }
 
 module.exports = { bulkExport };

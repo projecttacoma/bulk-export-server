@@ -1,6 +1,9 @@
 const { db } = require('./mongo');
 const { v4: uuidv4 } = require('uuid');
 
+// constant(s) for bulk export status strings
+const BULKSTATUS_INPROGRESS = 'In Progress';
+
 /**
  * creates a new document in the specified collection
  * @param {*} data the data of the document to be created
@@ -95,7 +98,7 @@ const addPendingBulkExportRequest = async () => {
   const clientId = uuidv4();
   const bulkExportClient = {
     id: clientId,
-    status: 'In Progress',
+    status: BULKSTATUS_INPROGRESS,
     error: {
       code: null,
       message: null
