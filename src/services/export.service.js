@@ -25,7 +25,7 @@ function validateExportParams(request, reply) {
    * According to http://hl7.org/fhir/async.html, we should also
    * account for abbreviated representations of ndjson
    */
-  const ACCEPTEDOUTPUTFORMATS = ['application/fhir+ndjson', 'application/ndjson', 'ndjson'];
+  const ACCEPTEDOUTPUTFORMATS = ['application/fhir+ndjson', 'application/ndjson+fhir', 'application/ndjson', 'ndjson'];
   if (request.query._outputFormat) {
     if (!ACCEPTEDOUTPUTFORMATS.includes(request.query._outputFormat)) {
       reply
