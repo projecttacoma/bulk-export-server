@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 
 
 # Run a custom ssl_setup script if available
-COPY ./docker_ssl_setup.sh ./
+COPY package.json ./docker_ssl_setup.sh* ./
 RUN chmod +x ./docker_ssl_setup.sh; exit 0
 RUN ./docker_ssl_setup.sh; exit 0
 ENV NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"
