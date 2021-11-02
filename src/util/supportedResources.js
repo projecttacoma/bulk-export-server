@@ -1,7 +1,7 @@
 /**
- * List of all resource types supported by this server. 
- * 
-  */
+ * List of all resource types supported by this server.
+ *
+ */
 module.exports = [
   'Account',
   'ActivityDefinition',

@@ -1,18 +1,15 @@
-// Require the framework and instantiate it
-const fastify = require('fastify')({ logger: true })
+const mongoUtil = require('../util/mongo');
 
-// Declare a route
-fastify.get('/', async (request, reply) => {
-  return { hello: 'world' }
-})
+const server = require('./app')({ logger: { prettyPrint: true } });
 
-// Run the server!
 const start = async () => {
   try {
-    await fastify.listen(3000)
+    await server.listen(3000);
+    await mongoUtil.client.connect();
+    server.log.info('Connected to the server!');
   } catch (err) {
-    fastify.log.error(err)
-    process.exit(1)
+    server.log.error(err);
+    process.exit(1);
   }
-}
-start()
+};
+start();
