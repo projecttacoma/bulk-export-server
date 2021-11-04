@@ -12,7 +12,7 @@ const exportToNDJson = async (clientId, request) => {
     requestTypes.foreach(type => {
       dirpath = dirpath + type.toString();
       let collections = db.collection(type);
-      const filename = dirpath +'/'+ type + clientId + '.ndjson';
+      const filename = dirpath + '/' + type + clientId + '.ndjson';
       collections.foreach(function (doc) {
         let result = JSON.parse(JSON.stringify(doc));
         fs.appendFileSync(dirpath, (++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
@@ -26,7 +26,7 @@ const exportToNDJson = async (clientId, request) => {
       dirpath = dirpath + resourceType.toString();
       await fs.promises.mkdir(dirpath, { recursive: true });
       let collections = db.collection(resourceType);
-      const filename = dirpath  +'/'+ resourceType + clientId + '.ndjson';
+      const filename = dirpath + '/' + resourceType + clientId + '.ndjson';
       collections.foreach(function (myResource) {
         fs.appendFileSync(
           dirpath,
