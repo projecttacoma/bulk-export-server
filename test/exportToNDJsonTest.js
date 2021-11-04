@@ -1,5 +1,4 @@
 const build = require('../src/server/app');
-const { assert } = require('console');
 const { exportToNDJson } = '../src/util/exportToNDJson';
 const {createTestResource, cleanUpDb} = './populateTestData';
 const testPatient = require('./fixtures/testPatient.json');
