@@ -11,7 +11,7 @@ const fs = require('fs');
 const exportToNDJson = async (clientId, request) => {
   let dirpath = './tmp/';
   await fs.promises.mkdir(dirpath, { recursive: true });
-  let requestTypes; 
+  let requestTypes;
   if (request.query._type) {
     requestTypes = request.query._type.split(','); //this is the list types to export
   } else {
