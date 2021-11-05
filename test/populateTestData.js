@@ -20,4 +20,4 @@ const bulkStatusSetup = async () => {
   });
   await Promise.all(promises);
 };
-module.exports = { bulkStatusSetup, cleanUpDb };
+module.exports = { bulkStatusSetup, cleanUpDb, createTestResource };
