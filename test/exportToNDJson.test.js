@@ -1,6 +1,6 @@
 const build = require('../src/server/app');
 const { exportToNDJson } = '../src/util/exportToNDJson';
-const { createTestResource, cleanUpDb } = require('./populateTestData');
+const { cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
 const testPatient = require('./fixtures/testPatient.json');
 const app = build();
 const fs = require('fs');
@@ -18,7 +18,7 @@ const clientId = '123456';
 const expectedFileName = './tmp/Patient/patient123456.ndjson';
 describe('check export logic', () => {
   beforeAll(async () => {
-    await createTestResource(testPatient, 'Patient');
+    await createTestResourceWithConnect(testPatient, 'Patient');
   });
 
   beforeEach(async () => {

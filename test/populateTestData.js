@@ -20,4 +20,11 @@ const bulkStatusSetup = async () => {
   });
   await Promise.all(promises);
 };
-module.exports = { bulkStatusSetup, cleanUpDb, createTestResource };
+
+const createTestResourceWithConnect = async (data, resourceType) => {
+  await client.connect();
+  const collection = db.collection(resourceType);
+  await collection.insertOne(data);
+  return { id: data.id };
+};
+module.exports = { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect };
