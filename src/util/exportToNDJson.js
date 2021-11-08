@@ -35,10 +35,15 @@ const getDocuments = function (db, collectionName, writeToFile) {
 
 const writeToFile = function (result, collectionName) {
   let dirpath = './tmp/';
-  dirpath = dirpath + collectionName.toString();
-  const filename = dirpath + '/' + collectionName /*+ clientId */ + '.ndjson';
+  //dirpath = dirpath + collectionName.toString();
+  fs.promises.mkdir(dirpath, { recursive: true });
+  const filename = dirpath + '/' + collectionName.split(',') /*+ clientId */ + '.ndjson';
   console.log('file name should be:' + filename);
   let lineCount = 0;
+  fs.open(filename, 'w', function (err, filename) {
+    if (err) throw err;
+    console.log('File is opened in write mode.');
+  });
   var stream = fs.createWriteStream(filename, {flags:'a'});
   result.forEach(function (doc) {
     let result = JSON.parse(JSON.stringify(doc));
