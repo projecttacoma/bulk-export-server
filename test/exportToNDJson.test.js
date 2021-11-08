@@ -1,5 +1,5 @@
 const build = require('../src/server/app');
-const { exportToNDJson } = '../src/util/exportToNDJson';
+const { exportToNDJson } = require('../src/util/exportToNDJson');
 const { cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
 const testPatient = require('./fixtures/testPatient.json');
 const app = build();
@@ -15,10 +15,13 @@ const mockRequestWithoutType = {
 };
 const clientId = '123456';
 //= ./tmp/ + type.toString(); + resourceType + clientId + '.ndjson';
-const expectedFileName = './tmp/Patient/patient123456.ndjson';
+//const expectedFileName = './tmp/Patient/patient123456.ndjson';
+
+const expectedFileName = './tmp/Patient/patient.ndjson';
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
+    console.log('created test resource');
   });
 
   beforeEach(async () => {

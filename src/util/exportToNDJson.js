@@ -11,25 +11,39 @@ const fs = require('fs');
 const exportToNDJson = async (clientId, request) => {
   let dirpath = './tmp/';
   await fs.promises.mkdir(dirpath, { recursive: true });
-  let requestTypes;
+  let requestTypes = [];
   if (request.query._type) {
     requestTypes = request.query._type.split(','); //this is the list types to export
   } else {
     //create list of requested types if request.query._type param doesn't exist
     requestTypes.push(supportedResources);
   }
-
-  let lineCount = 0;
-  requestTypes.foreach(type => {
-    dirpath = dirpath + type.toString();
-    let collections = db.collection(type);
-    const filename = dirpath + '/' + type + clientId + '.ndjson';
-    collections.foreach(function (doc) {
-      let result = JSON.parse(JSON.stringify(doc));
-      fs.appendFileSync(dirpath, (++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
-    });
-    fs.writeFileSync(filename);
+  requestTypes.forEach(element => {
+    getDocuments(db, element, writeToFile);
   });
+};
+
+const getDocuments = function (db, collectionName, writeToFile) {
+  const query = {};
+  db.collection(collectionName.toString())
+    .find(query)
+    .toArray(function (err, result) {
+      if (err) throw err;
+      writeToFile(result, collectionName);
+    });
+};
+
+const writeToFile = function (result, collectionName) {
+  let dirpath = './tmp/';
+  dirpath = dirpath + collectionName.toString();
+  const filename = dirpath + '/' + collectionName /*+ clientId */ + '.ndjson';
+  console.log('file name should be:' + filename);
+  let lineCount = 0;
+  result.forEach(function (doc) {
+    let result = JSON.parse(JSON.stringify(doc));
+    fs.appendFileSync(filename, (++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
+  });
+  fs.closeSync(filename);
 };
 
 module.exports = { exportToNDJson };
