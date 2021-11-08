@@ -39,11 +39,12 @@ const writeToFile = function (result, collectionName) {
   const filename = dirpath + '/' + collectionName /*+ clientId */ + '.ndjson';
   console.log('file name should be:' + filename);
   let lineCount = 0;
+  var stream = fs.createWriteStream(filename, {flags:'a'});
   result.forEach(function (doc) {
     let result = JSON.parse(JSON.stringify(doc));
-    fs.appendFileSync(filename, (++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
+    stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
   });
-  fs.closeSync(filename);
+  stream.end();
 };
 
 module.exports = { exportToNDJson };
