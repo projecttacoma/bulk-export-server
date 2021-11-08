@@ -1,6 +1,6 @@
 const build = require('../src/server/app');
 const { exportToNDJson } = '../src/util/exportToNDJson';
-const { createTestResource, cleanUpDb } = './populateTestData';
+const { createTestResource, cleanUpDb } = require('./populateTestData');
 const testPatient = require('./fixtures/testPatient.json');
 const app = build();
 const fs = require('fs');
