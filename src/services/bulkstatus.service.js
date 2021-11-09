@@ -1,5 +1,5 @@
 const { getBulkExportStatus, BULKSTATUS_COMPLETED, BULKSTATUS_INPROGRESS } = require('../util/mongo.controller');
-
+const fs = require('fs');
 /**
  * Checks the status of the bulk export request.
  * @param {*} request the request object passed in by the user
@@ -17,15 +17,12 @@ async function checkBulkStatus(request, reply) {
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     //TODO: Fill all this in with actual response data. Example data for now.
+    const responseData = await getNDJsonURLs(reply, clientId);
     reply.send({
-      transactionTime: '2021-01-01T00:00:00Z',
+      transactionTime: new Date(), //'2021-01-01T00:00:00Z',
       requiresAccessToken: true,
-      outcome: [
-        {
-          type: 'OperationOutcome',
-          url: 'https://example.com/output/info_file_1.ndjson'
-        }
-      ],
+      outcome: responseData,
+      // do we need this / should we change this?
       extension: { 'https://example.com/extra-property': true }
     });
   } else {
@@ -33,6 +30,31 @@ async function checkBulkStatus(request, reply) {
       new Error(bulkStatus.error.message || `An unknown error occurred during bulk export with id: ${clientId}`)
     );
   }
+}
+
+/**
+ * Gathers the ndjson URLs for all the desired resources for
+ * the specified clientId.
+ * @param {string} clientId client Id from request params
+ * @param {*} reply the response object
+ * @returns object of all the types and corresponding URLs to
+ * the ndjson content
+ */
+async function getNDJsonURLs(reply, clientId) {
+  let files;
+  try {
+    files = fs.readdirSync(`tmp/${clientId}`);
+  } catch (e) {
+    reply.send(
+      new Error(e.message || `An error occurred when trying to retrieve files from the ${clientId} directory`)
+    );
+  }
+  const output = [];
+  files.forEach(file => {
+    const entry = { type: file, url: `http://${process.env.DB_HOST}:3000/${clientId}/${file}` };
+    output.push(entry);
+  });
+  return output;
 }
 
 module.exports = { checkBulkStatus };

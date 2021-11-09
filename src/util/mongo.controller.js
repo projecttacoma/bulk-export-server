@@ -120,6 +120,15 @@ const getBulkExportStatus = async clientId => {
   return status;
 };
 
+/**
+ * Wrapper for the updateResource function that updates the bulk status
+ * @param {*} clientId The id signifying the bulk status request
+ * @param {*} newStatus
+ */
+const updateBulkExportStatus = async (clientId, newStatus) => {
+  updateResource(clientId, { status: newStatus }, 'bulkExportStatuses');
+};
+
 module.exports = {
   findResourcesWithQuery,
   findResourceById,
@@ -128,6 +137,7 @@ module.exports = {
   removeResource,
   updateResource,
   getBulkExportStatus,
+  updateBulkExportStatus,
   findResourcesWithAggregation,
   addPendingBulkExportRequest,
   BULKSTATUS_INPROGRESS,
