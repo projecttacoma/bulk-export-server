@@ -26,11 +26,11 @@ describe('check export logic', () => {
     await app.ready();
   });
 
-  test('Expect folder created and export successful  when _type  parameter is present', async () => {
+  test('Expect folder created and export successful when _type  parameter is present', async () => {
     await exportToNDJson(clientId, mockRequestWithType);
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });
-  test('Expect folder created and export successful  when _type  parameter is  not present', async () => {
+  test('Expect folder created and export successful when _type  parameter is not present', async () => {
     await exportToNDJson(clientId, mockRequestWithoutType);
 
     expect(fs.existsSync(expectedFileName)).toBe(true);
