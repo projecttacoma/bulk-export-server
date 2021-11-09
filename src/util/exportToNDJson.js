@@ -37,14 +37,14 @@ const getDocuments = async (db, collectionName) => {
 
 const writeToFile = async (doc, type, clientId) => {
   let dirpath = './tmp/' + clientId;
-  fs.promises.mkdir(dirpath, { recursive: true });
+  fs.mkdirSync(dirpath, { recursive: true });
   const filename = path.join(dirpath, `${type}.ndjson`);
 
   let lineCount = 0;
+  fs.writeFileSync(filename, '');
   fs.open(filename, 'w', function (err) {
     if (err) throw err;
   });
-  fs.writeFileSync(filename, '');
 
   if (doc) {
     doc.forEach(function (doc) {
