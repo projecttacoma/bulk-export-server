@@ -38,15 +38,15 @@ const writeToFile = function (result, collectionName) {
   //dirpath = dirpath + collectionName.toString();
   fs.promises.mkdir(dirpath, { recursive: true });
   //const filename = dirpath + '/' + collectionName.split(',') /*+ clientId */ + '.ndjson';
-  const filename =  collectionName.split(',') /*+ clientId */ + '.ndjson';
-  
+  const filename = collectionName.split(',') /*+ clientId */ + '.ndjson';
+
   console.log('file name should be:' + filename);
   let lineCount = 0;
   fs.open(filename, 'w', function (err) {
     if (err) throw err;
     console.log('File is opened in write mode.');
   });
-  var stream = fs.createWriteStream(filename, {flags:'a'});
+  var stream = fs.createWriteStream(filename, { flags: 'a' });
   result.forEach(function (doc) {
     let result = JSON.parse(JSON.stringify(doc));
     stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
