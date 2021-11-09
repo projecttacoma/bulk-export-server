@@ -13,11 +13,9 @@ const mockRequestWithoutType = {
   id: 'mockRequestWithoutType',
   query: {}
 };
-const clientId = '123456';
-//= ./tmp/ + type.toString(); + resourceType + clientId + '.ndjson';
-//const expectedFileName = './tmp/Patient/patient123456.ndjson';
 
-const expectedFileName = 'patient.ndjson';
+const expectedFileName = './tmp/patient123456.ndjson';
+const clientId = '123456';
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
@@ -29,11 +27,11 @@ describe('check export logic', () => {
   });
 
   test('Expect folder created and export successful  when _type  parameter is present', async () => {
-    exportToNDJson(clientId, mockRequestWithType);
+    await exportToNDJson(clientId, mockRequestWithType);
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });
   test('Expect folder created and export successful  when _type  parameter is  not present', async () => {
-    exportToNDJson(clientId, mockRequestWithoutType);
+    await exportToNDJson(clientId, mockRequestWithoutType);
 
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });

@@ -1,12 +1,13 @@
 const { db } = require('./mongo');
 const supportedResources = require('../util/supportedResources');
 const fs = require('fs');
+const { type } = require('os');
 
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
- * if the _type member doesn't exist it willl simply export everything included in the supportedResources list
+ * if the _type member doesn't exist it will simply export everything included in the supportedResources list
  * @param {Object} request http request object
- * @param {*} clientId the response object
+ * @param {*} clientId  an id to add to the file name so the client making the request can be tracked
  */
 const exportToNDJson = async (clientId, request) => {
   let dirpath = './tmp/';
@@ -18,36 +19,34 @@ const exportToNDJson = async (clientId, request) => {
     //create list of requested types if request.query._type param doesn't exist
     requestTypes.push(supportedResources);
   }
-  requestTypes.forEach(element => {
-    getDocuments(db, element, writeToFile);
+  let docs = requestTypes.map(async element => {
+    return getDocuments(db, element);
   });
+  docs = await Promise.all(docs);
+  let p = docs.map(async doc => {
+    let type = requestTypes.pop();
+    return writeToFile(doc.doc, doc.collectionName, clientId);
+  });
+  await Promise.all(requestTypes);
 };
 
-const getDocuments = function (db, collectionName, writeToFile) {
+const getDocuments = async (db, collectionName) => {
   const query = {};
-  db.collection(collectionName.toString())
-    .find(query)
-    .toArray(function (err, result) {
-      if (err) throw err;
-      writeToFile(result, collectionName);
-    });
+  let doc =  await db.collection(collectionName.toString()).find(query).toArray();
+   return {document: doc, collectionName: collectionName.toString()};
 };
 
-const writeToFile = function (result, collectionName) {
+const writeToFile = async (doc, type, clientId) => {
   let dirpath = './tmp/';
-  //dirpath = dirpath + collectionName.toString();
   fs.promises.mkdir(dirpath, { recursive: true });
-  //const filename = dirpath + '/' + collectionName.split(',') /*+ clientId */ + '.ndjson';
-  const filename = collectionName.split(',') /*+ clientId */ + '.ndjson';
+  let filename = dirpath + type + clientId + '.ndjson';
 
-  console.log('file name should be:' + filename);
   let lineCount = 0;
   fs.open(filename, 'w', function (err) {
     if (err) throw err;
-    console.log('File is opened in write mode.');
   });
   var stream = fs.createWriteStream(filename, { flags: 'a' });
-  result.forEach(function (doc) {
+  doc.forEach(function (doc) {
     let result = JSON.parse(JSON.stringify(doc));
     stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
   });
