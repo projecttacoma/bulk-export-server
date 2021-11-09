@@ -14,7 +14,7 @@ const mockRequestWithoutType = {
   query: {}
 };
 
-const expectedFileName = './tmp/patient123456.ndjson';
+const expectedFileName = './tmp/123456/patient.ndjson';
 const clientId = '123456';
 describe('check export logic', () => {
   beforeAll(async () => {
