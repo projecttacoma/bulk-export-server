@@ -23,10 +23,10 @@ const exportToNDJson = async (clientId, request) => {
     return getDocuments(db, element);
   });
   docs = await Promise.all(docs);
-  let p = docs.map(async doc => {
+  docs.forEach(async doc => {
     return writeToFile(doc.document, doc.collectionName, clientId);
   });
-  await Promise.all(p);
+
 };
 
 const getDocuments = async (db, collectionName) => {
@@ -35,15 +35,12 @@ const getDocuments = async (db, collectionName) => {
   return { document: doc, collectionName: collectionName.toString() };
 };
 
-const writeToFile = async (doc, type, clientId) => {
+const writeToFile = function (doc, type, clientId)  {
   let dirpath = './tmp/' + clientId;
   fs.mkdirSync(dirpath, { recursive: true });
   const filename = path.join(dirpath, `${type}.ndjson`);
 
   let lineCount = 0;
-  fs.open(filename, 'w', function (err) {
-    if (err) throw err;
-  });
 
   if (Object.keys(doc).length > 0) {
     doc.forEach(function (doc) {
