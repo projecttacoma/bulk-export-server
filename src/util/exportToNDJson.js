@@ -42,7 +42,7 @@ const writeToFile = function (result, collectionName) {
   
   console.log('file name should be:' + filename);
   let lineCount = 0;
-  fs.open(filename, 'w', function (err, filename) {
+  fs.open(filename, 'w', function (err) {
     if (err) throw err;
     console.log('File is opened in write mode.');
   });
