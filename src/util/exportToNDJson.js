@@ -51,8 +51,6 @@ const writeToFile = async (doc, type, clientId) => {
       stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
       stream.end();
     });
-
-   
   } else return;
 };
 
