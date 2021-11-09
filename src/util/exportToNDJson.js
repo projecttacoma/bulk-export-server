@@ -41,7 +41,6 @@ const writeToFile = async (doc, type, clientId) => {
   const filename = path.join(dirpath, `${type}.ndjson`);
 
   let lineCount = 0;
-  fs.writeFileSync(filename, '');
   fs.open(filename, 'w', function (err) {
     if (err) throw err;
   });
@@ -49,8 +48,7 @@ const writeToFile = async (doc, type, clientId) => {
   if (Object.keys(doc).length > 0) {
     doc.forEach(function (doc) {
       const stream = fs.createWriteStream(filename, { flags: 'a' });
-      const result = JSON.parse(JSON.stringify(doc));
-      stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
+      stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(doc));
       stream.end();
     });
   } else return;
