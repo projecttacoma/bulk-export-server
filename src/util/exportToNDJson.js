@@ -46,7 +46,7 @@ const writeToFile = async (doc, type, clientId) => {
     if (err) throw err;
   });
 
-  if (doc) {
+  if (Object.keys(doc).length > 0) {
     doc.forEach(function (doc) {
       const stream = fs.createWriteStream(filename, { flags: 'a' });
 
