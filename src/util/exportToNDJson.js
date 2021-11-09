@@ -48,11 +48,8 @@ const writeToFile = async (doc, type, clientId) => {
 
   if (Object.keys(doc).length > 0) {
     doc.forEach(function (doc) {
-      const stream = fs.createWriteStream(filename, { flags: 'a' });
-
       const result = JSON.parse(JSON.stringify(doc));
-      stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
-      stream.end();
+      fs.appendFileSync(filename, (++lineCount === 1 ? '' : '\r\n') + JSON.stringify(result));
     });
   } else return;
 };
