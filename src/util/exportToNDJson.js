@@ -37,7 +37,9 @@ const writeToFile = function (result, collectionName) {
   let dirpath = './tmp/';
   //dirpath = dirpath + collectionName.toString();
   fs.promises.mkdir(dirpath, { recursive: true });
-  const filename = dirpath + '/' + collectionName.split(',') /*+ clientId */ + '.ndjson';
+  //const filename = dirpath + '/' + collectionName.split(',') /*+ clientId */ + '.ndjson';
+  const filename =  collectionName.split(',') /*+ clientId */ + '.ndjson';
+  
   console.log('file name should be:' + filename);
   let lineCount = 0;
   fs.open(filename, 'w', function (err, filename) {

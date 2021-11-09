@@ -17,7 +17,7 @@ const clientId = '123456';
 //= ./tmp/ + type.toString(); + resourceType + clientId + '.ndjson';
 //const expectedFileName = './tmp/Patient/patient123456.ndjson';
 
-const expectedFileName = './tmp/Patient/patient.ndjson';
+const expectedFileName = 'patient.ndjson';
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
