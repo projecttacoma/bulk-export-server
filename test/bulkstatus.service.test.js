@@ -1,9 +1,12 @@
-const { bulkStatusSetup, cleanUpDb } = require('./populateTestData');
+const { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
+const testPatient = require('./fixtures/testPatient.json');
 
-describe('checkBulkStatus logic', () => {
+describe.only('checkBulkStatus logic', () => {
+  const clientId = '123456';
+
   beforeAll(bulkStatusSetup);
 
   beforeEach(async () => {
@@ -19,13 +22,18 @@ describe('checkBulkStatus logic', () => {
       });
   });
   test('check 200 returned for completed request', async () => {
+    await createTestResourceWithConnect(testPatient, 'Patient');
     await supertest(app.server)
-      .get('/bulkstatus/COMPLETED_REQUEST')
+      .get(`/bulkstatus/${clientId}`)
       .expect(200)
       .then(response => {
         expect(response.headers.expires).toBeDefined();
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(response.body).toBeDefined();
+        expect(response.body).toEqual({
+          outcome: [{ type: 'Patient.ndjson', url: 'http://localhost:3000/123456/Patient.ndjson' }],
+          requiresAccessToken: true,
+          transactionTime: '2021-01-01T00:00:00Z'
+        });
       });
   });
   test('check 500 and error returned for failed request with known error', async () => {

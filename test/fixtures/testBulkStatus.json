@@ -18,5 +18,10 @@
     "id": "UNKNOWN_ERROR_REQUEST",
     "status": "Error",
     "error": { "code": null, "message": null }
+  },
+  {
+    "id": "123456",
+    "status": "Completed",
+    "error": { "code": null, "message": null }
   }
 ]
