@@ -16,14 +16,11 @@ async function checkBulkStatus(request, reply) {
     reply.code(202).header('X-Progress', 'Exporting files').header('Retry-After', 120).send();
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
-    //TODO: Fill all this in with actual response data. Example data for now.
     const responseData = await getNDJsonURLs(reply, clientId);
     reply.send({
-      transactionTime: new Date(), //'2021-01-01T00:00:00Z',
+      transactionTime: '2021-01-01T00:00:00Z',
       requiresAccessToken: true,
-      outcome: responseData,
-      // do we need this / should we change this?
-      extension: { 'https://example.com/extra-property': true }
+      outcome: responseData
     });
   } else {
     reply.send(

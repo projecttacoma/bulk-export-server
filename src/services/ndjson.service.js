@@ -10,11 +10,15 @@ const returnNDJsonContent = async (request, reply) => {
   request.log.info('Base >>> return NDJSON');
   const clientId = request.params.clientId;
   const url = request.params.fileName;
-  const readStream = fs.createReadStream(`tmp/${clientId}/${url}`);
-
-  readStream.on('data', function (text) {
-    reply.send(text);
-  });
+  const filePath = `tmp/${clientId}/${url}`;
+  if (fs.existsSync(filePath)) {
+    const readStream = fs.createReadStream(`tmp/${clientId}/${url}`);
+    readStream.on('data', function (text) {
+      reply.header('Content-type', 'application/ndjson+fhir').send(text);
+    });
+  } else {
+    reply.code(404).send(new Error(`The following file path was not found: ${filePath}`));
+  }
 };
 
 module.exports = { returnNDJsonContent };
