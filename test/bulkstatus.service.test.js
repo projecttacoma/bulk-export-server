@@ -4,7 +4,7 @@ const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
 
-describe.only('checkBulkStatus logic', () => {
+describe('checkBulkStatus logic', () => {
   const clientId = '123456';
 
   beforeAll(bulkStatusSetup);
