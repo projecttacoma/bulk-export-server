@@ -8,6 +8,9 @@ describe('checkBulkStatus logic', () => {
   const clientId = '123456';
 
   beforeAll(bulkStatusSetup);
+  beforeAll(async () => {
+    await createTestResourceWithConnect(testPatient, 'Patient');
+  });
 
   beforeEach(async () => {
     await app.ready();
@@ -22,7 +25,6 @@ describe('checkBulkStatus logic', () => {
       });
   });
   test('check 200 returned for completed request', async () => {
-    await createTestResourceWithConnect(testPatient, 'Patient');
     await supertest(app.server)
       .get(`/bulkstatus/${clientId}`)
       .expect(200)
