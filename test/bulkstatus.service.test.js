@@ -9,7 +9,7 @@ describe('checkBulkStatus logic', () => {
 
   beforeAll(async () => {
     await bulkStatusSetup();
-    fs.mkdirSync(`tmp/${clientId}`);
+    fs.mkdirSync(`tmp/${clientId}`, { recursive: true });
     // create blank file and wrap in fs.closeSync
     // to avoid file descriptor return
     fs.closeSync(fs.openSync(`tmp/${clientId}/Patient.ndjson`, 'w'));
