@@ -11,7 +11,6 @@ const bulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
-    console.log('about to export');
     await exportToNDJson(clientEntry, request, reply);
     reply.code(202).header('Content-location', `/bulkstatus/${clientEntry}`).send();
   }
