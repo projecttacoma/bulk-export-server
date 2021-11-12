@@ -7,7 +7,9 @@ const testPatient = require('./fixtures/testPatient.json');
 describe('Test ndjson retrieval from specified url', () => {
   const clientId = '123456';
 
-  beforeAll(bulkStatusSetup);
+  beforeAll(async () => {
+    await bulkStatusSetup();
+  });
 
   beforeEach(async () => {
     await app.ready();
@@ -34,5 +36,7 @@ describe('Test ndjson retrieval from specified url', () => {
       });
   });
 
-  afterAll(cleanUpDb);
+  afterAll(async () => {
+    await cleanUpDb();
+  });
 });

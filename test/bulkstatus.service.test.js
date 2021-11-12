@@ -3,12 +3,16 @@ const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
-
+const fs = require('fs');
 describe('checkBulkStatus logic', () => {
-  const clientId = '123456';
+  const clientId = 'testClient';
 
   beforeAll(async () => {
     await bulkStatusSetup();
+    fs.mkdirSync(`tmp/${clientId}`);
+    // create blank file and wrap in fs.closeSync
+    // to avoid file descriptor return
+    fs.closeSync(fs.openSync(`tmp/${clientId}/Patient.ndjson`, 'w'));
   });
 
   beforeEach(async () => {
@@ -32,7 +36,7 @@ describe('checkBulkStatus logic', () => {
         expect(response.headers.expires).toBeDefined();
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
         expect(response.body).toEqual({
-          outcome: [{ type: 'Patient.ndjson', url: 'http://localhost:3000/123456/Patient.ndjson' }],
+          outcome: [{ type: 'Patient.ndjson', url: 'http://localhost:3000/testClient/Patient.ndjson' }],
           requiresAccessToken: true,
           transactionTime: '2021-01-01T00:00:00Z'
         });
@@ -69,5 +73,6 @@ describe('checkBulkStatus logic', () => {
 
   afterAll(async () => {
     await cleanUpDb();
+    fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
   });
 });

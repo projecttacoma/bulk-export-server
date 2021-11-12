@@ -1,13 +1,12 @@
-const { client } = require('../src/util/mongo');
+const { bulkStatusSetup, cleanUpDb } = require('./populateTestData');
 const { db } = require('../src/util/mongo');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
 describe('Check barebones bulk export logic', () => {
   beforeEach(async () => {
-    await client.connect();
+    await bulkStatusSetup();
     await app.ready();
-    await db.createCollection('bulkExportStatuses');
   });
   test('check 202 returned and content-location populated', async () => {
     await supertest(app.server)
@@ -71,7 +70,6 @@ describe('Check barebones bulk export logic', () => {
   });
 
   afterEach(async () => {
-    await db.dropDatabase();
-    await client.close();
+    await cleanUpDb();
   });
 });
