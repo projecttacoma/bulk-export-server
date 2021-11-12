@@ -7,7 +7,9 @@ const testPatient = require('./fixtures/testPatient.json');
 describe('checkBulkStatus logic', () => {
   const clientId = '123456';
 
-  beforeAll(bulkStatusSetup);
+  beforeAll(async () => {
+    bulkStatusSetup;
+  });
 
   beforeEach(async () => {
     await app.ready();
@@ -65,5 +67,7 @@ describe('checkBulkStatus logic', () => {
       });
   });
 
-  afterAll(cleanUpDb);
+  afterAll(async () => {
+    cleanUpDb;
+  });
 });
