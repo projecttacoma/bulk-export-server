@@ -1,4 +1,4 @@
-const { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
+const { bulkStatusSetup, cleanUpDb, createTestResource } = require('./populateTestData');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
@@ -8,9 +8,6 @@ describe('checkBulkStatus logic', () => {
   const clientId = '123456';
 
   beforeAll(bulkStatusSetup);
-  beforeAll(async () => {
-    await createTestResourceWithConnect(testPatient, 'Patient');
-  });
 
   beforeEach(async () => {
     await app.ready();
@@ -25,6 +22,7 @@ describe('checkBulkStatus logic', () => {
       });
   });
   test('check 200 returned for completed request', async () => {
+    await createTestResource(testPatient, 'Patient');
     await supertest(app.server)
       .get(`/bulkstatus/${clientId}`)
       .expect(200)

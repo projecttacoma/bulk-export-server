@@ -27,4 +27,4 @@ const createTestResourceWithConnect = async (data, resourceType) => {
   await collection.insertOne(data);
   return { id: data.id };
 };
-module.exports = { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect };
+module.exports = { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect, createTestResource };
