@@ -8,7 +8,7 @@ describe('checkBulkStatus logic', () => {
   const clientId = '123456';
 
   beforeAll(async () => {
-    bulkStatusSetup;
+    await bulkStatusSetup();
   });
 
   beforeEach(async () => {
@@ -68,6 +68,6 @@ describe('checkBulkStatus logic', () => {
   });
 
   afterAll(async () => {
-    cleanUpDb;
+    await cleanUpDb();
   });
 });
