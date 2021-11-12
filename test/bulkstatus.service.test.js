@@ -35,11 +35,9 @@ describe('checkBulkStatus logic', () => {
       .then(response => {
         expect(response.headers.expires).toBeDefined();
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(response.body).toEqual({
-          outcome: [{ type: 'Patient.ndjson', url: 'http://localhost:3000/testClient/Patient.ndjson' }],
-          requiresAccessToken: true,
-          transactionTime: '2021-01-01T00:00:00Z'
-        });
+        expect(response.body.outcome).toEqual([
+          { type: 'Patient.ndjson', url: 'http://localhost:3000/testClient/Patient.ndjson' }
+        ]);
       });
   });
   test('check 500 and error returned for failed request with known error', async () => {

@@ -1,9 +1,5 @@
 const { exportToNDJson } = require('../util/exportToNDJson');
-const {
-  addPendingBulkExportRequest,
-  updateBulkExportStatus,
-  BULKSTATUS_COMPLETED
-} = require('../util/mongo.controller');
+const { addPendingBulkExportRequest } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources');
 
 /**
@@ -15,9 +11,9 @@ const bulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
-    exportToNDJson(clientEntry, request);
+    console.log('about to export');
+    await exportToNDJson(clientEntry, request, reply);
     reply.code(202).header('Content-location', `/bulkstatus/${clientEntry}`).send();
-    updateBulkExportStatus(clientEntry, BULKSTATUS_COMPLETED);
   }
 };
 

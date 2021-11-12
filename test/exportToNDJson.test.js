@@ -19,6 +19,7 @@ const clientId = '123456';
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
+    //await createTestResourceWithConnect(clientId, 'bulkExportStatuses');
     console.log('created test resource');
   });
 

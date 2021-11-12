@@ -126,7 +126,7 @@ const getBulkExportStatus = async clientId => {
  * @param {*} newStatus
  */
 const updateBulkExportStatus = async (clientId, newStatus) => {
-  updateResource(clientId, { status: newStatus }, 'bulkExportStatuses');
+  await updateResource(clientId, { status: newStatus }, 'bulkExportStatuses');
 };
 
 module.exports = {

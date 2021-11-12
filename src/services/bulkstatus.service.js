@@ -18,8 +18,8 @@ async function checkBulkStatus(request, reply) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
     reply.send({
-      transactionTime: '2021-01-01T00:00:00Z',
-      requiresAccessToken: true,
+      transactionTime: new Date(),
+      requiresAccessToken: false,
       outcome: responseData
     });
   } else {
@@ -48,7 +48,7 @@ async function getNDJsonURLs(reply, clientId) {
   }
   const output = [];
   files.forEach(file => {
-    const entry = { type: file, url: `http://${process.env.DB_HOST}:3000/${clientId}/${file}` };
+    const entry = { type: file, url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/${file}` };
     output.push(entry);
   });
   return output;
