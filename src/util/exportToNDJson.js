@@ -1,13 +1,14 @@
 const { db } = require('./mongo');
-const supportedResources = require('../util/supportedResources');
+const supportedResources = require('./supportedResources');
 const fs = require('fs');
 const path = require('path');
+const { updateBulkExportStatus, BULKSTATUS_COMPLETED } = require('./mongo.controller');
 
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
  * if the _type member doesn't exist it will simply export everything included in the supportedResources list
+ * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Object} request http request object
- * @param {*} clientId  an id to add to the file name so the client making the request can be tracked
  */
 const exportToNDJson = async (clientId, request) => {
   let dirpath = './tmp/';
@@ -26,6 +27,8 @@ const exportToNDJson = async (clientId, request) => {
   docs.forEach(doc => {
     writeToFile(doc.document, doc.collectionName, clientId);
   });
+  // mark bulk status job as complete after all files have been written
+  await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
 };
 
 const getDocuments = async (db, collectionName) => {

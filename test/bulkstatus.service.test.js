@@ -1,10 +1,19 @@
-const { bulkStatusSetup, cleanUpDb } = require('./populateTestData');
+const { bulkStatusSetup, cleanUpDb, createTestResource } = require('./populateTestData');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
-
+const testPatient = require('./fixtures/testPatient.json');
+const fs = require('fs');
 describe('checkBulkStatus logic', () => {
-  beforeAll(bulkStatusSetup);
+  const clientId = 'testClient';
+
+  beforeAll(async () => {
+    await bulkStatusSetup();
+    fs.mkdirSync(`tmp/${clientId}`, { recursive: true });
+    // create blank file and wrap in fs.closeSync
+    // to avoid file descriptor return
+    fs.closeSync(fs.openSync(`tmp/${clientId}/Patient.ndjson`, 'w'));
+  });
 
   beforeEach(async () => {
     await app.ready();
@@ -19,13 +28,16 @@ describe('checkBulkStatus logic', () => {
       });
   });
   test('check 200 returned for completed request', async () => {
+    await createTestResource(testPatient, 'Patient');
     await supertest(app.server)
-      .get('/bulkstatus/COMPLETED_REQUEST')
+      .get(`/bulkstatus/${clientId}`)
       .expect(200)
       .then(response => {
         expect(response.headers.expires).toBeDefined();
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(response.body).toBeDefined();
+        expect(response.body.outcome).toEqual([
+          { type: 'Patient.ndjson', url: `http://localhost:3000/${clientId}/Patient.ndjson` }
+        ]);
       });
   });
   test('check 500 and error returned for failed request with known error', async () => {
@@ -57,5 +69,8 @@ describe('checkBulkStatus logic', () => {
       });
   });
 
-  afterAll(cleanUpDb);
+  afterAll(async () => {
+    await cleanUpDb();
+    fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
+  });
 });
