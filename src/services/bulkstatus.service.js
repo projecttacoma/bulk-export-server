@@ -1,5 +1,7 @@
 const { getBulkExportStatus, BULKSTATUS_COMPLETED, BULKSTATUS_INPROGRESS } = require('../util/mongo.controller');
 const fs = require('fs');
+const path = require('path');
+
 /**
  * Checks the status of the bulk export request.
  * @param {*} request the request object passed in by the user
@@ -48,7 +50,10 @@ async function getNDJsonURLs(reply, clientId) {
   }
   const output = [];
   files.forEach(file => {
-    const entry = { type: file, url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/${file}` };
+    const entry = {
+      type: path.basename(file, '.ndjson'),
+      url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/${file}`
+    };
     output.push(entry);
   });
   return output;

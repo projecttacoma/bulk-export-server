@@ -36,7 +36,7 @@ describe('checkBulkStatus logic', () => {
         expect(response.headers.expires).toBeDefined();
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
         expect(response.body.outcome).toEqual([
-          { type: 'Patient.ndjson', url: `http://localhost:3000/${clientId}/Patient.ndjson` }
+          { type: 'Patient', url: `http://localhost:3000/${clientId}/Patient.ndjson` }
         ]);
       });
   });
