@@ -1,5 +1,6 @@
 const { exportToNDJson } = require('../util/exportToNDJson');
-const { addPendingBulkExportRequest } = require('../util/mongo.controller');
+const { addPendingBulkExportRequest, updateBulkExportStatus } = require('../util/mongo.controller');
+const { createOperationOutcome } = require('../util/errorUtils');
 const supportedResources = require('../util/supportedResources');
 
 /**

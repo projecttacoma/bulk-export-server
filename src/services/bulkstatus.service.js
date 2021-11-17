@@ -1,6 +1,7 @@
 const { getBulkExportStatus, BULKSTATUS_COMPLETED, BULKSTATUS_INPROGRESS } = require('../util/mongo.controller');
 const fs = require('fs');
 const path = require('path');
+const { createOperationOutcome } = require('../util/errorUtils');
 
 /**
  * Checks the status of the bulk export request.
@@ -10,7 +11,7 @@ const path = require('path');
 async function checkBulkStatus(request, reply) {
   const clientId = request.params.clientId;
   const bulkStatus = await getBulkExportStatus(clientId);
-
+  console.log(bulkStatus);
   if (!bulkStatus) {
     reply.code(404).send(new Error(`Could not find bulk export request with id: ${clientId}`));
   }
@@ -22,12 +23,26 @@ async function checkBulkStatus(request, reply) {
     reply.send({
       transactionTime: new Date(),
       requiresAccessToken: false,
-      outcome: responseData
+      outcome: responseData,
+      ...(bulkStatus.error.length() === 0
+        ? undefined
+        : {
+            error: [
+              {
+                type: 'OperationOutcome',
+                url: ''
+              }
+            ]
+          })
     });
   } else {
-    reply.send(
-      new Error(bulkStatus.error.message || `An unknown error occurred during bulk export with id: ${clientId}`)
-    );
+    reply
+      .code(500)
+      .send(
+        createOperationOutcome(
+          bulkStatus.error.message || `An unknown error occurred during bulk export with id: ${clientId}`
+        )
+      );
   }
 }
 
@@ -44,17 +59,23 @@ async function getNDJsonURLs(reply, clientId) {
   try {
     files = fs.readdirSync(`tmp/${clientId}`);
   } catch (e) {
-    reply.send(
-      new Error(e.message || `An error occurred when trying to retrieve files from the ${clientId} directory`)
-    );
+    reply
+      .code(500)
+      .send(
+        createOperationOutcome(
+          message || `An error occurred when trying to retrieve files from the ${clientId} directory`
+        )
+      );
   }
   const output = [];
   files.forEach(file => {
-    const entry = {
-      type: path.basename(file, '.ndjson'),
-      url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/${file}`
-    };
-    output.push(entry);
+    if (file !== 'OperationOutcome.ndjson') {
+      const entry = {
+        type: path.basename(file, '.ndjson'),
+        url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/${file}`
+      };
+      output.push(entry);
+    }
   });
   return output;
 }

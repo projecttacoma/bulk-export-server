@@ -1,5 +1,6 @@
 const { db } = require('./mongo');
 const { v4: uuidv4 } = require('uuid');
+const { createOperationOutcome } = require('./errorUtils');
 
 // constants for bulk export status strings
 const BULKSTATUS_INPROGRESS = 'In Progress';
@@ -101,10 +102,7 @@ const addPendingBulkExportRequest = async () => {
   const bulkExportClient = {
     id: clientId,
     status: BULKSTATUS_INPROGRESS,
-    error: {
-      code: null,
-      message: null
-    }
+    error: []
   };
   await collection.insertOne(bulkExportClient);
   return clientId;
@@ -123,10 +121,24 @@ const getBulkExportStatus = async clientId => {
 /**
  * Wrapper for the updateResource function that updates the bulk status
  * @param {*} clientId The id signifying the bulk status request
- * @param {*} newStatus
+ * @param {*} newStatus The status we want the object updated to
  */
-const updateBulkExportStatus = async (clientId, newStatus) => {
-  await updateResource(clientId, { status: newStatus }, 'bulkExportStatuses');
+const updateBulkExportStatus = async (clientId, newStatus, error = null) => {
+  if (error) {
+    await updateResource(clientId, { status: newStatus, error: error }, 'bulkExportStatuses');
+  } else {
+    await updateResource(clientId, { status: newStatus }, 'bulkExportStatuses');
+  }
+};
+
+/**
+ * Adds a warning to the bulkstatus error array
+ * @param {*} clientId the client id for the request which
+ * @param {*} error
+ */
+const pushBulkStatusWarning = async (clientId, error) => {
+  const collection = db.collection('bulkExportStatuses');
+  await collection.updateOne({ id: clientId }, { $push: { errors: error } });
 };
 
 module.exports = {

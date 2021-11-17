@@ -46,7 +46,9 @@ describe('checkBulkStatus logic', () => {
       .expect(500)
       .then(response => {
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(JSON.parse(response.text).message).toEqual('Known Error Occurred!');
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual('processing');
+        expect(response.body.issue[0].details.text).toEqual('Known Error Occurred!');
       });
   });
   test('check 500 and generic error returned for request with unknown error', async () => {
@@ -55,7 +57,9 @@ describe('checkBulkStatus logic', () => {
       .expect(500)
       .then(response => {
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(JSON.parse(response.text).message).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual('processing');
+        expect(response.body.issue[0].details.text).toEqual(
           'An unknown error occurred during bulk export with id: UNKNOWN_ERROR_REQUEST'
         );
       });
@@ -67,6 +71,10 @@ describe('checkBulkStatus logic', () => {
       .then(response => {
         expect(JSON.parse(response.text).message).toEqual('Could not find bulk export request with id: INVALID_ID');
       });
+  });
+
+  test('returns OperationOutcome for failed bulkstatus check', async () => {
+    jest;
   });
 
   afterAll(async () => {
