@@ -102,7 +102,8 @@ const addPendingBulkExportRequest = async () => {
   const bulkExportClient = {
     id: clientId,
     status: BULKSTATUS_INPROGRESS,
-    error: []
+    error: {},
+    warnings: []
   };
   await collection.insertOne(bulkExportClient);
   return clientId;
@@ -132,13 +133,13 @@ const updateBulkExportStatus = async (clientId, newStatus, error = null) => {
 };
 
 /**
- * Adds a warning to the bulkstatus error array
+ * Adds a warning to the bulkstatus warning array
  * @param {*} clientId the client id for the request which
- * @param {*} error
+ * @param {*} warning {message: string, code: int} an object with the message and code of the caught error
  */
-const pushBulkStatusWarning = async (clientId, error) => {
+const pushBulkStatusWarning = async (clientId, warning) => {
   const collection = db.collection('bulkExportStatuses');
-  await collection.updateOne({ id: clientId }, { $push: { errors: error } });
+  await collection.updateOne({ id: clientId }, { $push: { warnings: warning } });
 };
 
 module.exports = {
@@ -152,6 +153,7 @@ module.exports = {
   updateBulkExportStatus,
   findResourcesWithAggregation,
   addPendingBulkExportRequest,
+  pushBulkStatusWarning,
   BULKSTATUS_INPROGRESS,
   BULKSTATUS_COMPLETED,
   BUlKSTATUS_FAILED

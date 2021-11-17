@@ -20,27 +20,33 @@ async function checkBulkStatus(request, reply) {
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
-    reply.send({
-      transactionTime: new Date(),
-      requiresAccessToken: false,
-      outcome: responseData,
-      ...(bulkStatus.error.length() === 0
-        ? undefined
-        : {
-            error: [
-              {
-                type: 'OperationOutcome',
-                url: ''
-              }
-            ]
-          })
-    });
+    console.log(bulkStatus);
+    try {
+      let response = {
+        transactionTime: new Date(),
+        requiresAccessToken: false,
+        outcome: responseData,
+        ...(bulkStatus.warnings.length === 0
+          ? undefined
+          : {
+              error: [
+                {
+                  type: 'OperationOutcome',
+                  url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/OperationOutcome.ndjson`
+                }
+              ]
+            })
+      };
+      reply.code(200).send(response);
+    } catch (e) {
+      console.log(e);
+    }
   } else {
     reply
       .code(500)
       .send(
         createOperationOutcome(
-          bulkStatus.error.message || `An unknown error occurred during bulk export with id: ${clientId}`
+          bulkStatus.error?.message || `An unknown error occurred during bulk export with id: ${clientId}`
         )
       );
   }
@@ -63,7 +69,7 @@ async function getNDJsonURLs(reply, clientId) {
       .code(500)
       .send(
         createOperationOutcome(
-          message || `An error occurred when trying to retrieve files from the ${clientId} directory`
+          e.message || `An error occurred when trying to retrieve files from the ${clientId} directory`
         )
       );
   }

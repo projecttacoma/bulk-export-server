@@ -29,8 +29,8 @@ const exportToNDJson = async (clientId, request) => {
       writeToFile(doc.document, doc.collectionName, clientId);
     });
 
-    // TODO: if we want to catch and report any warnings, add them to the
-    // bulkstatus error object when they occur, then use the createOperationOutcome
+    // TODO: if we want to catch and report any warnings, push them to the
+    // bulkstatus warning array when they occur, then use the createOperationOutcome
     // function here to convert the error object into an OperationOutcome and write
     // it to a file
 

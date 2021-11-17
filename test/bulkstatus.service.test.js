@@ -10,9 +10,12 @@ describe('checkBulkStatus logic', () => {
   beforeAll(async () => {
     await bulkStatusSetup();
     fs.mkdirSync(`tmp/${clientId}`, { recursive: true });
+    fs.mkdirSync(`tmp/REQUEST_WITH_WARNINGS`, { recursive: true });
+
     // create blank file and wrap in fs.closeSync
     // to avoid file descriptor return
     fs.closeSync(fs.openSync(`tmp/${clientId}/Patient.ndjson`, 'w'));
+    fs.closeSync(fs.openSync(`tmp/REQUEST_WITH_WARNINGS/Patient.ndjson`, 'w'));
   });
 
   beforeEach(async () => {
@@ -64,6 +67,25 @@ describe('checkBulkStatus logic', () => {
         );
       });
   });
+  test.only('check 200 returned with warnings for completed request with warnings', async () => {
+    await createTestResource(testPatient, 'Patient');
+    await supertest(app.server)
+      .get(`/bulkstatus/REQUEST_WITH_WARNINGS`)
+      .then(response => {
+        console.log(response);
+        expect(response.headers.expires).toBeDefined();
+        expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
+        expect(response.body.outcome).toEqual([
+          { type: 'Patient', url: `http://localhost:3000/REQUEST_WITH_WARNINGS/Patient.ndjson` }
+        ]);
+        expect(response.body.error).toEqual([
+          {
+            type: 'OperationOutcome',
+            url: `http://${process.env.HOST}:${process.env.PORT}/REQUEST_WITH_WARNINGS/OperationOutcome.ndjson`
+          }
+        ]);
+      });
+  });
   test('check 404 error returned for request with unknown ID', async () => {
     await supertest(app.server)
       .get('/bulkstatus/INVALID_ID')
@@ -71,10 +93,6 @@ describe('checkBulkStatus logic', () => {
       .then(response => {
         expect(JSON.parse(response.text).message).toEqual('Could not find bulk export request with id: INVALID_ID');
       });
-  });
-
-  test('returns OperationOutcome for failed bulkstatus check', async () => {
-    jest;
   });
 
   afterAll(async () => {
