@@ -4,7 +4,7 @@ const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
 const fs = require('fs');
-describe('checkBulkStatus logic', () => {
+describe.skip('checkBulkStatus logic', () => {
   const clientId = 'testClient';
 
   beforeAll(async () => {
@@ -67,7 +67,7 @@ describe('checkBulkStatus logic', () => {
         );
       });
   });
-  test('check 200 returned with warnings for completed request with warnings', async () => {
+  test.only('check 200 returned with warnings for completed request with warnings', async () => {
     await supertest(app.server)
       .get(`/bulkstatus/REQUEST_WITH_WARNINGS`)
       .expect(200)

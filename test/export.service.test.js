@@ -3,7 +3,7 @@ const { db } = require('../src/util/mongo');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
-describe('Check barebones bulk export logic', () => {
+describe.only('Check barebones bulk export logic', () => {
   beforeEach(async () => {
     await bulkStatusSetup();
     await app.ready();

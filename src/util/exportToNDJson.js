@@ -2,7 +2,15 @@ const { db } = require('./mongo');
 const supportedResources = require('./supportedResources');
 const fs = require('fs');
 const path = require('path');
-const { updateBulkExportStatus, BULKSTATUS_COMPLETED, BUlKSTATUS_FAILED } = require('./mongo.controller');
+const {
+  updateBulkExportStatus,
+  BULKSTATUS_COMPLETED,
+  BUlKSTATUS_FAILED,
+  findResourceById
+} = require('./mongo.controller');
+const { doc } = require('prettier');
+const { create } = require('domain');
+const { createOperationOutcome } = require('./errorUtils');
 
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
@@ -35,6 +43,13 @@ const exportToNDJson = async (clientId, request) => {
     // it to a file
 
     // mark bulk status job as complete after all files have been written
+    //const res = await findResourceById(clientId, 'bulkExportStatuses');
+    //console.log(res);
+    const warnings = [];
+    if (warnings.length > 0) {
+      const opOuts = warnings.map(w => createOperationOutcome(w.message));
+      writeToFile(opOuts, 'OperationOutcome', clientId);
+    }
     await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
   } catch (e) {
     await updateBulkExportStatus(clientId, BUlKSTATUS_FAILED, { message: e.message, code: 500 });
