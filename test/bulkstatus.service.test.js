@@ -67,12 +67,11 @@ describe('checkBulkStatus logic', () => {
         );
       });
   });
-  test.only('check 200 returned with warnings for completed request with warnings', async () => {
-    await createTestResource(testPatient, 'Patient');
+  test('check 200 returned with warnings for completed request with warnings', async () => {
     await supertest(app.server)
       .get(`/bulkstatus/REQUEST_WITH_WARNINGS`)
+      .expect(200)
       .then(response => {
-        console.log(response);
         expect(response.headers.expires).toBeDefined();
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
         expect(response.body.outcome).toEqual([
@@ -98,5 +97,6 @@ describe('checkBulkStatus logic', () => {
   afterAll(async () => {
     await cleanUpDb();
     fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
+    fs.rmSync(`tmp/REQUEST_WITH_WARNINGS`, { recursive: true, force: true });
   });
 });

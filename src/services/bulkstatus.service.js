@@ -20,27 +20,21 @@ async function checkBulkStatus(request, reply) {
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
-    console.log(bulkStatus);
-    try {
-      let response = {
-        transactionTime: new Date(),
-        requiresAccessToken: false,
-        outcome: responseData,
-        ...(bulkStatus.warnings.length === 0
-          ? undefined
-          : {
-              error: [
-                {
-                  type: 'OperationOutcome',
-                  url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/OperationOutcome.ndjson`
-                }
-              ]
-            })
-      };
-      reply.code(200).send(response);
-    } catch (e) {
-      console.log(e);
-    }
+    reply.send({
+      transactionTime: new Date(),
+      requiresAccessToken: false,
+      outcome: responseData,
+      ...(bulkStatus.warnings.length === 0
+        ? undefined
+        : {
+            error: [
+              {
+                type: 'OperationOutcome',
+                url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/OperationOutcome.ndjson`
+              }
+            ]
+          })
+    });
   } else {
     reply
       .code(500)

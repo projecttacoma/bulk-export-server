@@ -14,7 +14,7 @@
   {
     "id": "KNOWN_ERROR_REQUEST",
     "status": "Error",
-    "error": [{ "message": "Known Error Occurred!" }],
+    "error": { "message": "Known Error Occurred!" },
     "warnings": []
   },
   {

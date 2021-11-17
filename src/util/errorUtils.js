@@ -7,8 +7,6 @@ const { v4: uuidv4 } = require('uuid');
  * @returns An OperationOutcome to return to the user with information about the failure
  */
 
-const { htmlEncode } = require('htmlencode');
-
 function createOperationOutcome(
   message,
   {

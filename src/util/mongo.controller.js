@@ -1,6 +1,5 @@
 const { db } = require('./mongo');
 const { v4: uuidv4 } = require('uuid');
-const { createOperationOutcome } = require('./errorUtils');
 
 // constants for bulk export status strings
 const BULKSTATUS_INPROGRESS = 'In Progress';
