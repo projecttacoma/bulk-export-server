@@ -4,7 +4,7 @@
   "description": " A utility to test bulk data export",
   "main": "./src/index.ts",
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "jest --silent --runInBand",
     "test:coverage": "jest --collectCoverage --silent --runInBand",
     "test:watch": "jest --watchAll --runInBand",
     "test:watch:coverage": "jest --watchAll --runInBand --collectCoverage",

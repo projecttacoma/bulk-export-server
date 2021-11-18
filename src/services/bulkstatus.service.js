@@ -38,7 +38,7 @@ async function checkBulkStatus(request, reply) {
     });
   } else {
     reply
-      .code(500)
+      .code(bulkStatus.error?.code || 500)
       .send(
         createOperationOutcome(
           bulkStatus.error?.message || `An unknown error occurred during bulk export with id: ${clientId}`
