@@ -67,7 +67,7 @@ describe('checkBulkStatus logic', () => {
         );
       });
   });
-  test.only('check 200 returned with warnings for completed request with warnings', async () => {
+  test('check 200 returned with warnings for completed request with warnings', async () => {
     await supertest(app.server)
       .get(`/bulkstatus/REQUEST_WITH_WARNINGS`)
       .expect(200)
