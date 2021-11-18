@@ -16,7 +16,7 @@ const mockRequestWithoutType = {
 
 const expectedFileName = './tmp/123456/Patient.ndjson';
 const clientId = '123456';
-describe.skip('check export logic', () => {
+describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
     console.log('created test resource');

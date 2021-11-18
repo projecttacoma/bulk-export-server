@@ -3,7 +3,7 @@ const { db } = require('../src/util/mongo');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
-describe.only('Check barebones bulk export logic', () => {
+describe('Check barebones bulk export logic', () => {
   beforeEach(async () => {
     await bulkStatusSetup();
     await app.ready();
@@ -18,6 +18,8 @@ describe.only('Check barebones bulk export logic', () => {
   });
 
   test('check 202 returned and content-location populated with params', async () => {
+    const exportToNDJSON = require('../src/util/exportToNDJson');
+    jest.spyOn(exportToNDJSON, 'exportToNDJson').mockImplementation(() => null);
     await supertest(app.server)
       .get('/$export?_outputFormat=ndjson')
       .expect(202)

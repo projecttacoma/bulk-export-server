@@ -4,7 +4,7 @@ const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
 
-describe.skip('Test ndjson retrieval from specified url', () => {
+describe('Test ndjson retrieval from specified url', () => {
   const clientId = '123456';
 
   beforeAll(async () => {

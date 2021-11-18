@@ -4,7 +4,7 @@ const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
 const fs = require('fs');
-describe.skip('checkBulkStatus logic', () => {
+describe('checkBulkStatus logic', () => {
   const clientId = 'testClient';
 
   beforeAll(async () => {
