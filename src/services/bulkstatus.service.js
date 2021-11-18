@@ -11,7 +11,6 @@ const { createOperationOutcome } = require('../util/errorUtils');
 async function checkBulkStatus(request, reply) {
   const clientId = request.params.clientId;
   const bulkStatus = await getBulkExportStatus(clientId);
-  console.log(bulkStatus);
   if (!bulkStatus) {
     reply.code(404).send(new Error(`Could not find bulk export request with id: ${clientId}`));
   }

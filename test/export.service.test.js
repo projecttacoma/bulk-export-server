@@ -18,8 +18,6 @@ describe('Check barebones bulk export logic', () => {
   });
 
   test('check 202 returned and content-location populated with params', async () => {
-    const exportToNDJSON = require('../src/util/exportToNDJson');
-    jest.spyOn(exportToNDJSON, 'exportToNDJson').mockImplementation(() => null);
     await supertest(app.server)
       .get('/$export?_outputFormat=ndjson')
       .expect(202)
