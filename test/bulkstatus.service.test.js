@@ -10,9 +10,12 @@ describe('checkBulkStatus logic', () => {
   beforeAll(async () => {
     await bulkStatusSetup();
     fs.mkdirSync(`tmp/${clientId}`, { recursive: true });
+    fs.mkdirSync(`tmp/REQUEST_WITH_WARNINGS`, { recursive: true });
+
     // create blank file and wrap in fs.closeSync
     // to avoid file descriptor return
     fs.closeSync(fs.openSync(`tmp/${clientId}/Patient.ndjson`, 'w'));
+    fs.closeSync(fs.openSync(`tmp/REQUEST_WITH_WARNINGS/Patient.ndjson`, 'w'));
   });
 
   beforeEach(async () => {
@@ -46,7 +49,9 @@ describe('checkBulkStatus logic', () => {
       .expect(500)
       .then(response => {
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(JSON.parse(response.text).message).toEqual('Known Error Occurred!');
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual('processing');
+        expect(response.body.issue[0].details.text).toEqual('Known Error Occurred!');
       });
   });
   test('check 500 and generic error returned for request with unknown error', async () => {
@@ -55,9 +60,29 @@ describe('checkBulkStatus logic', () => {
       .expect(500)
       .then(response => {
         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
-        expect(JSON.parse(response.text).message).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual('processing');
+        expect(response.body.issue[0].details.text).toEqual(
           'An unknown error occurred during bulk export with id: UNKNOWN_ERROR_REQUEST'
         );
+      });
+  });
+  test('check 200 returned with warnings for completed request with warnings', async () => {
+    await supertest(app.server)
+      .get(`/bulkstatus/REQUEST_WITH_WARNINGS`)
+      .expect(200)
+      .then(response => {
+        expect(response.headers.expires).toBeDefined();
+        expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
+        expect(response.body.outcome).toEqual([
+          { type: 'Patient', url: `http://localhost:3000/REQUEST_WITH_WARNINGS/Patient.ndjson` }
+        ]);
+        expect(response.body.error).toEqual([
+          {
+            type: 'OperationOutcome',
+            url: `http://${process.env.HOST}:${process.env.PORT}/REQUEST_WITH_WARNINGS/OperationOutcome.ndjson`
+          }
+        ]);
       });
   });
   test('check 404 error returned for request with unknown ID', async () => {
@@ -72,5 +97,6 @@ describe('checkBulkStatus logic', () => {
   afterAll(async () => {
     await cleanUpDb();
     fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
+    fs.rmSync(`tmp/REQUEST_WITH_WARNINGS`, { recursive: true, force: true });
   });
 });

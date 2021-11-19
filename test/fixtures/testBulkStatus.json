@@ -2,26 +2,37 @@
   {
     "id": "PENDING_REQUEST",
     "status": "In Progress",
-    "error": { "code": null, "message": null }
+    "error": {},
+    "warnings": []
   },
   {
     "id": "COMPLETED_REQUEST",
     "status": "Completed",
-    "error": { "code": null, "message": null }
+    "error": {},
+    "warnings": []
   },
   {
     "id": "KNOWN_ERROR_REQUEST",
     "status": "Error",
-    "error": { "code": null, "message": "Known Error Occurred!" }
+    "error": { "message": "Known Error Occurred!" },
+    "warnings": []
   },
   {
     "id": "UNKNOWN_ERROR_REQUEST",
     "status": "Error",
-    "error": { "code": null, "message": null }
+    "error": { "message": null },
+    "warnings": []
+  },
+  {
+    "id": "REQUEST_WITH_WARNINGS",
+    "status": "Completed",
+    "error": {},
+    "warnings": [{ "message": "A warning occurred!" }]
   },
   {
     "id": "testClient",
     "status": "Completed",
-    "error": { "code": null, "message": null }
+    "error": {},
+    "warnings": []
   }
 ]
