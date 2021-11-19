@@ -133,7 +133,7 @@ const updateBulkExportStatus = async (clientId, newStatus, error = null) => {
 
 /**
  * Adds a warning to the bulkstatus warning array
- * @param {*} clientId the client id for the request which
+ * @param {*} clientId the client id for the request which threw the warning
  * @param {*} warning {message: string, code: int} an object with the message and code of the caught error
  */
 const pushBulkStatusWarning = async (clientId, warning) => {
