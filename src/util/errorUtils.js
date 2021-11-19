@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 /**
  * Takes in error information and create an OperationOutcome to return to the user
  * @param {*} message a message to be displayed inside the OperationOutcome
- * @param {*} param1 an object containing the issueCode and severity to be copited into the OperationOutcome
+ * @param {*} param1 an object containing the issueCode and severity to be copied into the OperationOutcome
  * @returns An OperationOutcome to return to the user with information about the failure
  */
 
