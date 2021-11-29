@@ -12,7 +12,7 @@ const bulkExport = async (request, reply) => {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
     exportToNDJson(clientEntry, request);
-    reply.code(202).header('Content-location', `/bulkstatus/${clientEntry}`).send();
+    reply.code(202).header('Content-location', `http://localhost:3000/bulkstatus/${clientEntry}`).send();
   }
 };
 

@@ -22,7 +22,7 @@ async function checkBulkStatus(request, reply) {
     reply.send({
       transactionTime: new Date(),
       requiresAccessToken: false,
-      outcome: responseData,
+      output: responseData,
       // When we eventually catch warnings, this will add them to the response object
       ...(bulkStatus.warnings.length === 0
         ? undefined
