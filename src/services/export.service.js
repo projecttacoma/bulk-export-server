@@ -1,6 +1,7 @@
 const { exportToNDJson } = require('../util/exportToNDJson');
 const { addPendingBulkExportRequest } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources');
+const Queue = require('bee-queue');
 
 /**
  * Exports data from a FHIR server.
@@ -11,7 +12,23 @@ const bulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
-    exportToNDJson(clientEntry, request);
+
+    // Create a new queue to establish new Redis connection
+    const exportQueue = new Queue('export');
+    // Enqueue a new job into Redis for handling
+    await exportQueue
+      .createJob({
+        clientEntry: clientEntry,
+        types: request.query._type
+      })
+      .save();
+    // This handler pulls down the jobs on Redis to handle
+    exportQueue.process(async job => {
+      // Payload of createJob exists on job.data
+      const { clientEntry, types } = job.data;
+      // Call the existing export ndjson function that writes the files
+      await exportToNDJson(clientEntry, types);
+    });
     reply
       .code(202)
       .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${clientEntry}`)
