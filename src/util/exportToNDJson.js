@@ -53,7 +53,10 @@ const exportToNDJson = async (clientId, request) => {
 
 const getDocuments = async (db, collectionName) => {
   const query = {};
-  let doc = await db.collection(collectionName.toString()).find(query).toArray();
+  let doc = await db
+    .collection(collectionName.toString())
+    .find(query, { projection: { _id: 0 } })
+    .toArray();
   return { document: doc, collectionName: collectionName.toString() };
 };
 
