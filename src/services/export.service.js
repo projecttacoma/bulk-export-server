@@ -23,16 +23,19 @@ const bulkExport = async (request, reply) => {
       })
       .save();
     // This handler pulls down the jobs on Redis to handle
+    // TODO: MOVE THIS?????
     exportQueue.process(async job => {
       // Payload of createJob exists on job.data
       const { clientEntry, types } = job.data;
       // Call the existing export ndjson function that writes the files
+      console.log('in the process');
       await exportToNDJson(clientEntry, types);
     });
     reply
       .code(202)
       .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${clientEntry}`)
       .send();
+    await exportQueue.close();
   }
 };
 
