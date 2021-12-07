@@ -4,6 +4,7 @@ const { cleanUpDb, createTestResourceWithConnect } = require('./populateTestData
 const testPatient = require('./fixtures/testPatient.json');
 const app = build();
 const fs = require('fs');
+const queue = require('../src/resources/exportQueue');
 const mockRequestWithType = {
   query: {
     _type: 'Patient'
@@ -35,7 +36,12 @@ describe('check export logic', () => {
 
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });
+
   afterAll(async () => {
     await cleanUpDb();
+  });
+
+  afterEach(async () => {
+    await queue.close();
   });
 });

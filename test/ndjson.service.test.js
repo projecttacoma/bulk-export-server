@@ -3,6 +3,7 @@ const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
+const queue = require('../src/resources/exportQueue');
 
 describe('Test ndjson retrieval from specified url', () => {
   const clientId = '123456';
@@ -38,5 +39,9 @@ describe('Test ndjson retrieval from specified url', () => {
 
   afterAll(async () => {
     await cleanUpDb();
+  });
+
+  afterEach(async () => {
+    await queue.close();
   });
 });

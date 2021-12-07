@@ -4,6 +4,7 @@ const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
 const fs = require('fs');
+const queue = require('../src/resources/exportQueue');
 describe('checkBulkStatus logic', () => {
   const clientId = 'testClient';
 
@@ -98,5 +99,9 @@ describe('checkBulkStatus logic', () => {
     await cleanUpDb();
     fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
     fs.rmSync(`tmp/REQUEST_WITH_WARNINGS`, { recursive: true, force: true });
+  });
+
+  afterEach(async () => {
+    await queue.close();
   });
 });
