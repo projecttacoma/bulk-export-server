@@ -3,22 +3,22 @@ const { db } = require('../src/util/mongo');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
-const queue = require('./fixtures/testExportQueue');
-const createJobSpy = jest.spyOn(queue.testExportQueue, 'createJob');
-describe('Test job properly enqueued when export kickoff called', () => {
-  beforeAll(() => {
-    // Mock export to do nothing
-    queue.exportToNDJson = jest.fn();
-  });
-  test('check job is properly enqueued as a job in Redis', async () => {
-    await queue.bulkExport();
-    expect(createJobSpy).toHaveBeenCalled();
-  });
+const queue = require('../src/resources/exportQueue');
+const createJobSpy = jest.spyOn(queue, 'createJob');
 
-  afterAll(async () => {
-    await queue.testExportQueue.close();
-  });
-});
+// Mock export to do nothing
+queue.exportToNDJson = jest.fn();
+// describe('Test job properly enqueued when export kickoff called', () => {
+//   beforeAll(() => {});
+//   test('check job is properly enqueued as a job in Redis', async () => {
+//     await queue.bulkExport();
+//     expect(createJobSpy).toHaveBeenCalled();
+//   });
+
+//   afterEach(async () => {
+//     await queue.testExportQueue.close();
+//   });
+// });
 
 describe('Check barebones bulk export logic', () => {
   beforeEach(async () => {
@@ -26,12 +26,13 @@ describe('Check barebones bulk export logic', () => {
     await app.ready();
   });
 
-  test('check 202 returned and content-location populated', async () => {
+  test.only('check 202 returned and content-location populated', async () => {
     await supertest(app.server)
       .get('/$export')
       .expect(202)
       .then(response => {
         expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
       });
   });
 
@@ -89,5 +90,9 @@ describe('Check barebones bulk export logic', () => {
 
   afterEach(async () => {
     await cleanUpDb();
+  });
+
+  afterAll(async () => {
+    await queue.close();
   });
 });
