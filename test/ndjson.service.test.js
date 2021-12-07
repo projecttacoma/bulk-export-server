@@ -3,6 +3,8 @@ const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
+// import queue to close open handles after tests pass
+// TODO: investigate why queues are leaving open handles in this file
 const queue = require('../src/resources/exportQueue');
 
 describe('Test ndjson retrieval from specified url', () => {
@@ -41,6 +43,8 @@ describe('Test ndjson retrieval from specified url', () => {
     await cleanUpDb();
   });
 
+  // Close export queue that is created when processing these tests
+  // TODO: investigate why queues are leaving open handles in this file
   afterEach(async () => {
     await queue.close();
   });

@@ -8,18 +8,6 @@ const createJobSpy = jest.spyOn(queue, 'createJob');
 
 // Mock export to do nothing
 queue.exportToNDJson = jest.fn();
-// describe('Test job properly enqueued when export kickoff called', () => {
-//   beforeAll(() => {});
-//   test('check job is properly enqueued as a job in Redis', async () => {
-//     await queue.bulkExport();
-//     expect(createJobSpy).toHaveBeenCalled();
-//   });
-
-//   afterEach(async () => {
-//     await queue.testExportQueue.close();
-//   });
-// });
-
 describe('Check barebones bulk export logic (success)', () => {
   beforeEach(async () => {
     await bulkStatusSetup();
@@ -103,6 +91,8 @@ describe('Check barebones bulk export logic (failure)', () => {
       });
   });
 
+  // Close export queue that is created when processing these tests
+  // TODO: investigate why queues are leaving open handles in this file
   afterEach(async () => {
     await cleanUpDb();
     await queue.close();

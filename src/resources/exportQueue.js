@@ -12,7 +12,6 @@ const exportQueue = new Queue('export', queueOptions);
 exportQueue.process(async job => {
   // Payload of createJob exists on job.data
   const { clientEntry, types } = job.data;
-  console.log(`Processing job ${clientEntry}`);
   // Call the existing export ndjson function that writes the files
   const d = await exportToNDJson(clientEntry, types);
   return d;

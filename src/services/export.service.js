@@ -1,4 +1,3 @@
-//const { exportToNDJson } = require('../util/exportToNDJson');
 const { addPendingBulkExportRequest } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources');
 const exportQueue = require('../resources/exportQueue');
@@ -19,13 +18,10 @@ const bulkExport = async (request, reply) => {
       types: request.query._type
     };
 
-    console.log('creating job');
     await exportQueue.createJob(job).save();
-    console.log('job created');
-
     reply
       .code(202)
-      .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${job.clientEntry}`)
+      .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${clientEntry}`)
       .send();
   }
 };
