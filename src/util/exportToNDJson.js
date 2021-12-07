@@ -11,7 +11,6 @@ const { updateBulkExportStatus, BULKSTATUS_COMPLETED, BUlKSTATUS_FAILED } = requ
  * @param {Array} types Array of types to be queried for, retrieved from request params
  */
 const exportToNDJson = async (clientId, types) => {
-  console.log('made it');
   try {
     let dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
