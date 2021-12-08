@@ -13,8 +13,7 @@ exportQueue.process(async job => {
   // Payload of createJob exists on job.data
   const { clientEntry, types } = job.data;
   // Call the existing export ndjson function that writes the files
-  const d = await exportToNDJson(clientEntry, types);
-  return d;
+  await exportToNDJson(clientEntry, types);
 });
 
 exportQueue.on('error', err => {
