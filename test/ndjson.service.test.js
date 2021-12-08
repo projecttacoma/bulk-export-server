@@ -1,4 +1,5 @@
 const { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
+const { exportToNDJson } = require('../src/util/exportToNDJson');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
@@ -9,6 +10,7 @@ const queue = require('../src/resources/exportQueue');
 
 describe('Test ndjson retrieval from specified url', () => {
   const clientId = '123456';
+  const mockType = 'Patient';
 
   beforeAll(async () => {
     await bulkStatusSetup();
@@ -30,6 +32,7 @@ describe('Test ndjson retrieval from specified url', () => {
 
   test('Retrieve ndjson content for valid url', async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
+    await exportToNDJson(clientId, mockType);
     await supertest(app.server)
       .get(`/${clientId}/Patient.ndjson`)
       .expect(200)
