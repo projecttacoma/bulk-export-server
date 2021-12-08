@@ -7,15 +7,7 @@ const fs = require('fs');
 // import queue to close open handles after tests pass
 // TODO: investigate why queues are leaving open handles in this file
 const queue = require('../src/resources/exportQueue');
-const mockRequestWithType = {
-  query: {
-    _type: 'Patient'
-  }
-};
-const mockRequestWithoutType = {
-  id: 'mockRequestWithoutType',
-  query: {}
-};
+const mockType = 'Patient';
 
 const expectedFileName = './tmp/123456/Patient.ndjson';
 const clientId = '123456';
@@ -29,13 +21,12 @@ describe('check export logic', () => {
     await app.ready();
   });
 
-  test('Expect folder created and export successful when _type  parameter is present', async () => {
-    await exportToNDJson(clientId, mockRequestWithType);
+  test('Expect folder created and export successful when _type  parameter is retrieved from request', async () => {
+    await exportToNDJson(clientId, mockType);
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });
-  test('Expect folder created and export successful when _type  parameter is not present', async () => {
-    await exportToNDJson(clientId, mockRequestWithoutType);
-
+  test('Expect folder created and export successful when _type parameter is not present in request', async () => {
+    await exportToNDJson(clientId);
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });
 
