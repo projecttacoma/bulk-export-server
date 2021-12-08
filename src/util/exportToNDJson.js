@@ -8,15 +8,15 @@ const { updateBulkExportStatus, BULKSTATUS_COMPLETED, BUlKSTATUS_FAILED } = requ
  * Exports the list of resources included in the _type member of the request object to NDJson
  * if the _type member doesn't exist it will simply export everything included in the supportedResources list
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
- * @param {Object} request http request object
+ * @param {Array} types Array of types to be queried for, retrieved from request params
  */
-const exportToNDJson = async (clientId, request) => {
+const exportToNDJson = async (clientId, types) => {
   try {
     let dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
     let requestTypes = [];
-    if (request.query._type) {
-      requestTypes = request.query._type.split(','); //this is the list types to export
+    if (types) {
+      requestTypes = types.split(','); //this is the list types to export
     } else {
       //create list of requested types if request.query._type param doesn't exist
       requestTypes.push(...supportedResources);

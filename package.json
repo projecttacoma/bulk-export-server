@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/projecttacoma/bulk-export-server#readme",
   "dependencies": {
+    "bee-queue": "^1.4.0",
     "dotenv": "^10.0.0",
     "fastify": "^3.22.0",
     "fastify-plugin": "^3.0.0",

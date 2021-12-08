@@ -4,6 +4,9 @@ const app = build();
 const supertest = require('supertest');
 const testPatient = require('./fixtures/testPatient.json');
 const fs = require('fs');
+// import queue to close open handles after tests pass
+// TODO: investigate why queues are leaving open handles in this file
+const queue = require('../src/resources/exportQueue');
 describe('checkBulkStatus logic', () => {
   const clientId = 'testClient';
 
@@ -98,5 +101,11 @@ describe('checkBulkStatus logic', () => {
     await cleanUpDb();
     fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
     fs.rmSync(`tmp/REQUEST_WITH_WARNINGS`, { recursive: true, force: true });
+  });
+
+  // Close export queue that is created when processing these tests
+  // TODO: investigate why queues are leaving open handles in this file
+  afterEach(async () => {
+    await queue.close();
   });
 });
