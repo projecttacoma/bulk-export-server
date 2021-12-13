@@ -17,8 +17,7 @@
     "db:setup": "node src/scripts/createCollections.js",
     "db:delete": "node src/scripts/deleteCollections.js",
     "db:reset": "npm run db:delete && npm run db:setup",
-    "connectathon-upload": "node src/scripts/getConnectathonBundles.js",
-    "pat-only-upload": "node src/scripts/getPatBundles.js"
+    "connectathon-upload": "node src/scripts/getConnectathonBundles.js"
   },
   "repository": {
     "type": "git",
