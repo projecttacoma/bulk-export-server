@@ -55,7 +55,11 @@ async function main() {
       // retrieve each resource and insert into database
       const uploads = bundle.entry.map(async res => {
         try {
-          if (res.resource.resourceType === 'Patient') {
+          if (
+            res.resource.resourceType != 'Measure' &&
+            res.resource.resourceType != 'Library' &&
+            res.resource.resourceType != 'Valueset'
+          ) {
             await createResource(res.resource, res.resource.resourceType);
           }
         } catch (e) {
