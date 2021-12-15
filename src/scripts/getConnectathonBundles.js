@@ -58,7 +58,7 @@ async function main() {
           if (
             res.resource.resourceType != 'Measure' &&
             res.resource.resourceType != 'Library' &&
-            res.resource.resourceType != 'Valueset' &&
+            res.resource.resourceType != 'ValueSet' &&
             res.resource.resourceType != 'MeasureReport'
           ) {
             await createResource(res.resource, res.resource.resourceType);
