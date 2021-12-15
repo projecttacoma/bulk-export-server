@@ -55,7 +55,14 @@ async function main() {
       // retrieve each resource and insert into database
       const uploads = bundle.entry.map(async res => {
         try {
-          await createResource(res.resource, res.resource.resourceType);
+          if (
+            res.resource.resourceType != 'Measure' &&
+            res.resource.resourceType != 'Library' &&
+            res.resource.resourceType != 'ValueSet' &&
+            res.resource.resourceType != 'MeasureReport'
+          ) {
+            await createResource(res.resource, res.resource.resourceType);
+          }
         } catch (e) {
           // ignore duplicate key errors for Libraries, ValueSets
           if (e.code !== 11000 || res.resource.resourceType === 'Measure') {
