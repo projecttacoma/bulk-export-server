@@ -1,8 +1,11 @@
 // Setup for import queue which pushes jobs to Redis
-
 const Queue = require('bee-queue');
 
 const queueOptions = {
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379
+  },
   removeOnSuccess: true,
   isWorker: false
 };
