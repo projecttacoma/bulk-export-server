@@ -46,8 +46,10 @@ const exportToNDJson = async (clientId, types) => {
 
     // mark bulk status job as complete after all files have been written
     await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
+    return true;
   } catch (e) {
     await updateBulkExportStatus(clientId, BUlKSTATUS_FAILED, { message: e.message, code: 500 });
+    return false;
   }
 };
 
