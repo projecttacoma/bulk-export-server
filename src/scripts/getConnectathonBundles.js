@@ -4,7 +4,7 @@ const mongoUtil = require('../util/mongo');
 const { createResource } = require('../util/mongo.controller');
 
 const connectathonPath = path.resolve(path.join(__dirname, '../../connectathon/fhir401/bundles/measure/'));
-// bundles that are not the latest available version
+// bundles that are not the latest available version or contain reference errors
 const IGNORED_BUNDLES = ['EXM347-3.2.000-bundle.json', 'EXM347-4.3.000-bundle.json'];
 // files containing EXM bundles of interest from connectathon repo
 const bundleFiles = [];
