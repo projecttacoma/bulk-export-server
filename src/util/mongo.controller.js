@@ -101,6 +101,8 @@ const addPendingBulkExportRequest = async () => {
   const bulkExportClient = {
     id: clientId,
     status: BULKSTATUS_INPROGRESS,
+    numberOfRequests: 0,
+    timeSinceLastRequest: null,
     error: {},
     warnings: []
   };
