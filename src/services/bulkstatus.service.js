@@ -1,7 +1,18 @@
-const { getBulkExportStatus, BULKSTATUS_COMPLETED, BULKSTATUS_INPROGRESS } = require('../util/mongo.controller');
+const {
+  getBulkExportStatus,
+  BULKSTATUS_COMPLETED,
+  BULKSTATUS_INPROGRESS,
+  updateLastBulkStatusRequest,
+  resetFirstValidRequest,
+  updateFirstValidRequest,
+  updateNumberOfRequestsInWindow
+} = require('../util/mongo.controller');
 const fs = require('fs');
 const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
+
+const RETRY_AFTER = 1;
+const REQUEST_TOLERANCE = 10;
 
 /**
  * Checks the status of the bulk export request.
@@ -15,7 +26,18 @@ async function checkBulkStatus(request, reply) {
     reply.code(404).send(new Error(`Could not find bulk export request with id: ${clientId}`));
   }
   if (bulkStatus.status === BULKSTATUS_INPROGRESS) {
-    reply.code(202).header('X-Progress', 'Exporting files').header('Retry-After', 120).send();
+    const { timeOfFirstValidRequest, numberOfRequestsInWindow } = bulkStatus;
+    const curTime = new Date().getTime();
+    if (!timeOfFirstValidRequest || checkTimeIsOutsideWindow(curTime, timeOfFirstValidRequest)) {
+      await resetFirstValidRequest(clientId, curTime);
+      reply.code(202);
+    } else if (numberOfRequestsInWindow > REQUEST_TOLERANCE) {
+      reply.code(429);
+    } else {
+      await updateNumberOfRequestsInWindow(clientId, numberOfRequestsInWindow + 1);
+      reply.code(202);
+    }
+    reply.header('X-Progress', 'Exporting files').header('Retry-After', RETRY_AFTER).send();
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
@@ -44,6 +66,12 @@ async function checkBulkStatus(request, reply) {
         )
       );
   }
+}
+
+function checkTimeIsOutsideWindow(curTime, firstValidRequest) {
+  const expectedTime = new Date(firstValidRequest);
+  expectedTime.setSeconds(expectedTime.getSeconds() + RETRY_AFTER);
+  return curTime >= expectedTime;
 }
 
 /**

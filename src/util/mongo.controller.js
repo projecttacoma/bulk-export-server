@@ -101,8 +101,8 @@ const addPendingBulkExportRequest = async () => {
   const bulkExportClient = {
     id: clientId,
     status: BULKSTATUS_INPROGRESS,
-    numberOfRequests: 0,
-    timeSinceLastRequest: null,
+    numberOfRequestsInWindow: 0,
+    timeOfFirstValidRequest: null,
     error: {},
     warnings: []
   };
@@ -134,6 +134,22 @@ const updateBulkExportStatus = async (clientId, newStatus, error = null) => {
 };
 
 /**
+ * @param {string} clientId
+ * @param {Object} data
+ */
+const updateFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
+  await updateResource(clientId, { timeOfFirstValidRequest }, 'bulkExportStatuses');
+};
+
+const updateNumberOfRequestsInWindow = async (clientId, numberOfRequestsInWindow) => {
+  await updateResource(clientId, { numberOfRequestsInWindow }, 'bulkExportStatuses');
+};
+
+const resetFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
+  await updateResource(clientId, { timeOfFirstValidRequest, numberOfRequestsInWindow: 1 }, 'bulkExportStatuses');
+};
+
+/**
  * Adds a warning to the bulkstatus warning array
  * @param {*} clientId the client id for the request which threw the warning
  * @param {*} warning {message: string, code: int} an object with the message and code of the caught error
@@ -155,6 +171,9 @@ module.exports = {
   findResourcesWithAggregation,
   addPendingBulkExportRequest,
   pushBulkStatusWarning,
+  updateNumberOfRequestsInWindow,
+  updateFirstValidRequest,
+  resetFirstValidRequest,
   BULKSTATUS_INPROGRESS,
   BULKSTATUS_COMPLETED,
   BUlKSTATUS_FAILED
