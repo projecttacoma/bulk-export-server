@@ -30,7 +30,7 @@ describe('checkBulkStatus logic', () => {
       .expect(202)
       .then(response => {
         expect(response.headers['x-progress']).toEqual('Exporting files');
-        expect(response.headers['retry-after']).toEqual('120');
+        expect(response.headers['retry-after']).toEqual('1');
       });
   });
   test('check 200 returned for completed request', async () => {
