@@ -143,9 +143,9 @@ const updateFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
 };
 
 /**
- * Changes the number tracking the quantity of bulkstatus requests made within
+ * Changes the number tracking the quantity of bulkstatus requests made within the retry after window
  * @param {*} clientId the id of the client making the export request
- * @param {*} numberOfRequestsInWindow the new number of requests madde within the retry after window
+ * @param {*} numberOfRequestsInWindow the new number of requests made within the retry after window
  */
 const updateNumberOfRequestsInWindow = async (clientId, numberOfRequestsInWindow) => {
   await updateResource(clientId, { numberOfRequestsInWindow }, 'bulkExportStatuses');
