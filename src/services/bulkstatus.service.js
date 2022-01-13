@@ -2,9 +2,7 @@ const {
   getBulkExportStatus,
   BULKSTATUS_COMPLETED,
   BULKSTATUS_INPROGRESS,
-  updateLastBulkStatusRequest,
   resetFirstValidRequest,
-  updateFirstValidRequest,
   updateNumberOfRequestsInWindow
 } = require('../util/mongo.controller');
 const fs = require('fs');
@@ -12,6 +10,7 @@ const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
 
 const RETRY_AFTER = 1;
+//The number of requests we allow inside the retry after window before throwing a 429 error
 const REQUEST_TOLERANCE = 10;
 
 /**

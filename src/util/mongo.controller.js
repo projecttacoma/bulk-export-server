@@ -134,17 +134,28 @@ const updateBulkExportStatus = async (clientId, newStatus, error = null) => {
 };
 
 /**
- * @param {string} clientId
- * @param {Object} data
+ * Changes the first valid request time for tracking 429:TooManyRequests errors
+ * @param {string} clientId the id of the client making the export request
+ * @param {Object} timeOfFirstValidRequest a Date object storing the time of the first valid request
  */
 const updateFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
   await updateResource(clientId, { timeOfFirstValidRequest }, 'bulkExportStatuses');
 };
 
+/**
+ * Changes the number tracking the quantity of bulkstatus requests made within
+ * @param {*} clientId the id of the client making the export request
+ * @param {*} numberOfRequestsInWindow the new number of requests madde within the retry after window
+ */
 const updateNumberOfRequestsInWindow = async (clientId, numberOfRequestsInWindow) => {
   await updateResource(clientId, { numberOfRequestsInWindow }, 'bulkExportStatuses');
 };
 
+/**
+ * Sets the time of the first valid request and resets the number of requests made within the retry after window
+ * @param {*} clientId the id of the client making the export request
+ * @param {*} timeOfFirstValidRequest a Date object storing the time of the first valid request
+ */
 const resetFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
   await updateResource(clientId, { timeOfFirstValidRequest, numberOfRequestsInWindow: 1 }, 'bulkExportStatuses');
 };
