@@ -97,12 +97,21 @@ describe('checkBulkStatus logic', () => {
       });
   });
   test('check 429 error returned for spamming requests', async () => {
-    let response = {};
-    for (i = 0; i <= 10; i++) {
+    let response;
+    for (let i = 0; i <= 10; i++) {
       response = await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
     }
     console.log(response);
     expect(response.statusCode).toEqual(429);
+  });
+  test('check 202 returned for spamming requests appropriately slowly', async () => {
+    for (let i = 0; i < 10; i++) {
+      await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const response = await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    console.log(response);
+    expect(response.statusCode).toEqual(202);
   });
 
   afterAll(async () => {
