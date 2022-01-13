@@ -67,6 +67,12 @@ async function checkBulkStatus(request, reply) {
   }
 }
 
+/**
+ * Returns true if the current time is later than the first valid request time plus the retry after buffer
+ * @param {Object} curTime A date object signifying the current time
+ * @param {Object} firstValidRequest A date object signifying the time of the first valid request
+ * @returns {boolean} true if the current time is later than the first valid request time plus the retry after buffer, false otherwise
+ */
 function checkTimeIsOutsideWindow(curTime, firstValidRequest) {
   const expectedTime = new Date(firstValidRequest);
   expectedTime.setSeconds(expectedTime.getSeconds() + RETRY_AFTER);
