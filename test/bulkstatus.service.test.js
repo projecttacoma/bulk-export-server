@@ -96,6 +96,14 @@ describe('checkBulkStatus logic', () => {
         expect(JSON.parse(response.text).message).toEqual('Could not find bulk export request with id: INVALID_ID');
       });
   });
+  test('check 429 error returned for spamming requests', async () => {
+    let response = {};
+    for (i = 0; i <= 10; i++) {
+      response = await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    }
+    console.log(response);
+    expect(response.statusCode).toEqual(429);
+  });
 
   afterAll(async () => {
     await cleanUpDb();
