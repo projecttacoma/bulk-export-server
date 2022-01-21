@@ -8,9 +8,9 @@ const {
 const fs = require('fs');
 const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
-
+/** The time a client is expected to wait between bulkstatus requests in seconds*/
 const RETRY_AFTER = 1;
-//The number of requests we allow inside the retry after window before throwing a 429 error
+/** The number of requests we allow inside the retry after window before throwing a 429 error */
 const REQUEST_TOLERANCE = 10;
 
 /**
@@ -30,13 +30,15 @@ async function checkBulkStatus(request, reply) {
     if (!timeOfFirstValidRequest || checkTimeIsOutsideWindow(curTime, timeOfFirstValidRequest)) {
       await resetFirstValidRequest(clientId, curTime);
       reply.code(202);
+      reply.header('X-Progress', 'Exporting files');
     } else if (numberOfRequestsInWindow > REQUEST_TOLERANCE) {
       reply.code(429);
     } else {
       await updateNumberOfRequestsInWindow(clientId, numberOfRequestsInWindow + 1);
       reply.code(202);
+      reply.header('X-Progress', 'Exporting files');
     }
-    reply.header('X-Progress', 'Exporting files').header('Retry-After', RETRY_AFTER).send();
+    reply.header('Retry-After', RETRY_AFTER).send();
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
