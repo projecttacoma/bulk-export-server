@@ -53,6 +53,12 @@ const exportToNDJson = async (clientId, types) => {
   }
 };
 
+/**
+ * Retrieves all documents from the requested collection and wraps them in an object with the collection name
+ * @param {Object} db The mongodb that contains the requested data
+ * @param {string} collectionName The collection of interest in the mongodb
+ * @returns {Object} An object containing all data from the given collection name as well as the collection name
+ */
 const getDocuments = async (db, collectionName) => {
   const query = {};
   let doc = await db
@@ -62,6 +68,14 @@ const getDocuments = async (db, collectionName) => {
   return { document: doc, collectionName: collectionName.toString() };
 };
 
+/**
+ * Writes the contents of a mongo document to an ndjson file with the appropriate resource
+ * name, stored in a directory under the client's id
+ * @param {Object} doc A mongodb document containing fhir resources
+ * @param {string} type The fhir resourceType contained in the mongo document
+ * @param {string} clientId The id of the client making the export request
+ * @returns
+ */
 const writeToFile = function (doc, type, clientId) {
   let dirpath = './tmp/' + clientId;
   fs.mkdirSync(dirpath, { recursive: true });

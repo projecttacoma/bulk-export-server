@@ -30,7 +30,7 @@ describe('checkBulkStatus logic', () => {
       .expect(202)
       .then(response => {
         expect(response.headers['x-progress']).toEqual('Exporting files');
-        expect(response.headers['retry-after']).toEqual('120');
+        expect(response.headers['retry-after']).toEqual('1');
       });
   });
   test('check 200 returned for completed request', async () => {
@@ -95,6 +95,24 @@ describe('checkBulkStatus logic', () => {
       .then(response => {
         expect(JSON.parse(response.text).message).toEqual('Could not find bulk export request with id: INVALID_ID');
       });
+  });
+  test('check 429 error returned for spamming requests, then 202 after waiting', async () => {
+    let response;
+    for (let i = 0; i <= 10; i++) {
+      response = await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    }
+    expect(response.statusCode).toEqual(429);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    response = await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    expect(response.statusCode).toEqual(202);
+  });
+  test('check 202 returned for spamming requests appropriately slowly', async () => {
+    for (let i = 0; i < 10; i++) {
+      await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const response = await supertest(app.server).get('/bulkstatus/PENDING_REQUEST');
+    expect(response.statusCode).toEqual(202);
   });
 
   afterAll(async () => {

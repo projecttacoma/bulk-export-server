@@ -101,6 +101,8 @@ const addPendingBulkExportRequest = async () => {
   const bulkExportClient = {
     id: clientId,
     status: BULKSTATUS_INPROGRESS,
+    numberOfRequestsInWindow: 0,
+    timeOfFirstValidRequest: null,
     error: {},
     warnings: []
   };
@@ -132,6 +134,33 @@ const updateBulkExportStatus = async (clientId, newStatus, error = null) => {
 };
 
 /**
+ * Changes the first valid request time for tracking 429:TooManyRequests errors
+ * @param {string} clientId the id of the client making the export request
+ * @param {Object} timeOfFirstValidRequest a Date object storing the time of the first valid request
+ */
+const updateFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
+  await updateResource(clientId, { timeOfFirstValidRequest }, 'bulkExportStatuses');
+};
+
+/**
+ * Changes the number tracking the quantity of bulkstatus requests made within the retry after window
+ * @param {*} clientId the id of the client making the export request
+ * @param {*} numberOfRequestsInWindow the new number of requests made within the retry after window
+ */
+const updateNumberOfRequestsInWindow = async (clientId, numberOfRequestsInWindow) => {
+  await updateResource(clientId, { numberOfRequestsInWindow }, 'bulkExportStatuses');
+};
+
+/**
+ * Sets the time of the first valid request and resets the number of requests made within the retry after window
+ * @param {*} clientId the id of the client making the export request
+ * @param {*} timeOfFirstValidRequest a Date object storing the time of the first valid request
+ */
+const resetFirstValidRequest = async (clientId, timeOfFirstValidRequest) => {
+  await updateResource(clientId, { timeOfFirstValidRequest, numberOfRequestsInWindow: 1 }, 'bulkExportStatuses');
+};
+
+/**
  * Adds a warning to the bulkstatus warning array
  * @param {*} clientId the client id for the request which threw the warning
  * @param {*} warning {message: string, code: int} an object with the message and code of the caught error
@@ -153,6 +182,9 @@ module.exports = {
   findResourcesWithAggregation,
   addPendingBulkExportRequest,
   pushBulkStatusWarning,
+  updateNumberOfRequestsInWindow,
+  updateFirstValidRequest,
+  resetFirstValidRequest,
   BULKSTATUS_INPROGRESS,
   BULKSTATUS_COMPLETED,
   BUlKSTATUS_FAILED

@@ -1,7 +1,17 @@
-const { getBulkExportStatus, BULKSTATUS_COMPLETED, BULKSTATUS_INPROGRESS } = require('../util/mongo.controller');
+const {
+  getBulkExportStatus,
+  BULKSTATUS_COMPLETED,
+  BULKSTATUS_INPROGRESS,
+  resetFirstValidRequest,
+  updateNumberOfRequestsInWindow
+} = require('../util/mongo.controller');
 const fs = require('fs');
 const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
+/** The time a client is expected to wait between bulkstatus requests in seconds*/
+const RETRY_AFTER = 1;
+/** The number of requests we allow inside the retry after window before throwing a 429 error */
+const REQUEST_TOLERANCE = 10;
 
 /**
  * Checks the status of the bulk export request.
@@ -15,7 +25,20 @@ async function checkBulkStatus(request, reply) {
     reply.code(404).send(new Error(`Could not find bulk export request with id: ${clientId}`));
   }
   if (bulkStatus.status === BULKSTATUS_INPROGRESS) {
-    reply.code(202).header('X-Progress', 'Exporting files').header('Retry-After', 120).send();
+    const { timeOfFirstValidRequest, numberOfRequestsInWindow } = bulkStatus;
+    const curTime = new Date().getTime();
+    if (!timeOfFirstValidRequest || checkTimeIsOutsideWindow(curTime, timeOfFirstValidRequest)) {
+      await resetFirstValidRequest(clientId, curTime);
+      reply.code(202);
+      reply.header('X-Progress', 'Exporting files');
+    } else if (numberOfRequestsInWindow > REQUEST_TOLERANCE) {
+      reply.code(429);
+    } else {
+      await updateNumberOfRequestsInWindow(clientId, numberOfRequestsInWindow + 1);
+      reply.code(202);
+      reply.header('X-Progress', 'Exporting files');
+    }
+    reply.header('Retry-After', RETRY_AFTER).send();
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
@@ -44,6 +67,18 @@ async function checkBulkStatus(request, reply) {
         )
       );
   }
+}
+
+/**
+ * Returns true if the current time is later than the first valid request time plus the retry after buffer
+ * @param {Object} curTime A date object signifying the current time
+ * @param {Object} firstValidRequest A date object signifying the time of the first valid request
+ * @returns {boolean} true if the current time is later than the first valid request time plus the retry after buffer, false otherwise
+ */
+function checkTimeIsOutsideWindow(curTime, firstValidRequest) {
+  const expectedTime = new Date(firstValidRequest);
+  expectedTime.setSeconds(expectedTime.getSeconds() + RETRY_AFTER);
+  return curTime >= expectedTime;
 }
 
 /**
