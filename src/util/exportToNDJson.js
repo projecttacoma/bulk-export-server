@@ -22,7 +22,9 @@ const exportToNDJson = async (clientId, types) => {
       requestTypes.push(...supportedResources);
     }
     let docs = requestTypes.map(async element => {
-      return getDocuments(db, element);
+      if (element != 'ValueSet') {
+        return getDocuments(db, element);
+      }
     });
     docs = await Promise.all(docs);
     docs.forEach(doc => {
