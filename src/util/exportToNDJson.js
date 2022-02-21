@@ -23,7 +23,7 @@ const exportToNDJson = async (clientId, types) => {
     }
     let docs = requestTypes.map(async element => {
       if (element != 'ValueSet') {
-        return getDocuments(db, element);
+        return getDocuments(db, element, types);
       }
     });
     docs = await Promise.all(docs);
@@ -61,12 +61,20 @@ const exportToNDJson = async (clientId, types) => {
  * @param {string} collectionName The collection of interest in the mongodb
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
-const getDocuments = async (db, collectionName) => {
+const getDocuments = async (db, collectionName, types) => {
   const query = {};
-  let doc = await db
+  let doc =""
+  if(!types){
+   doc = await db
     .collection(collectionName.toString())
     .find(query, { projection: { _id: 0 } })
     .toArray();
+  } else {
+    doc = await db
+    .collection(collectionName.toString())
+    .find(processTypeFilter(types), { projection: { _id: 0 } })
+    .toArray();
+  }
   return { document: doc, collectionName: collectionName.toString() };
 };
 
@@ -92,6 +100,35 @@ const writeToFile = function (doc, type, clientId) {
     });
     stream.end();
   } else return;
+};
+
+const processTypeFilter = function (types) {
+  let queryArray = [];
+  let codes = [];
+  //process type filter and see the
+  // parse string it will look someting like:
+  //code: ..vsUrl split this array on commas
+
+  //now check if the code is contained in the valueset
+  if (types) {
+    //parse out the typefilter and push the values onto an array/query ob
+    const typefilter = request.param._typefilter.split(',');
+    //now parse that string and pass it into fucntion for vs expansion
+    typefilter.map(async value => {
+      vs = value.split('?');
+      codes.push(getHierarchicalCodes(vs));
+    });
+  }
+  codes.map(async code => {
+    queryArray.push({ 'code.coding.code': code });
+  });
+
+  console.log(queryArray);
+
+  let query = {
+    $or: queryArray
+  };
+  return query;
 };
 
 module.exports = { exportToNDJson };

@@ -1,7 +1,6 @@
 const { addPendingBulkExportRequest } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources');
 const exportQueue = require('../resources/exportQueue');
-const {createDrAndGetVs} = require('../util/typeFilter');
 
 /**
  * Exports data from a FHIR server.
@@ -56,7 +55,6 @@ function validateExportParams(request, reply) {
     // type filter is comma-delimited
     // const requestTypes = request.query._type.split(',');
     let unsupportedTypes = [];
-    const requestTypes = createDrAndGetVs(request);
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
         unsupportedTypes.push(type);
