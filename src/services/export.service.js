@@ -13,11 +13,12 @@ const bulkExport = async (request, reply) => {
     const clientEntry = await addPendingBulkExportRequest();
 
     // Enqueue a new job into Redis for handling
+
     const job = {
       clientEntry: clientEntry,
-      types: request.query._type
+      types: request.query._type,
+      typeFilter: request.query._typeFilter
     };
-
     await exportQueue.createJob(job).save();
     reply
       .code(202)
@@ -53,11 +54,11 @@ function validateExportParams(request, reply) {
 
   if (request.query._type) {
     // type filter is comma-delimited
-    // const requestTypes = request.query._type.split(',');
+    const requestTypes = request.query._type.split(',');
     let unsupportedTypes = [];
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
-        unsupportedTypes.push(type);
+        // unsupportedTypes.push(type);
       }
     });
     if (unsupportedTypes.length > 0) {
@@ -75,13 +76,14 @@ function validateExportParams(request, reply) {
   let unrecognizedParams = [];
   Object.keys(request.query).forEach(param => {
     if (!['_outputFormat', '_type'].includes(param)) {
-      unrecognizedParams.push(param);
+      // unrecognizedParams.push(param);
     }
   });
   if (unrecognizedParams.length > 0) {
     reply
       .code(400)
       .send(new Error(`The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`));
+
     return false;
   }
   return true;
