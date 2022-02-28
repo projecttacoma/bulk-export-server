@@ -9,7 +9,6 @@ const {
   BUlKSTATUS_FAILED,
   findOneResourceWithQuery
 } = require('./mongo.controller');
-const { indexOf } = require('./supportedResources');
 
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
@@ -132,7 +131,7 @@ const writeToFile = function (doc, type, clientId) {
 const processTypeFilter = async function (typefilterLookupEntry) {
   console.log('am I inside processTYpeFilter?');
   let queryArray = [];
-  let codes = [];
+
   if (typefilterLookupEntry) {
     // throw if we don't have the value set
     for (const propertyValue in typefilterLookupEntry) {
@@ -150,8 +149,6 @@ const processTypeFilter = async function (typefilterLookupEntry) {
       await Promise.all(results);
     }
   }
-
-  console.log(queryArray);
 
   let query = {
     $or: queryArray

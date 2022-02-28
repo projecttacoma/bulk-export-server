@@ -58,7 +58,7 @@ function validateExportParams(request, reply) {
     let unsupportedTypes = [];
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
-         unsupportedTypes.push(type);
+        unsupportedTypes.push(type);
       }
     });
     if (unsupportedTypes.length > 0) {

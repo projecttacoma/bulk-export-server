@@ -2,10 +2,10 @@ function getHierarchicalCodes(valueSet) {
   const codes = [];
   if (!valueSet.abstract && !valueSet.inactive && valueSet.code && valueSet.system) {
     codes.push({
-      code: contain.code,
-      system: contain.system,
-      version: contain.version,
-      display: contain.display
+      code: valueSet.code,
+      system: valueSet.system,
+      version: valueSet.version,
+      display: valueSet.display
     });
   }
   if (valueSet.contains && valueSet.contains.length > 0) {
