@@ -137,9 +137,9 @@ const processTypeFilter = async function (typefilterLookupEntry) {
     for (const propertyValue in typefilterLookupEntry) {
       let results = typefilterLookupEntry[propertyValue].map(async value => {
         let vs = await findOneResourceWithQuery({ url: value }, 'ValueSet');
-        /*if(!vs){
-  throw;
-}*/
+        if (!vs) {
+          throw new Error('Value set was not found in the database');
+        }
         let vsResolved = getCodesFromValueSet(vs);
 
         vsResolved.forEach(code => {
