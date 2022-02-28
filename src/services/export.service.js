@@ -58,7 +58,7 @@ function validateExportParams(request, reply) {
     let unsupportedTypes = [];
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
-        // unsupportedTypes.push(type);
+         unsupportedTypes.push(type);
       }
     });
     if (unsupportedTypes.length > 0) {
@@ -76,7 +76,7 @@ function validateExportParams(request, reply) {
   let unrecognizedParams = [];
   Object.keys(request.query).forEach(param => {
     if (!['_outputFormat', '_type'].includes(param)) {
-      // unrecognizedParams.push(param);
+      unrecognizedParams.push(param);
     }
   });
   if (unrecognizedParams.length > 0) {

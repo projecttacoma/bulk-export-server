@@ -14,12 +14,6 @@ function getHierarchicalCodes(valueSet) {
 
   return codes;
 }
-function splitTypeFilter(typefilterString) {
-  let vsUrl;
-  //first strip off the code  up to the ?
-  //need to strip off ?in= from the
-  vsUrl = typefilterString.replace('?in=', '');
-}
 
 function getCodesFromValueSet(valueSet) {
   let codes = [];
