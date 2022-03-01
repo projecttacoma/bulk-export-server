@@ -11,6 +11,7 @@ const mockType = 'Patient';
 
 const expectedFileName = './tmp/123456/Patient.ndjson';
 const clientId = '123456';
+const mockTypeFilter = 'Patient?type:=http://example.com/fhir/ValueSet/test';
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
@@ -30,6 +31,10 @@ describe('check export logic', () => {
     expect(fs.existsSync(expectedFileName)).toBe(true);
   });
 
+  test('Expect folder created and export successful when _typeFilter  parameter is retrieved from request', async () => {
+    await exportToNDJson(clientId, mockType, mockTypeFilter);
+    expect(fs.existsSync(expectedFileName)).toBe(true);
+  });
   afterAll(async () => {
     await cleanUpDb();
   });
