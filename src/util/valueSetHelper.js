@@ -1,3 +1,8 @@
+/**
+ *
+ * @param valueSetResources FHIR ValueSets.
+ * @returns an array of the codes in the valueSet
+ */
 function getHierarchicalCodes(valueSet) {
   const codes = [];
   if (!valueSet.abstract && !valueSet.inactive && valueSet.code && valueSet.system) {
@@ -14,7 +19,16 @@ function getHierarchicalCodes(valueSet) {
 
   return codes;
 }
-
+/**
+ *
+ *
+ * NOTE: This uses the `compose` attribute of the ValueSet to get code. This is incorrect and
+ * should be using the `expansion`. But current example measures have ValueSets with compose
+ * only.
+ *
+ * @param valueSetResources FHIR ValueSets.
+ * @returns The value set DB structure needed to perform the mongo query to find this valueset.
+ */
 function getCodesFromValueSet(valueSet) {
   let codes = [];
   if (valueSet.expansion && valueSet.expansion.contains && valueSet.expansion.contains.length > 0) {
@@ -38,4 +52,4 @@ function getCodesFromValueSet(valueSet) {
   }
   return codes;
 }
-module.exports = { getCodesFromValueSet, getHierarchicalCodes };
+module.exports = { getCodesFromValueSet };

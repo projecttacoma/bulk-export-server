@@ -85,6 +85,8 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
  * Retrieves all documents from the requested collection and wraps them in an object with the collection name
  * @param {Object} db The mongodb that contains the requested data
  * @param {string} collectionName The collection of interest in the mongodb
+ * @param {Object} typefilterLookup The entry in the _typeFilter that should be used to filter data to be exported 
+ * from the server
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
 const getDocuments = async (db, collectionName, typefilterLookup) => {
@@ -127,12 +129,17 @@ const writeToFile = function (doc, type, clientId) {
     stream.end();
   } else return;
 };
-
+/**
+ * Processes the  entry in the _typeFilter and performs the lookup to determine if the type and code are present
+ * in the listed value set.
+ * @param {Object} typefilterLookupEntry  an entry in the _typefilter to perform the valueSet lookup with
+ * @returns {Object} a query object  to be run as part of the export
+ */
 const processTypeFilter = async function (typefilterLookupEntry) {
   let queryArray = [];
 
   if (typefilterLookupEntry) {
-    // throw if we don't have the value set
+    // throw  an error if we don't have the value set
     for (const propertyValue in typefilterLookupEntry) {
       let results = typefilterLookupEntry[propertyValue].map(async value => {
         let vs = await findOneResourceWithQuery({ url: value }, 'ValueSet');
@@ -149,10 +156,9 @@ const processTypeFilter = async function (typefilterLookupEntry) {
     }
   }
 
-  let query = {
+  return {
     $or: queryArray
   };
-  return query;
 };
 
 module.exports = { exportToNDJson };
