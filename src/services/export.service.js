@@ -75,10 +75,8 @@ function validateExportParams(request, reply) {
 
   let unrecognizedParams = [];
   Object.keys(request.query).forEach(param => {
-    if (!['_outputFormat', '_type'].includes(param)) {
-      if (param !== '_typeFilter') {
-        unrecognizedParams.push(param);
-      }
+    if (!['_outputFormat', '_type', '_typeFilter'].includes(param)) {
+      unrecognizedParams.push(param);
     }
   });
   if (unrecognizedParams.length > 0) {
