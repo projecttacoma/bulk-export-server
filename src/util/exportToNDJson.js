@@ -129,7 +129,6 @@ const writeToFile = function (doc, type, clientId) {
 };
 
 const processTypeFilter = async function (typefilterLookupEntry) {
-  console.log('am I inside processTYpeFilter?');
   let queryArray = [];
 
   if (typefilterLookupEntry) {
