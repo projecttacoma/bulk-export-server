@@ -85,7 +85,7 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
  * Retrieves all documents from the requested collection and wraps them in an object with the collection name
  * @param {Object} db The mongodb that contains the requested data
  * @param {string} collectionName The collection of interest in the mongodb
- * @param {Object} typefilterLookup The entry in the _typeFilter that should be used to filter data to be exported 
+ * @param {Object} typefilterLookup The entry in the _typeFilter that should be used to filter data to be exported
  * from the server
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
