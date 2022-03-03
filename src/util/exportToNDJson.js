@@ -90,19 +90,16 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
 const getDocuments = async (db, collectionName, typefilterLookup) => {
-  const query = {};
+  let query = {};
   let doc = '';
-  if (!typefilterLookup[collectionName.toString()]) {
-    doc = await db
-      .collection(collectionName.toString())
-      .find(query, { projection: { _id: 0 } })
-      .toArray();
-  } else {
-    doc = await db
-      .collection(collectionName.toString())
-      .find(await processTypeFilter(typefilterLookup[collectionName.toString()]), { projection: { _id: 0 } })
-      .toArray();
+  if (typefilterLookup[collectionName.toString()]) {
+    query = await processTypeFilter(typefilterLookup[collectionName.toString()]);
   }
+  doc = await db
+    .collection(collectionName.toString())
+    .find(query, { projection: { _id: 0 } })
+    .toArray();
+
   return { document: doc, collectionName: collectionName.toString() };
 };
 
