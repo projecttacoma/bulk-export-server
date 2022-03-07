@@ -1,8 +1,14 @@
+const { getCodesFromValueSet } = require('./valueSetHelper');
 const { db } = require('./mongo');
 const supportedResources = require('./supportedResources');
 const fs = require('fs');
 const path = require('path');
-const { updateBulkExportStatus, BULKSTATUS_COMPLETED, BUlKSTATUS_FAILED } = require('./mongo.controller');
+const {
+  updateBulkExportStatus,
+  BULKSTATUS_COMPLETED,
+  BUlKSTATUS_FAILED,
+  findOneResourceWithQuery
+} = require('./mongo.controller');
 
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
@@ -10,7 +16,7 @@ const { updateBulkExportStatus, BULKSTATUS_COMPLETED, BUlKSTATUS_FAILED } = requ
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  */
-const exportToNDJson = async (clientId, types) => {
+const exportToNDJson = async (clientId, types, typeFilter) => {
   try {
     let dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
@@ -21,9 +27,31 @@ const exportToNDJson = async (clientId, types) => {
       //create list of requested types if request.query._type param doesn't exist
       requestTypes.push(...supportedResources);
     }
-    let docs = requestTypes.map(async element => {
-      return getDocuments(db, element);
-    });
+    let typefilterLookup = {};
+    if (typeFilter) {
+      let tyq = typeFilter.split(',');
+      tyq.forEach(line => {
+        let resourceType = line.substring(0, line.indexOf('?'));
+
+        let propertyValue = line.substring(line.indexOf('?') + 1, line.indexOf(':'));
+        let vsUrl = line.substring(line.indexOf('=') + 1);
+        if (typefilterLookup[resourceType]) {
+          if (typefilterLookup[resourceType][propertyValue]) {
+            typefilterLookup[resourceType][propertyValue].push(vsUrl);
+          } else {
+            typefilterLookup[resourceType][propertyValue] = [vsUrl];
+          }
+        } else {
+          typefilterLookup[resourceType] = { [propertyValue]: [vsUrl] };
+        }
+      });
+    }
+
+    let docs = requestTypes
+      .filter(t => t !== 'ValueSet')
+      .map(async element => {
+        return getDocuments(db, element, typefilterLookup);
+      });
     docs = await Promise.all(docs);
     docs.forEach(doc => {
       writeToFile(doc.document, doc.collectionName, clientId);
@@ -57,14 +85,21 @@ const exportToNDJson = async (clientId, types) => {
  * Retrieves all documents from the requested collection and wraps them in an object with the collection name
  * @param {Object} db The mongodb that contains the requested data
  * @param {string} collectionName The collection of interest in the mongodb
+ * @param {Object} typefilterLookup The entry in the _typeFilter that should be used to filter data to be exported
+ * from the server
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
-const getDocuments = async (db, collectionName) => {
-  const query = {};
-  let doc = await db
+const getDocuments = async (db, collectionName, typefilterLookup) => {
+  let query = {};
+  let doc = '';
+  if (typefilterLookup[collectionName.toString()]) {
+    query = await processTypeFilter(typefilterLookup[collectionName.toString()]);
+  }
+  doc = await db
     .collection(collectionName.toString())
     .find(query, { projection: { _id: 0 } })
     .toArray();
+
   return { document: doc, collectionName: collectionName.toString() };
 };
 
@@ -90,6 +125,37 @@ const writeToFile = function (doc, type, clientId) {
     });
     stream.end();
   } else return;
+};
+/**
+ * Processes the  entry in the _typeFilter and performs the lookup to determine if the type and code are present
+ * in the listed value set.
+ * @param {Object} typefilterLookupEntry  an entry in the _typefilter to perform the valueSet lookup with
+ * @returns {Object} a query object  to be run as part of the export
+ */
+const processTypeFilter = async function (typefilterLookupEntry) {
+  let queryArray = [];
+
+  if (typefilterLookupEntry) {
+    // throw  an error if we don't have the value set
+    for (const propertyValue in typefilterLookupEntry) {
+      let results = typefilterLookupEntry[propertyValue].map(async value => {
+        let vs = await findOneResourceWithQuery({ url: value }, 'ValueSet');
+        if (!vs) {
+          throw new Error('Value set was not found in the database');
+        }
+        let vsResolved = getCodesFromValueSet(vs);
+
+        vsResolved.forEach(code => {
+          queryArray.push({ [`${propertyValue}.coding.code`]: code.code });
+        });
+      });
+      await Promise.all(results);
+    }
+  }
+
+  return {
+    $or: queryArray
+  };
 };
 
 module.exports = { exportToNDJson };
