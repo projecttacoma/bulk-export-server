@@ -6,7 +6,7 @@ const path = require('path');
 const {
   updateBulkExportStatus,
   BULKSTATUS_COMPLETED,
-  BUlKSTATUS_FAILED,
+  BULKSTATUS_FAILED,
   findOneResourceWithQuery
 } = require('./mongo.controller');
 
@@ -76,7 +76,7 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
     await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
     return true;
   } catch (e) {
-    await updateBulkExportStatus(clientId, BUlKSTATUS_FAILED, { message: e.message, code: 500 });
+    await updateBulkExportStatus(clientId, BULKSTATUS_FAILED, { message: e.message, code: 500 });
     return false;
   }
 };

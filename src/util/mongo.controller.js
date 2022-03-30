@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 // constants for bulk export status strings
 const BULKSTATUS_INPROGRESS = 'In Progress';
 const BULKSTATUS_COMPLETED = 'Completed';
-const BUlKSTATUS_FAILED = 'Failed';
+const BULKSTATUS_FAILED = 'Failed';
 
 /**
  * creates a new document in the specified collection
@@ -187,5 +187,5 @@ module.exports = {
   resetFirstValidRequest,
   BULKSTATUS_INPROGRESS,
   BULKSTATUS_COMPLETED,
-  BUlKSTATUS_FAILED
+  BULKSTATUS_FAILED
 };
