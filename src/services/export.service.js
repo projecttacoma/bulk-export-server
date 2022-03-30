@@ -3,9 +3,9 @@ const supportedResources = require('../util/supportedResources');
 const exportQueue = require('../resources/exportQueue');
 
 /**
- * Exports data from a FHIR server.
- * @param {*} request the request object passed in by the user
- * @param {*} reply the response object
+ * Exports data from a FHIR server, whether or not it is associated with a patient.
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
  */
 const bulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
@@ -24,6 +24,21 @@ const bulkExport = async (request, reply) => {
       .code(202)
       .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${clientEntry}`)
       .send();
+  }
+};
+
+/**
+ * Exports data from a FHIR server for resource types pertaining to all patients. Uses parsed patient
+ * compartment definition as a point of reference for recommended resources to be returned.
+ *
+ * Also uses Organization and Practitioner resources (that are not included in patient compartment
+ * definition), as suggested by the Patient/$export spec.
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
+ */
+const patientBulkExport = async (request, reply) => {
+  if (validateExportParams(request, reply)) {
+    request.log.info('Patient >>> $export');
   }
 };
 
@@ -89,4 +104,4 @@ function validateExportParams(request, reply) {
   return true;
 }
 
-module.exports = { bulkExport };
+module.exports = { bulkExport, patientBulkExport };
