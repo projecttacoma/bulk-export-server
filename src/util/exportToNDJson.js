@@ -22,9 +22,9 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
     fs.mkdirSync(dirpath, { recursive: true });
     let requestTypes = [];
     if (types) {
-      requestTypes = types.split(','); //this is the list types to export
+      requestTypes = types; //this is the list types to export
     } else {
-      //create list of requested types if request.query._type param doesn't exist
+      // create list of requested types if request.query._type param doesn't exist
       requestTypes.push(...supportedResources);
     }
     let typefilterLookup = {};
