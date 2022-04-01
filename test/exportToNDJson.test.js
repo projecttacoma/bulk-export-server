@@ -10,7 +10,7 @@ const fs = require('fs');
 // import queue to close open handles after tests pass
 // TODO: investigate why queues are leaving open handles in this file
 const queue = require('../src/resources/exportQueue');
-const mockType = 'Patient';
+const mockType = ['Patient'];
 
 const expectedFileName = './tmp/123456/Patient.ndjson';
 const clientId = '123456';
