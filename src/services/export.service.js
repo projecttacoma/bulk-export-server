@@ -23,7 +23,8 @@ const bulkExport = async (request, reply) => {
     const job = {
       clientEntry: clientEntry,
       types: types,
-      typeFilter: request.query._typeFilter
+      typeFilter: request.query._typeFilter,
+      systemLevelExport: true
     };
     console.log(job);
     await exportQueue.createJob(job).save();
@@ -56,7 +57,8 @@ const patientBulkExport = async (request, reply) => {
     const job = {
       clientEntry: clientEntry,
       types: types,
-      typeFilter: request.query._typeFilter
+      typeFilter: request.query._typeFilter,
+      systemLevelExport: false
     };
     await exportQueue.createJob(job).save();
     reply
@@ -141,14 +143,12 @@ function filterPatientResourceTypes(request, reply) {
   const filteredTypes = types.filter(type => patientResourceTypes.includes(type));
   if (types.length !== filteredTypes.length) {
     if (filteredTypes.length === 0) {
-      reply
-        .code(400)
-        .send(
-          createOperationOutcome('None of the provided resource types are permitted for Patient-level export.', {
-            issueCode: 400,
-            severity: 'error'
-          })
-        );
+      reply.code(400).send(
+        createOperationOutcome('None of the provided resource types are permitted for Patient-level export.', {
+          issueCode: 400,
+          severity: 'error'
+        })
+      );
     }
     const removedTypes = types.filter(type => !filteredTypes.includes(type));
     request.log.warn(`The following resource types were removed from the request: ${removedTypes.join(', ')}`);
