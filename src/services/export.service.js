@@ -135,6 +135,8 @@ function validateExportParams(request, reply) {
  * OperationOutcome if none of the provided types are present in the patient compartment definition.
  * @param {Object} request http request object
  * @param {Object} reply the response object
+ * @return array of resource types to use as reference for export after filtering out types that
+ * are not permitted for patient-level export
  */
 function filterPatientResourceTypes(request, reply) {
   const types = request.query._type.split(',');
