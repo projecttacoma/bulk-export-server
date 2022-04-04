@@ -12,21 +12,19 @@ const jsonStr = fs.readFileSync(compartmentDefPath, 'utf8');
  * @param {string} compartmentJson the string content of the patient compartment definition json file
  * @return {Array} array of resource types that appear in the compartment definition resource array
  */
-async function parse(compartmentJson) {
-  const compartmentDefinition = await JSON.parse(compartmentJson);
+function parse(compartmentJson) {
+  const compartmentDefinition = JSON.parse(compartmentJson);
   const resourceTypes = [];
   compartmentDefinition.resource.forEach(resourceObj => {
-    resourceTypes.push(resourceObj.code);
+    if (resourceObj.param && resourceObj.param.length > 0) resourceTypes.push(resourceObj.code);
   });
   return resourceTypes;
 }
 
-parse(jsonStr)
-  .then(data => {
-    fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf8');
-
-    console.log(`Wrote file to ${outputPath}`);
-  })
-  .catch(e => {
-    console.error(e);
-  });
+try {
+  const data = parse(jsonStr);
+  fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf8');
+  console.log(`Wrote file to ${outputPath}`);
+} catch (e) {
+  console.error(e);
+}
