@@ -1,23 +1,63 @@
 const { addPendingBulkExportRequest } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources');
 const exportQueue = require('../resources/exportQueue');
+const patientResourceTypes = require('../compartment-definition/patientExportResourceTypes.json');
+const { createOperationOutcome } = require('../util/errorUtils');
 
 /**
- * Exports data from a FHIR server.
- * @param {*} request the request object passed in by the user
- * @param {*} reply the response object
+ * Exports data from a FHIR server, whether or not it is associated with a patient.
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
  */
 const bulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
-    // Enqueue a new job into Redis for handling
+    let types;
+    if (request.query._type) {
+      types = request.query._type.split(',');
+    }
 
+    // Enqueue a new job into Redis for handling
     const job = {
       clientEntry: clientEntry,
-      types: request.query._type,
-      typeFilter: request.query._typeFilter
+      types: types,
+      typeFilter: request.query._typeFilter,
+      systemLevelExport: true
+    };
+    await exportQueue.createJob(job).save();
+    reply
+      .code(202)
+      .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${clientEntry}`)
+      .send();
+  }
+};
+
+/**
+ * Exports data from a FHIR server for resource types pertaining to all patients. Uses parsed patient
+ * compartment definition as a point of reference for recommended resources to be returned.
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
+ */
+const patientBulkExport = async (request, reply) => {
+  if (validateExportParams(request, reply)) {
+    request.log.info('Patient >>> $export');
+    const clientEntry = await addPendingBulkExportRequest();
+
+    let types;
+    if (request.query._type) {
+      types = filterPatientResourceTypes(request, reply);
+    } else {
+      types = patientResourceTypes;
+    }
+
+    // Enqueue a new job into Redis for handling
+    const job = {
+      clientEntry: clientEntry,
+      types: types,
+      typeFilter: request.query._typeFilter,
+      systemLevelExport: false
     };
     await exportQueue.createJob(job).save();
     reply
@@ -89,4 +129,36 @@ function validateExportParams(request, reply) {
   return true;
 }
 
-module.exports = { bulkExport };
+/**
+ * Checks provided types against the recommended resource types for patient-level export.
+ * Filters resource types that do not appear in the patient compartment definition and throws
+ * OperationOutcome if none of the provided types are present in the patient compartment definition.
+ * @param {Object} request http request object
+ * @param {Object} reply the response object
+ * @return array of resource types to use as reference for export after filtering out types that
+ * are not permitted for patient-level export
+ */
+function filterPatientResourceTypes(request, reply) {
+  const types = request.query._type.split(',');
+  // check types against patient compartment definition and filter
+  const filteredTypes = types.filter(type => patientResourceTypes.includes(type));
+  if (types.length !== filteredTypes.length) {
+    if (filteredTypes.length === 0) {
+      reply.code(400).send(
+        createOperationOutcome('None of the provided resource types are permitted for Patient-level export.', {
+          issueCode: 400,
+          severity: 'error'
+        })
+      );
+    }
+    const removedTypes = types.filter(type => !filteredTypes.includes(type));
+    request.log.warn(
+      `The following resource types were removed from the request because they are not permitted for Patient-level export: ${removedTypes.join(
+        ', '
+      )}`
+    );
+  }
+  return filteredTypes;
+}
+
+module.exports = { bulkExport, patientBulkExport };

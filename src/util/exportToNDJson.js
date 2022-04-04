@@ -6,7 +6,7 @@ const path = require('path');
 const {
   updateBulkExportStatus,
   BULKSTATUS_COMPLETED,
-  BUlKSTATUS_FAILED,
+  BULKSTATUS_FAILED,
   findOneResourceWithQuery
 } = require('./mongo.controller');
 
@@ -15,16 +15,18 @@ const {
  * if the _type member doesn't exist it will simply export everything included in the supportedResources list
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
+ * @param {string} typeFilter String of comma separated FHIR REST search queries
+ * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  */
-const exportToNDJson = async (clientId, types, typeFilter) => {
+const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport) => {
   try {
     let dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
     let requestTypes = [];
     if (types) {
-      requestTypes = types.split(','); //this is the list types to export
+      requestTypes = types; //this is the list types to export
     } else {
-      //create list of requested types if request.query._type param doesn't exist
+      // create list of requested types if request.query._type param doesn't exist
       requestTypes.push(...supportedResources);
     }
     let typefilterLookup = {};
@@ -47,11 +49,10 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
       });
     }
 
-    let docs = requestTypes
-      .filter(t => t !== 'ValueSet')
-      .map(async element => {
-        return getDocuments(db, element, typefilterLookup);
-      });
+    let docs = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
+    docs = docs.map(async element => {
+      return getDocuments(db, element, typefilterLookup);
+    });
     docs = await Promise.all(docs);
     docs.forEach(doc => {
       writeToFile(doc.document, doc.collectionName, clientId);
@@ -76,7 +77,7 @@ const exportToNDJson = async (clientId, types, typeFilter) => {
     await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
     return true;
   } catch (e) {
-    await updateBulkExportStatus(clientId, BUlKSTATUS_FAILED, { message: e.message, code: 500 });
+    await updateBulkExportStatus(clientId, BULKSTATUS_FAILED, { message: e.message, code: 500 });
     return false;
   }
 };

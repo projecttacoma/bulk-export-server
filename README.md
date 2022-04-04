@@ -11,6 +11,8 @@
 
 - [Usage](#usage)
 
+- [Server Endpoints](#server-endpoints)
+
 - [License](#license)
 
 ## Installation
@@ -83,6 +85,24 @@ Debugging with terminal input can be facilitated with `stdin_open: true` and `tt
 Once MongoDB is running on your machine, run the `npm start` command to start up the FHIR server at `localhost:3000`. The server can also be run in "watch" mode with `npm run start:watch`.
 
 For ease of testing, it is recommended to download [Insomnia API Client and Design Tool](https://insomnia.rest) for sending HTTP requests to the server and [Robo 3T](https://robomongo.org) as a GUI for viewing the Mongo database.
+
+## Server Endpoints
+
+The server supports the following endpoints:
+
+#### All Patients
+
+FHIR Operation to obtain a detailed set of FHIR resources of diverse resource types pertaining to all patients.
+
+Endpoint: `GET [fhir base]/Patient/$export`
+
+#### System Level Export
+
+Export data from a FHIR server, whether or not it is associated with a patient. This supports use cases like backing up a server, or exporting terminology data by restricting the resources returned using the `_type` parameter.
+
+Endpoint: `GET [fhir base]/$export`
+
+For more information on the export endpoints, read this documentation on the [Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export/index.html#request-flow).
 
 ## License
 
