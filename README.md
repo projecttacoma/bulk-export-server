@@ -102,7 +102,7 @@ Export data from a FHIR server, whether or not it is associated with a patient. 
 
 Endpoint: `GET [fhir base]/$export`
 
-For more information on the export endpoints, read this documentation on the [ Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export/index.html#request-flow).
+For more information on the export endpoints, read this documentation on the [Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export/index.html#request-flow).
 
 ## License
 

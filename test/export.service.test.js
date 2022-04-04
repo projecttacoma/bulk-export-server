@@ -4,7 +4,6 @@ const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
 const queue = require('../src/resources/exportQueue');
-const createJobSpy = jest.spyOn(queue, 'createJob');
 
 // Mock export to do nothing
 queue.exportToNDJson = jest.fn();
@@ -15,6 +14,7 @@ describe('Check barebones bulk export logic (success)', () => {
   });
 
   test('check 202 returned and content-location populated', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/$export')
       .expect(202)
@@ -25,6 +25,7 @@ describe('Check barebones bulk export logic (success)', () => {
   });
 
   test('check 202 returned and content-location populated with params', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/$export?_outputFormat=ndjson')
       .expect(202)
@@ -46,6 +47,7 @@ describe('Check patient-level export logic (success)', () => {
   });
 
   test('check 202 returned and content-location populated', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/Patient/$export')
       .expect(202)
@@ -56,6 +58,7 @@ describe('Check patient-level export logic (success)', () => {
   });
 
   test('check 202 returned and content-location populated with params', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/Patient/$export?_outputFormat=ndjson&_type=Patient,ServiceRequest')
       .expect(202)
@@ -66,6 +69,7 @@ describe('Check patient-level export logic (success)', () => {
   });
 
   test('check 202 returns and content-location populated when _type param contains resource types that are/are not included in patient compartment', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
     // Parameters is a supported resource that does not appear in the patient compartment
     await supertest(app.server)
       .get('/Patient/$export?_outputFormat=ndjson&_type=Patient,Parameters')
@@ -133,11 +137,8 @@ describe('Check barebones bulk export logic (failure)', () => {
       });
   });
 
-  // Close export queue that is created when processing these tests
-  // TODO: investigate why queues are leaving open handles in this file
   afterEach(async () => {
     await cleanUpDb();
-    await queue.close();
   });
 });
 
@@ -201,10 +202,7 @@ describe('Check patient-level export logic (failure)', () => {
       });
   });
 
-  // Close export queue that is created when processing these tests
-  // TODO: investigate why queues are leaving open handles in this file
   afterEach(async () => {
     await cleanUpDb();
-    await queue.close();
   });
 });

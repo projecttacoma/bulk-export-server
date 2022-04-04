@@ -26,7 +26,6 @@ const bulkExport = async (request, reply) => {
       typeFilter: request.query._typeFilter,
       systemLevelExport: true
     };
-    console.log(job);
     await exportQueue.createJob(job).save();
     reply
       .code(202)
@@ -135,7 +134,7 @@ function validateExportParams(request, reply) {
  * Filters resource types that do not appear in the patient compartment definition and throws
  * OperationOutcome if none of the provided types are present in the patient compartment definition.
  * @param {Object} request http request object
- * @param {*} reply the response object
+ * @param {Object} reply the response object
  */
 function filterPatientResourceTypes(request, reply) {
   const types = request.query._type.split(',');
@@ -151,7 +150,11 @@ function filterPatientResourceTypes(request, reply) {
       );
     }
     const removedTypes = types.filter(type => !filteredTypes.includes(type));
-    request.log.warn(`The following resource types were removed from the request: ${removedTypes.join(', ')}`);
+    request.log.warn(
+      `The following resource types were removed from the request because they are not permitted for Patient-level export: ${removedTypes.join(
+        ', '
+      )}`
+    );
   }
   return filteredTypes;
 }
