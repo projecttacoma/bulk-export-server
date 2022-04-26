@@ -40,9 +40,10 @@ const findOneResourceWithQuery = async (query, resourceType) => {
   return collection.findOne(query);
 };
 
-const findResourcesWithQuery = async (query, resourceType) => {
+const findResourcesWithQuery = async (query, resourceType, options = {}) => {
   const collection = db.collection(resourceType);
-  return (await collection.find(query)).toArray();
+  const results = collection.find(query, options);
+  return results.toArray();
 };
 
 /**

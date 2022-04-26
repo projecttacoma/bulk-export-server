@@ -96,6 +96,12 @@ FHIR Operation to obtain a detailed set of FHIR resources of diverse resource ty
 
 Endpoint: `GET [fhir base]/Patient/$export`
 
+#### All Patients in a Group
+
+FHIR Operation to obtain a detailed set of FHIR resources of diverse resource types pertaining to all patients that belong to a defined Group resource.
+
+Endpoint: `GET [fhir base]/Group/[id]/$export`
+
 #### System Level Export
 
 Export data from a FHIR server, whether or not it is associated with a patient. This supports use cases like backing up a server, or exporting terminology data by restricting the resources returned using the `_type` parameter.

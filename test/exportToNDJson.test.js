@@ -1,5 +1,5 @@
 const build = require('../src/server/app');
-const { exportToNDJson } = require('../src/util/exportToNDJson');
+const { exportToNDJson, patientsQueryForType, getDocuments } = require('../src/util/exportToNDJson');
 const { cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
 const testPatient = require('./fixtures/testPatient.json');
 const testEncounter = require('./fixtures/testEncounter.json');
@@ -64,6 +64,27 @@ describe('check export logic', () => {
     await exportToNDJson(clientId, mockType, typeFilterWOValueSet);
     expect(fs.existsSync(expectedFileNameWOValueSet)).toBe(false);
   });
+
+  test('Expect patientsQueryForType to succeed for existing resources', async () => {
+    const query = await patientsQueryForType(['testPatient'], 'Encounter');
+    expect(query).toEqual({ $or: [{ $or: [{ 'subject.reference': 'Patient/testPatient' }] }] });
+  });
+
+  test('Expect getDocuments to find a resource associated with a patient (Group export)', async () => {
+    const docObj = await getDocuments('Encounter', {}, ['testPatient']);
+    expect(docObj.document.length).toEqual(1);
+  });
+
+  test('Expect getDocuments to find the encounter resource with no patient association (Patient export)', async () => {
+    const docObj = await getDocuments('Encounter', {}, undefined);
+    expect(docObj.document.length).toEqual(1);
+  });
+
+  test('Expect getDocuments to return empty results for 0 patient association (empty Group)', async () => {
+    const docObj = await getDocuments('Encounter', {}, []);
+    expect(docObj.document.length).toEqual(0);
+  });
+
   afterAll(async () => {
     await cleanUpDb();
   });

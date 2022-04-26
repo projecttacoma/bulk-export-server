@@ -1,4 +1,7 @@
 {
     "resourceType": "Encounter",
-    "id": "testEncounter"
+    "id": "testEncounter",
+    "subject": {
+      "reference": "Patient/testPatient"
+    }
   }
