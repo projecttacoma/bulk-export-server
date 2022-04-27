@@ -1,9 +1,12 @@
-const { bulkStatusSetup, cleanUpDb } = require('./populateTestData');
+const { bulkStatusSetup, cleanUpDb, createTestResource } = require('./populateTestData');
 const { db } = require('../src/util/mongo');
 const build = require('../src/server/app');
 const app = build();
 const supertest = require('supertest');
 const queue = require('../src/resources/exportQueue');
+const testPatient = require('./fixtures/testPatient.json');
+const testEncounter = require('./fixtures/testEncounter.json');
+const testGroup = require('./fixtures/testGroup.json');
 
 // Mock export to do nothing
 queue.exportToNDJson = jest.fn();
@@ -83,9 +86,30 @@ describe('Check patient-level export logic (success)', () => {
   afterEach(async () => {
     await cleanUpDb();
   });
+});
 
-  afterAll(async () => {
-    await queue.close();
+describe('Check group-level export logic (success)', () => {
+  beforeEach(async () => {
+    await bulkStatusSetup();
+    await createTestResource(testPatient, 'Patient');
+    await createTestResource(testEncounter, 'Encounter');
+    await createTestResource(testGroup, 'Group');
+    await app.ready();
+  });
+
+  test('check 202 returned and content-location populated', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .get('/Group/testGroup/$export')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  afterEach(async () => {
+    await cleanUpDb();
   });
 });
 
@@ -176,7 +200,7 @@ describe('Check patient-level export logic (failure)', () => {
       .expect(400)
       .then(response => {
         expect(JSON.parse(response.text).issue[0].details.text).toEqual(
-          'None of the provided resource types are permitted for Patient-level export.'
+          'None of the provided resource types are permitted for Patient/Group export.'
         );
       });
   });
@@ -205,4 +229,8 @@ describe('Check patient-level export logic (failure)', () => {
   afterEach(async () => {
     await cleanUpDb();
   });
+});
+
+afterAll(async () => {
+  await queue.close();
 });

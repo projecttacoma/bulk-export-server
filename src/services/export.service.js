@@ -1,4 +1,4 @@
-const { addPendingBulkExportRequest } = require('../util/mongo.controller');
+const { addPendingBulkExportRequest, findResourceById } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources');
 const exportQueue = require('../resources/exportQueue');
 const patientResourceTypes = require('../compartment-definition/patientExportResourceTypes.json');
@@ -58,6 +58,50 @@ const patientBulkExport = async (request, reply) => {
       types: types,
       typeFilter: request.query._typeFilter,
       systemLevelExport: false
+    };
+    await exportQueue.createJob(job).save();
+    reply
+      .code(202)
+      .header('Content-location', `http://${process.env.HOST}:${process.env.PORT}/bulkstatus/${clientEntry}`)
+      .send();
+  }
+};
+
+/**
+ * Exports data from a FHIR server for resource types pertaining to patients found in the referenced
+ * Group. Uses parsed patient compartment definition similarly to patientBulkExport.
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
+ */
+const groupBulkExport = async (request, reply) => {
+  if (validateExportParams(request, reply)) {
+    request.log.info('Group >>> $export');
+    const group = await findResourceById(request.params.groupId, 'Group');
+    if (!group) {
+      reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
+      return;
+    }
+    const patientIds = group.member.map(m => {
+      const splitRef = m.entity.reference.split('/');
+      return splitRef[splitRef.length - 1];
+    });
+
+    const clientEntry = await addPendingBulkExportRequest();
+
+    let types;
+    if (request.query._type) {
+      types = filterPatientResourceTypes(request, reply);
+    } else {
+      types = patientResourceTypes;
+    }
+
+    // Enqueue a new job into Redis for handling
+    const job = {
+      clientEntry: clientEntry,
+      types: types,
+      typeFilter: request.query._typeFilter,
+      systemLevelExport: false,
+      patientIds: patientIds
     };
     await exportQueue.createJob(job).save();
     reply
@@ -145,7 +189,7 @@ function filterPatientResourceTypes(request, reply) {
   if (types.length !== filteredTypes.length) {
     if (filteredTypes.length === 0) {
       reply.code(400).send(
-        createOperationOutcome('None of the provided resource types are permitted for Patient-level export.', {
+        createOperationOutcome('None of the provided resource types are permitted for Patient/Group export.', {
           issueCode: 400,
           severity: 'error'
         })
@@ -153,7 +197,7 @@ function filterPatientResourceTypes(request, reply) {
     }
     const removedTypes = types.filter(type => !filteredTypes.includes(type));
     request.log.warn(
-      `The following resource types were removed from the request because they are not permitted for Patient-level export: ${removedTypes.join(
+      `The following resource types were removed from the request because they are not permitted for Patient/Group export: ${removedTypes.join(
         ', '
       )}`
     );
@@ -161,4 +205,4 @@ function filterPatientResourceTypes(request, reply) {
   return filteredTypes;
 }
 
-module.exports = { bulkExport, patientBulkExport };
+module.exports = { bulkExport, patientBulkExport, groupBulkExport };
