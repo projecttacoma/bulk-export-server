@@ -200,7 +200,7 @@ describe('Check patient-level export logic (failure)', () => {
       .expect(400)
       .then(response => {
         expect(JSON.parse(response.text).issue[0].details.text).toEqual(
-          'None of the provided resource types are permitted for Patient-level export.'
+          'None of the provided resource types are permitted for Patient/Group export.'
         );
       });
   });

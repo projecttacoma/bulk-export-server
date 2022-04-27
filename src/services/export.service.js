@@ -77,6 +77,10 @@ const groupBulkExport = async (request, reply) => {
   if (validateExportParams(request, reply)) {
     request.log.info('Group >>> $export');
     const group = await findResourceById(request.params.groupId, 'Group');
+    if (!group) {
+      reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
+      return;
+    }
     const patientIds = group.member.map(m => {
       const splitRef = m.entity.reference.split('/');
       return splitRef[splitRef.length - 1];
@@ -185,7 +189,7 @@ function filterPatientResourceTypes(request, reply) {
   if (types.length !== filteredTypes.length) {
     if (filteredTypes.length === 0) {
       reply.code(400).send(
-        createOperationOutcome('None of the provided resource types are permitted for Patient-level export.', {
+        createOperationOutcome('None of the provided resource types are permitted for Patient/Group export.', {
           issueCode: 400,
           severity: 'error'
         })
@@ -193,7 +197,7 @@ function filterPatientResourceTypes(request, reply) {
     }
     const removedTypes = types.filter(type => !filteredTypes.includes(type));
     request.log.warn(
-      `The following resource types were removed from the request because they are not permitted for Patient-level export: ${removedTypes.join(
+      `The following resource types were removed from the request because they are not permitted for Patient/Group export: ${removedTypes.join(
         ', '
       )}`
     );
