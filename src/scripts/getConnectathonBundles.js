@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const mongoUtil = require('../util/mongo');
-const { createResource } = require('../util/mongo.controller');
+const { createResource, findResourcesWithQuery } = require('../util/mongo.controller');
 
 const connectathonPath = path.resolve(path.join(__dirname, '../../connectathon/fhir401/bundles/measure/'));
 // bundles that are not the latest available version or contain reference errors
@@ -47,6 +47,8 @@ async function main() {
     );
   }
 
+  const measureIds = [];
+
   const bundlePromises = bundleFiles.map(async filePath => {
     // read each EXM bundle file
     const data = fs.readFileSync(filePath, 'utf8');
@@ -55,11 +57,9 @@ async function main() {
       // retrieve each resource and insert into database
       const uploads = bundle.entry.map(async res => {
         try {
-          if (
-            res.resource.resourceType != 'Measure' &&
-            res.resource.resourceType != 'Library' &&
-            res.resource.resourceType != 'MeasureReport'
-          ) {
+          if (res.resource.resourceType === 'Measure') {
+            measureIds.push(res.resource.id);
+          } else if (res.resource.resourceType != 'Library' && res.resource.resourceType != 'MeasureReport') {
             await createResource(res.resource, res.resource.resourceType);
           }
         } catch (e) {
@@ -73,7 +73,41 @@ async function main() {
     }
   });
   await Promise.all(bundlePromises);
-  return 'Connectathon bundle entries uploaded.';
+
+  // Create a group resource for all EXM* patients
+  const exmRegex = /EXM\d+/;
+  const exmIds = measureIds.filter(mid => exmRegex.test(mid)).map(mid => exmRegex.exec(mid)[0]);
+
+  const allPatientIds = (await findResourcesWithQuery({}, 'Patient', { projection: { _id: 0, id: 1 } })).map(p => p.id);
+  await Promise.all(exmIds.map(async exmId => createPatientGroupsPerMeasure(exmId, allPatientIds)));
+
+  return 'Bundles and groups uploaded';
+}
+
+async function createPatientGroupsPerMeasure(exmId, allPatientIds) {
+  const patientIdRegex = new RegExp(exmId, 'i');
+
+  const exmPatientIds = allPatientIds.filter(id => patientIdRegex.test(id));
+
+  const group = {
+    resourceType: 'Group',
+    id: `${exmId}-patients`,
+    type: 'person',
+    actual: true,
+    member: exmPatientIds.map(pid => ({
+      entity: {
+        reference: `Patient/${pid}`
+      }
+    }))
+  };
+
+  try {
+    await createResource(group, 'Group');
+  } catch (e) {
+    if (e.code !== 11000) {
+      console.log(e.message);
+    }
+  }
 }
 
 main()
