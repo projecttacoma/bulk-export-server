@@ -13,8 +13,8 @@ function build(opts = {}) {
   app.get('/bulkstatus/:clientId', checkBulkStatus);
   app.get('/:clientId/:fileName', returnNDJsonContent);
   app.get('/Group/:groupId', groupSearchById);
-  app.get('/Group/', groupSearch);
-  app.post('/Group/', groupCreate);
+  app.get('/Group', groupSearch);
+  app.post('/Group', groupCreate);
   app.put('/Group/:groupId', groupUpdate);
   return app;
 }

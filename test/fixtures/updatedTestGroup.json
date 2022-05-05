@@ -1,0 +1,13 @@
+{
+  "resourceType": "Group",
+  "id": "testGroup",
+  "type": "person",
+  "actual": true,
+  "member": [
+    {
+      "entity": {
+        "reference": "Patient/testPatient1"
+      }
+    }
+  ]
+}

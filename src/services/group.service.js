@@ -39,9 +39,10 @@ const groupSearch = async (request, reply) => {
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
-const groupCreate = async request => {
+const groupCreate = async (request, reply) => {
   const data = request.body;
   data['id'] = uuidv4();
+  reply.code(201);
   return createResource(data, 'Group');
 };
 
