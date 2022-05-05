@@ -1,12 +1,12 @@
-const { bulkStatusSetup, cleanUpDb, createTestResource } = require('./populateTestData');
-const { db } = require('../src/util/mongo');
-const build = require('../src/server/app');
+const { bulkStatusSetup, cleanUpDb, createTestResource } = require('../populateTestData');
+const { db } = require('../../src/util/mongo');
+const build = require('../../src/server/app');
 const app = build();
 const supertest = require('supertest');
-const queue = require('../src/resources/exportQueue');
-const testPatient = require('./fixtures/testPatient.json');
-const testEncounter = require('./fixtures/testEncounter.json');
-const testGroup = require('./fixtures/testGroup.json');
+const queue = require('../../src/resources/exportQueue');
+const testPatient = require('../fixtures/testPatient.json');
+const testEncounter = require('../fixtures/testEncounter.json');
+const testGroup = require('../fixtures/testGroup.json');
 
 // Mock export to do nothing
 queue.exportToNDJson = jest.fn();

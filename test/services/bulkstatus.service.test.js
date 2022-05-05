@@ -1,12 +1,12 @@
-const { bulkStatusSetup, cleanUpDb, createTestResource } = require('./populateTestData');
-const build = require('../src/server/app');
+const { bulkStatusSetup, cleanUpDb, createTestResource } = require('../populateTestData');
+const build = require('../../src/server/app');
 const app = build();
 const supertest = require('supertest');
-const testPatient = require('./fixtures/testPatient.json');
+const testPatient = require('../fixtures/testPatient.json');
 const fs = require('fs');
 // import queue to close open handles after tests pass
 // TODO: investigate why queues are leaving open handles in this file
-const queue = require('../src/resources/exportQueue');
+const queue = require('../../src/resources/exportQueue');
 describe('checkBulkStatus logic', () => {
   const clientId = 'testClient';
 

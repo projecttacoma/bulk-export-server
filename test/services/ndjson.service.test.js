@@ -1,12 +1,12 @@
-const { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect } = require('./populateTestData');
-const { exportToNDJson } = require('../src/util/exportToNDJson');
-const build = require('../src/server/app');
+const { bulkStatusSetup, cleanUpDb, createTestResourceWithConnect } = require('../populateTestData');
+const { exportToNDJson } = require('../../src/util/exportToNDJson');
+const build = require('../../src/server/app');
 const app = build();
 const supertest = require('supertest');
-const testPatient = require('./fixtures/testPatient.json');
+const testPatient = require('../fixtures/testPatient.json');
 // import queue to close open handles after tests pass
 // TODO: investigate why queues are leaving open handles in this file
-const queue = require('../src/resources/exportQueue');
+const queue = require('../../src/resources/exportQueue');
 
 describe('Test ndjson retrieval from specified url', () => {
   const clientId = '123456';

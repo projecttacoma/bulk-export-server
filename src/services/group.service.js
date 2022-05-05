@@ -54,7 +54,7 @@ const groupCreate = async request => {
 const groupUpdate = async (request, reply) => {
   const data = request.body;
   if (data.id !== request.params.groupId) {
-    reply.code(300).send(new Error('Argument id must match request body id for PUT request'));
+    reply.code(400).send(new Error('Argument id must match request body id for PUT request'));
   }
   return updateResource(request.params.groupId, data, 'Group');
 };
