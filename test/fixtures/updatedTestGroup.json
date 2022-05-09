@@ -6,7 +6,7 @@
   "member": [
     {
       "entity": {
-        "reference": "Patient/testPatient"
+        "reference": "Patient/testPatient1"
       }
     }
   ]
