@@ -53,6 +53,37 @@ const getBundleFiles = (directory, searchPattern) => {
 };
 
 /**
+ * Creates a FHIR Group resource that represents the Patients associated with a given Measure
+ * and adds it to the database
+ * @param {String} measureId An id for the associated FHIR Measure to be used in the Group Id
+ * @param {Array} patientIds An array of FHIR Patient ids to be added as Group members
+ * @returns {Boolean} True if the Group creation succeeds, false otherwise
+ */
+async function createPatientGroupsPerMeasure(measureId, patientIds) {
+  const group = {
+    resourceType: 'Group',
+    id: `${measureId}-patients`,
+    type: 'person',
+    actual: true,
+    member: patientIds.map(pid => ({
+      entity: {
+        reference: `Patient/${pid}`
+      }
+    }))
+  };
+
+  try {
+    await createResource(group, 'Group');
+    return true;
+  } catch (e) {
+    if (e.code !== 11000) {
+      console.log(e.message);
+    }
+    return false;
+  }
+}
+
+/**
  * Uploads all the resources from the specified directory into the
  * database.
  *
@@ -62,7 +93,6 @@ const getBundleFiles = (directory, searchPattern) => {
 async function main() {
   await mongoUtil.client.connect();
   console.log('Connected successfully to server');
-  // default searchPattern to retrieve all filenames that begin with a capital letter and end with -bundle.json
   let searchPattern;
   if (process.argv[3]) {
     searchPattern = process.argv[3];
@@ -84,6 +114,7 @@ async function main() {
   } else {
     try {
       if (!searchPattern) {
+        // default searchPattern to retrieve all filenames that begin with a capital letter and end with -bundle.json
         searchPattern = /^[A-Z].*-bundle.json$/;
       }
       console.log(`Finding bundles in ecqm-content-r4-2021 repo at ${ecqmContentR4Path}.`);
@@ -96,6 +127,7 @@ async function main() {
   }
   let filesUploaded = 0;
   let resourcesUploaded = 0;
+  const measureToPatientsMap = {};
   for (const filePath of bundleFiles) {
     // read each EXM bundle file
     const data = fs.readFileSync(filePath, 'utf8');
@@ -103,8 +135,13 @@ async function main() {
       console.log(`Uploading ${filePath.split('/').slice(-1)}...`);
       const bundle = JSON.parse(data);
       // retrieve each resource and insert into database
-      const uploads = bundle.entry.map(async res => {
+      const measureId = bundle.entry.find(e => e.resource.resourceType === 'Measure').resource.id;
+      measureToPatientsMap[measureId] = [];
+      for (res of bundle.entry) {
         try {
+          if (res.resource.resourceType === 'Patient') {
+            measureToPatientsMap[measureId].push(res.resource.id);
+          }
           await createResource(res.resource, res.resource.resourceType);
           resourcesUploaded += 1;
         } catch (e) {
@@ -113,38 +150,18 @@ async function main() {
             console.log(e.message);
           }
         }
-      });
-      await Promise.all(uploads);
+      }
       filesUploaded += 1;
     }
   }
-  return `${resourcesUploaded} resources uploaded from ${filesUploaded} Bundle files.`;
-}
-
-async function createPatientGroupsPerMeasure(exmId, allPatientIds) {
-  const patientIdRegex = new RegExp(exmId, 'i');
-
-  const exmPatientIds = allPatientIds.filter(id => patientIdRegex.test(id));
-
-  const group = {
-    resourceType: 'Group',
-    id: `${exmId}-patients`,
-    type: 'person',
-    actual: true,
-    member: exmPatientIds.map(pid => ({
-      entity: {
-        reference: `Patient/${pid}`
-      }
-    }))
-  };
-
-  try {
-    await createResource(group, 'Group');
-  } catch (e) {
-    if (e.code !== 11000) {
-      console.log(e.message);
+  let groupsCreated = 0;
+  for ([measureId, patientIds] of Object.entries(measureToPatientsMap)) {
+    const success = await createPatientGroupsPerMeasure(measureId, patientIds);
+    if (success) {
+      groupsCreated += 1;
     }
   }
+  return `${resourcesUploaded} resources uploaded from ${filesUploaded} Bundle files. ${groupsCreated} Groups created.`;
 }
 
 main()
