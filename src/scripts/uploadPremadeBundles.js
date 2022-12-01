@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const mongoUtil = require('../util/mongo');
-const { createResource, findResourcesWithQuery } = require('../util/mongo.controller');
+const { createResource } = require('../util/mongo.controller');
 
 const ecqmContentR4Path = path.resolve(path.join(__dirname, '../../ecqm-content-r4-2021/bundles/measure/'));
 
@@ -137,7 +137,7 @@ async function main() {
       // retrieve each resource and insert into database
       const measureId = bundle.entry.find(e => e.resource.resourceType === 'Measure').resource.id;
       measureToPatientsMap[measureId] = [];
-      for (res of bundle.entry) {
+      for (const res of bundle.entry) {
         try {
           if (res.resource.resourceType === 'Patient') {
             measureToPatientsMap[measureId].push(res.resource.id);
@@ -155,7 +155,7 @@ async function main() {
     }
   }
   let groupsCreated = 0;
-  for ([measureId, patientIds] of Object.entries(measureToPatientsMap)) {
+  for (const [measureId, patientIds] of Object.entries(measureToPatientsMap)) {
     const success = await createPatientGroupsPerMeasure(measureId, patientIds);
     if (success) {
       groupsCreated += 1;
