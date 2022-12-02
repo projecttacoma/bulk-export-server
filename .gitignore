@@ -4,4 +4,5 @@ connectathon
 coverage
 docker_ssl_setup.sh
 tmp/123456/Account.ndjson
+ecqm-content-r4-2021
 *.ndjson
