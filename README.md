@@ -86,6 +86,16 @@ Once MongoDB is running on your machine, run the `npm start` command to start up
 
 For ease of testing, it is recommended to download [Insomnia API Client and Design Tool](https://insomnia.rest) for sending HTTP requests to the server and [Robo 3T](https://robomongo.org) as a GUI for viewing the Mongo database.
 
+#### Database Setup
+
+The following `npm` commands can be used to set up the database:
+
+- `npm run db:setup` creates collections for all the valid FHIR resource types
+- `npm run db:delete` deletes all existing collections in the database
+- `npm run db:reset` runs both of the above, deleting all current collections and then creating new, empty collections
+- To upload all the ecqm-content-r4-2021 measure bundles, `git clone` the [ecqm-content-r4-2021 repo](https://github.com/cqframework/ecqm-content-r4-2021) into the root directory of the `deqm-test-server` repository. Run `npm run upload-bundles`. This runs a script that uploads all the measure bundle resources to the appropriate Mongo collections.
+- The full CLI function signature of `upload-bundles` script is `npm run upload-bundles [dirPath] [searchPattern]`. The command can be run more dynamically by specifying a `dirPath` string which represents the path to a repository that contains the desired bundles for upload. `searchPattern` is a string which is used as a regex to filter bundle files for upload by file name. Example: `npm run upload-bundles connectathon/fhir401/bundles/measure "^EXM124.*-bundle.json"`
+
 ## Server Endpoints
 
 The server supports the following endpoints:
