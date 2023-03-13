@@ -13,22 +13,26 @@ const mongoUtil = require('../util/mongo');
  */
 async function main() {
   const bundlePath = path.resolve(process.argv[2]);
+  const groupId = process.argv[3];
   const directoryFiles = fs.readdirSync(bundlePath);
   // store uploaded patientIds to be added as members to FHIR Group
   const patientRegEx = new RegExp('Patient/[^/]*');
 
   const patientIdsArray = directoryFiles.map(async file => {
-    const { data } = await axios.post(`http://localhost:3001/`,
-    JSON.parse(fs.readFileSync(path.join(bundlePath, file), 'utf8')), {headers: {'Content-Type': 'application/json+fhir'}});
-    
+    const { data } = await axios.post(
+      `http://${process.env.HOST}:${process.env.PORT}/`,
+      JSON.parse(fs.readFileSync(path.join(bundlePath, file), 'utf8')),
+      { headers: { 'Content-Type': 'application/json+fhir' } }
+    );
+
     const location = data.entry.find(e => e.response.location.startsWith('/Patient'));
     if (patientRegEx.test(location.response.location)) {
       return location.response.location.replace('/Patient/', '');
     }
   });
   const patientIds = await Promise.all(patientIdsArray);
-  createPatientGroupsPerMeasure('cms122-10', patientIds);
-  return `Group cms122-10-patients successfully created`;
+  createPatientGroupsPerMeasure(groupId, patientIds);
+  return `Group ${groupId}-patients successfully created`;
 }
 
 main()

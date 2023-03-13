@@ -4,7 +4,7 @@ const { bulkExport, patientBulkExport, groupBulkExport } = require('../services/
 const { checkBulkStatus } = require('../services/bulkstatus.service');
 const { returnNDJsonContent } = require('../services/ndjson.service');
 const { groupSearchById, groupSearch, groupCreate, groupUpdate } = require('../services/group.service');
-const { uploadTransactionBundle } = require('../services/bundle.service');
+const { uploadTransactionOrBatchBundle } = require('../services/bundle.service');
 
 // set bodyLimit to 50mb
 function build(opts) {
@@ -18,7 +18,7 @@ function build(opts) {
   app.get('/Group', groupSearch);
   app.post('/Group', groupCreate);
   app.put('/Group/:groupId', groupUpdate);
-  app.post('/', uploadTransactionBundle);
+  app.post('/', uploadTransactionOrBatchBundle);
   return app;
 }
 

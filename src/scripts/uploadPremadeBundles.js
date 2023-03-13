@@ -53,8 +53,6 @@ const getBundleFiles = (directory, searchPattern) => {
   });
 };
 
-
-
 /**
  * Uploads all the resources from the specified directory into the
  * database.

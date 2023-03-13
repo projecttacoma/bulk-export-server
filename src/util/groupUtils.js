@@ -31,4 +31,4 @@ async function createPatientGroupsPerMeasure(measureId, patientIds) {
   }
 }
 
-module.exports = { createPatientGroupsPerMeasure }
+module.exports = { createPatientGroupsPerMeasure };

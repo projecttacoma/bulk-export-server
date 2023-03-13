@@ -8,13 +8,14 @@ const { createResource, updateResource } = require('../util/mongo.controller');
  * indicates the outcome of the HTTP operation.
  * @param {Array} requestResults array of request result objects
  * @param {Object} reply the response object
+ * @param {type} type bundle type (must be 'transaction' or 'batch')
  *
  * @returns {Object} transaction-response bundle
  */
-const createTransactionResponseBundle = (requestResults, reply) => {
+const createResponseBundle = (requestResults, reply, type) => {
   const bundle = {
     resourceType: 'Bundle',
-    type: 'transaction-response',
+    type: `${type}-response`,
     id: uuidv4()
   };
 
@@ -51,48 +52,63 @@ const createTransactionResponseBundle = (requestResults, reply) => {
  *
  * @returns {Object} transaction-response bundle
  */
-const uploadTransactionBundle = async (request, reply) => {
-  request.log.info('Base >>> Transaction Bundle Upload');
+const uploadTransactionOrBatchBundle = async (request, reply) => {
+  request.log.info('Base >>> Transaction/Batch Bundle Upload');
   const { resourceType, type, entry: entries } = request.body;
 
   if (resourceType !== 'Bundle') {
     reply.code(400).send(new Error(`Expected 'resourceType: Bundle', but received 'resourceType: ${resourceType}'.`));
   }
-  if (type.toLowerCase() !== 'transaction') {
-    reply.code(400).send(new Error(`Expected 'type: transaction'. Received 'type: ${type}'.`));
+  if (!['transaction', 'batch'].includes(type.toLowerCase())) {
+    reply.code(400).send(new Error(`Expected 'type: transaction' or 'type: batch'. Received 'type: ${type}'.`));
   }
 
-  const requestResults = await uploadResourcesFromBundle(entries);
-  const bundle = createTransactionResponseBundle(requestResults, reply);
-  request.log.info('Transaction bundle successfully uploaded to server');
-  return bundle;
+  if (type.toLowerCase() == 'transaction') {
+    const requestResults = await uploadResourcesFromTxnBundle(entries, reply);
+    const bundle = createResponseBundle(requestResults, reply, 'transaction');
+    request.log.info('Transaction bundle successfully uploaded to server');
+    return bundle;
+  } else {
+    const requestResults = await uploadResourcesFromBatchBundle(entries);
+    const bundle = createResponseBundle(requestResults, reply, 'batch');
+    request.log.info('Batch bundle successfully uploaded to server');
+    return bundle;
+  }
 };
 
 /**
  * Scrubs transaction bundle entries and uploads each entry to the server.
  * @param {Array} entries entries from POSTed transaction bundle
+ * @param {Object} reply the response object
  * @returns array of request results
  */
-const uploadResourcesFromBundle = async entries => {
+const uploadResourcesFromTxnBundle = async (entries, reply) => {
   const scrubbedEntries = replaceReferences(entries);
   const requestsArray = scrubbedEntries.map(async entry => {
     const { method } = entry.request;
     return insertBundleResources(entry, method).catch(e => {
-      const results = {
-        resourceType: 'OperationOutcome',
-        issue: e.issue,
-        statusCode: e.statusCode
-      };
-      return {
-        status: e.statusCode,
-        statusCode: e.statusCode,
-        statusText: e.issue[0].code,
-        data: results.toJSON()
-      };
+      reply.code(400).send(e.message);
     });
   });
   const requestResults = await Promise.all(requestsArray);
   return requestResults;
+};
+
+/**
+ * Scrubs batch bundle entries and uploads each entry to the server.
+ * @param {Array} entries entries from POSTed batch bundle
+ * @returns array of request results
+ */
+const uploadResourcesFromBatchBundle = async entries => {
+  const scrubbedEntries = replaceReferences(entries);
+  const requestsArray = scrubbedEntries.map(async entry => {
+    const { method } = entry.request;
+    return insertBundleResources(entry, method).catch(() => {
+      return null;
+    });
+  });
+  const requestResults = await Promise.all(requestsArray);
+  return requestResults.filter(results => results !== null);
 };
 
 /**
@@ -127,4 +143,4 @@ const insertBundleResources = async (entry, method) => {
   return entry;
 };
 
-module.exports = { uploadTransactionBundle };
+module.exports = { uploadTransactionOrBatchBundle };
