@@ -10,6 +10,9 @@ const mongoUtil = require('../util/mongo');
  * all the patients (with their updated ids that are created
  * during the transaction bundle upload process) in the process.
  * Uploads the created group resource to the database.
+ *
+ * Note: Synthea creates batch bundles for hospital/practitioner info, which
+ * should be POSTed before POSTing the transaction bundles that refer to patients.
  */
 async function main() {
   await mongoUtil.client.connect();
@@ -21,6 +24,7 @@ async function main() {
   // store uploaded patientIds to be added as members to FHIR Group
   const patientRegEx = new RegExp('Patient/[^/]*');
 
+  // upload practitioner/hospital batch bundles first, if present
   directoryFiles
     .filter(file => file.startsWith('practitioner') || file.startsWith('hospital'))
     .map(async file => {

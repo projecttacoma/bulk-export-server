@@ -3,14 +3,14 @@ const { replaceReferences } = require('../util/bundleUtils');
 const { createResource, updateResource } = require('../util/mongo.controller');
 
 /**
- * Creates transaction-response bundle.
+ * Creates transaction-response or batch-response bundle.
  * Each entry elements SHALL contain a 'response' element which
  * indicates the outcome of the HTTP operation.
  * @param {Array} requestResults array of request result objects
  * @param {Object} reply the response object
  * @param {type} type bundle type (must be 'transaction' or 'batch')
  *
- * @returns {Object} transaction-response bundle
+ * @returns {Object} transaction-response/batch-response bundle
  */
 const createResponseBundle = (requestResults, reply, type) => {
   const bundle = {
@@ -46,11 +46,11 @@ const createResponseBundle = (requestResults, reply, type) => {
 };
 
 /**
- * Uploads transaction bundle to server.
+ * Uploads bundle to server.
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  *
- * @returns {Object} transaction-response bundle
+ * @returns {Object} transaction-response/batch-response bundle
  */
 const uploadTransactionOrBatchBundle = async (request, reply) => {
   request.log.info('Base >>> Transaction/Batch Bundle Upload');
@@ -87,6 +87,7 @@ const uploadResourcesFromTxnBundle = async (entries, reply) => {
   const requestsArray = scrubbedEntries.map(async entry => {
     const { method } = entry.request;
     return insertBundleResources(entry, method).catch(e => {
+      // send 400 error and stop any further operations from occurring
       reply.code(400).send(e.message);
     });
   });
@@ -104,6 +105,8 @@ const uploadResourcesFromBatchBundle = async entries => {
   const requestsArray = scrubbedEntries.map(async entry => {
     const { method } = entry.request;
     return insertBundleResources(entry, method).catch(() => {
+      // exclude results for resource that produced an error, but
+      // continue executing remaining operations
       return null;
     });
   });
@@ -113,7 +116,7 @@ const uploadResourcesFromBatchBundle = async entries => {
 
 /**
  * Inserts/Updates the bundle entry as a document in mongo
- * @param {Object} entry entry object from POSTed transaction bundle
+ * @param {Object} entry entry object from POSTed transaction/batch bundle
  * @param {string} method method of the HTTP request (POST/PUT)
  * @returns results of mongo insertion or update
  */

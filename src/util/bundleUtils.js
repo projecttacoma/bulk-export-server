@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 
 /**
- * For entries in a transaction bundle whose IDs will be auto-generated, replace all instances of an existing reference
+ * For entries in a transaction/batch bundle whose IDs will be auto-generated, replace all instances of an existing reference
  * to the old id with a reference to the newly generated one.
  *
  * Modify the request type to PUT after forcing the IDs. This will not affect return results, just internal representation
