@@ -19,7 +19,6 @@ async function createPatientGroupsPerMeasure(measureId, patientIds) {
       }
     }))
   };
-
   try {
     await createResource(group, 'Group');
     return true;

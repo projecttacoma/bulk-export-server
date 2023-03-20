@@ -6,7 +6,7 @@ const mongoUtil = require('../util/mongo');
 
 // for each group, include the patients that are members of the previous group
 // (ex. creates a group of size 10, a group of size 100, ..., a group of size 20,000)
-const GROUP_SIZES = [10, 90, 900]; //, 9000, 1000];
+const GROUP_SIZES = [10, 90, 900, 9000];
 
 /**
  * Uploads all transaction bundles from the specified directory
@@ -43,23 +43,27 @@ async function main() {
         );
       });
 
-    const patientIdsArray = directoryFiles
-      .filter(file => !file.startsWith('practitioner') && !file.startsWith('hospital'))
-      .map(async file => {
-        const { data } = await axios.post(
-          `http://${process.env.HOST}:${process.env.PORT}/`,
-          JSON.parse(fs.readFileSync(path.join(directoryPath, file), 'utf8')),
-          { headers: { 'Content-Type': 'application/json+fhir' } }
-        );
-
-        const location = data.entry.find(e => e.response.location.startsWith('/Patient'));
-        if (patientRegEx.test(location?.response.location)) {
-          return location.response.location.replace('/Patient/', '');
-        }
+    const patientFiles = directoryFiles.filter(
+      file => !file.startsWith('practitioner') && !file.startsWith('hospital') && !file.startsWith('group')
+    );
+    const promises = [];
+    for (const file of patientFiles) {
+      const fileContents = JSON.parse(fs.readFileSync(path.join(directoryPath, file), 'utf8'));
+      const results = axios.post(`http://${process.env.HOST}:${process.env.PORT}/`, fileContents, {
+        headers: { 'Content-Type': 'application/json+fhir' }
       });
-    const patientIds = await Promise.all(patientIdsArray);
+      promises.push(results);
+    }
+    const allResults = await Promise.all(promises);
+    const allData = allResults.map(result => result.data);
+    const patientIds = allData.map(data => {
+      const location = data.entry.find(e => e.response.location.startsWith('/Patient'));
+      if (patientRegEx.test(location?.response.location)) {
+        return location.response.location.replace('/Patient/', '');
+      }
+    });
     allPatientIds.push(...patientIds);
-    const success = await createPatientGroupsPerMeasure(allPatientIds.length, allPatientIds);
+    const success = await createPatientGroupsPerMeasure(`cms122-${allPatientIds.length}`, allPatientIds);
     if (success) {
       console.log(`Group cms122-${allPatientIds.length}-patients successfully created`);
     } else {

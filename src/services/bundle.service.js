@@ -63,55 +63,31 @@ const uploadTransactionOrBatchBundle = async (request, reply) => {
     reply.code(400).send(new Error(`Expected 'type: transaction' or 'type: batch'. Received 'type: ${type}'.`));
   }
 
-  if (type.toLowerCase() == 'transaction') {
-    const requestResults = await uploadResourcesFromTxnBundle(entries, reply);
-    const bundle = createResponseBundle(requestResults, reply, 'transaction');
-    request.log.info('Transaction bundle successfully uploaded to server');
-    return bundle;
-  } else {
-    const requestResults = await uploadResourcesFromBatchBundle(entries);
-    const bundle = createResponseBundle(requestResults, reply, 'batch');
-    request.log.info('Batch bundle successfully uploaded to server');
-    return bundle;
-  }
+  const requestResults = await uploadResourcesFromBundle(type.toLowerCase(), entries, reply);
+  const bundle = createResponseBundle(requestResults, reply, type.toLowerCase());
+  request.log.info(`${type} bundle successfully uploaded to server`);
+  return bundle;
 };
 
 /**
- * Scrubs transaction bundle entries and uploads each entry to the server.
- * @param {Array} entries entries from POSTed transaction bundle
+ * Scrubs bundle entries and uploads each entry to the server.
+ * @param {string} type bundle type (transaction or batch)
+ * @param {Array} entries entries from POSTed transaction/batch bundle
  * @param {Object} reply the response object
  * @returns array of request results
  */
-const uploadResourcesFromTxnBundle = async (entries, reply) => {
+const uploadResourcesFromBundle = async (type, entries, reply) => {
   const scrubbedEntries = replaceReferences(entries);
   const requestsArray = scrubbedEntries.map(async entry => {
     const { method } = entry.request;
-    return insertBundleResources(entry, method).catch(e => {
-      // send 400 error and stop any further operations from occurring
-      reply.code(400).send(e.message);
+    return insertBundleResources(type, entry, method).catch(e => {
+      if (type === 'transaction') {
+        reply.code(400).send(e.message);
+      }
     });
   });
   const requestResults = await Promise.all(requestsArray);
   return requestResults;
-};
-
-/**
- * Scrubs batch bundle entries and uploads each entry to the server.
- * @param {Array} entries entries from POSTed batch bundle
- * @returns array of request results
- */
-const uploadResourcesFromBatchBundle = async entries => {
-  const scrubbedEntries = replaceReferences(entries);
-  const requestsArray = scrubbedEntries.map(async entry => {
-    const { method } = entry.request;
-    return insertBundleResources(entry, method).catch(() => {
-      // exclude results for resource that produced an error, but
-      // continue executing remaining operations
-      return null;
-    });
-  });
-  const requestResults = await Promise.all(requestsArray);
-  return requestResults.filter(results => results !== null);
 };
 
 /**
@@ -120,7 +96,7 @@ const uploadResourcesFromBatchBundle = async entries => {
  * @param {string} method method of the HTTP request (POST/PUT)
  * @returns results of mongo insertion or update
  */
-const insertBundleResources = async (entry, method) => {
+const insertBundleResources = async (type, entry, method) => {
   if (method === 'POST') {
     entry.resource.id = uuidv4();
     const { id } = await createResource(entry.resource, entry.resource.resourceType);
@@ -139,9 +115,15 @@ const insertBundleResources = async (entry, method) => {
       entry.statusText = 'OK';
     }
   } else {
-    throw new Error(
-      `Expected requests of type PUT or POST, received ${method} for ${entry.resource.resourceType}/${entry.resource.id}`
-    );
+    const errorMessage = `Expected requests of type PUT or POST, received ${method} for ${entry.resource.resourceType}/${entry.resource.id}`;
+    if (type === 'transaction') {
+      throw new Error(errorMessage);
+    } else {
+      // set status to 400 Bad Request for failed batch bundle entries
+      entry.status = 400;
+      entry.statusText = 'Bad Request';
+      entry.data = errorMessage;
+    }
   }
   return entry;
 };
