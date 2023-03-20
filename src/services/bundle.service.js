@@ -4,7 +4,7 @@ const { createResource, updateResource } = require('../util/mongo.controller');
 
 /**
  * Creates transaction-response or batch-response bundle.
- * Each entry elements SHALL contain a 'response' element which
+ * Each entry element SHALL contain a 'response' element which
  * indicates the outcome of the HTTP operation.
  * @param {Array} requestResults array of request result objects
  * @param {Object} reply the response object
