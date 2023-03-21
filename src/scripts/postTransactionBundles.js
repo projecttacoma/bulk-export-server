@@ -44,6 +44,8 @@ async function main() {
       });
 
     const patientFiles = directoryFiles.filter(
+      // filter out practitioner/hospital batch bundles and group resource, if present
+      // (the group resource will have outdated patient references)
       file => !file.startsWith('practitioner') && !file.startsWith('hospital') && !file.startsWith('group')
     );
     const promises = [];
