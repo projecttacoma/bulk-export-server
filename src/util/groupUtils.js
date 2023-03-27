@@ -3,7 +3,7 @@ const { createResource } = require('./mongo.controller');
 /**
  * Creates a FHIR Group resource that represents the Patients associated with a given Measure
  * and adds it to the database
- * @param {String} measureId An id for the associated FHIR Measure to be used in the Group Id
+ * @param {string} measureId An id for the associated FHIR Measure to be used in the Group Id
  * @param {Array} patientIds An array of FHIR Patient ids to be added as Group members
  * @returns {Boolean} True if the Group creation succeeds, false otherwise
  */

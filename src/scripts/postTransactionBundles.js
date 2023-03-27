@@ -5,7 +5,7 @@ const { createPatientGroupsPerMeasure } = require('../util/groupUtils');
 const mongoUtil = require('../util/mongo');
 
 // for each group, include the patients that are members of the previous group
-// (ex. creates a group of size 10, a group of size 100, ..., a group of size 20,000)
+// (ex. creates a group of size 10, a group of size 100, ..., a group of size 10,000)
 const GROUP_SIZES = [10, 90, 900, 9000];
 
 /**

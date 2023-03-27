@@ -8,8 +8,7 @@ const { createResource, updateResource } = require('../util/mongo.controller');
  * indicates the outcome of the HTTP operation.
  * @param {Array} requestResults array of request result objects
  * @param {Object} reply the response object
- * @param {type} type bundle type (must be 'transaction' or 'batch')
- *
+ * @param {string} type bundle type (must be 'transaction' or 'batch')
  * @returns {Object} transaction-response/batch-response bundle
  */
 const createResponseBundle = (requestResults, reply, type) => {
@@ -49,7 +48,6 @@ const createResponseBundle = (requestResults, reply, type) => {
  * Uploads bundle to server.
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
- *
  * @returns {Object} transaction-response/batch-response bundle
  */
 const uploadTransactionOrBatchBundle = async (request, reply) => {
