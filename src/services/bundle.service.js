@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { replaceReferences } = require('../util/bundleUtils');
 const { createResource, updateResource } = require('../util/mongo.controller');
+const { createOperationOutcome } = require('../util/errorUtils');
 
 /**
  * Creates transaction-response or batch-response bundle.
@@ -55,10 +56,14 @@ const uploadTransactionOrBatchBundle = async (request, reply) => {
   const { resourceType, type, entry: entries } = request.body;
 
   if (resourceType !== 'Bundle') {
-    reply.code(400).send(new Error(`Expected 'resourceType: Bundle', but received 'resourceType: ${resourceType}'.`));
+    reply
+      .code(400)
+      .send(createOperationOutcome(`Expected 'resourceType: Bundle', but received 'resourceType: ${resourceType}'.`));
   }
   if (!['transaction', 'batch'].includes(type.toLowerCase())) {
-    reply.code(400).send(new Error(`Expected 'type: transaction' or 'type: batch'. Received 'type: ${type}'.`));
+    reply
+      .code(400)
+      .send(createOperationOutcome(`Expected 'type: transaction' or 'type: batch'. Received 'type: ${type}'.`));
   }
 
   const requestResults = await uploadResourcesFromBundle(type.toLowerCase(), entries, reply);
@@ -80,7 +85,7 @@ const uploadResourcesFromBundle = async (type, entries, reply) => {
     const { method } = entry.request;
     return insertBundleResources(type, entry, method).catch(e => {
       if (type === 'transaction') {
-        reply.code(400).send(e.message);
+        reply.code(400).send(createOperationOutcome(e.message));
       }
     });
   });

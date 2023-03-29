@@ -35,7 +35,7 @@ async function main() {
     // upload practitioner/hospital batch bundles first, if present
     directoryFiles
       .filter(file => file.startsWith('practitioner') || file.startsWith('hospital'))
-      .map(async file => {
+      .forEach(async file => {
         await axios.post(
           `http://${process.env.HOST}:${process.env.PORT}/`,
           JSON.parse(fs.readFileSync(path.join(directoryPath, file), 'utf8')),
