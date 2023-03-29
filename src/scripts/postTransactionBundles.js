@@ -23,13 +23,17 @@ async function main() {
   console.log('Connected successfully to server');
 
   const bundleDir = path.resolve(process.argv[2]);
+  const measureId = process.argv[3];
+  if (!measureId) {
+    throw new Error('Must supply a measure id to use for specifying the id of the created Group resource');
+  }
 
   const patientRegEx = new RegExp('Patient/[^/]*');
   // store uploaded patientIds to be added as members to FHIR Group (across all patients uploaded so far)
   const allPatientIds = [];
 
   for (const groupSize of GROUP_SIZES) {
-    const directoryPath = path.join(bundleDir, `cms122-${groupSize}-patients`, 'fhir');
+    const directoryPath = path.join(bundleDir, `${measureId}-${groupSize}-patients`, 'fhir');
     const directoryFiles = fs.readdirSync(directoryPath);
 
     // upload practitioner/hospital batch bundles first, if present
@@ -65,9 +69,9 @@ async function main() {
       }
     });
     allPatientIds.push(...patientIds);
-    const success = await createPatientGroupsPerMeasure(`cms122-${allPatientIds.length}`, allPatientIds);
+    const success = await createPatientGroupsPerMeasure(`${measureId}-${allPatientIds.length}`, allPatientIds);
     if (success) {
-      console.log(`Group cms122-${allPatientIds.length}-patients successfully created`);
+      console.log(`Group ${measureId}-${allPatientIds.length}-patients successfully created`);
     } else {
       console.log('Group creation failed');
     }
