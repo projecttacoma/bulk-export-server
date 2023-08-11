@@ -89,8 +89,7 @@ const uploadResourcesFromBundle = async (type, entries, reply) => {
       }
     });
   });
-  const requestResults = await Promise.all(requestsArray);
-  return requestResults;
+  return Promise.all(requestsArray);
 };
 
 /**
