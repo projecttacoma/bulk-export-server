@@ -139,7 +139,7 @@ function validateExportParams(request, reply) {
   if (request.query._type) {
     // type filter is comma-delimited
     const requestTypes = request.query._type.split(',');
-    let unsupportedTypes = [];
+    const unsupportedTypes = [];
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
         unsupportedTypes.push(type);
@@ -151,6 +151,32 @@ function validateExportParams(request, reply) {
         .send(
           new Error(
             `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(', ')}.`
+          )
+        );
+      return false;
+    }
+  }
+
+  if (request.query._typeFilter) {
+    const typeFilterArray = request.query._typeFilter.split(',');
+    const unsupportedTypeFilterTypes = [];
+    typeFilterArray.forEach(line => {
+      const resourceType = line.substring(0, line.indexOf('?'));
+      // consider the query "unsupported" if no resource type is provided in query
+      if (!resourceType) {
+        unsupportedTypeFilterTypes.push(line);
+      } else if (!supportedResources.includes(resourceType)) {
+        unsupportedTypeFilterTypes.push(resourceType);
+      }
+    });
+    if (unsupportedTypeFilterTypes.length > 0) {
+      reply
+        .code(400)
+        .send(
+          new Error(
+            `The following resourceTypes are not supported for _typeFilter param for $export: ${unsupportedTypeFilterTypes.join(
+              ', '
+            )}.`
           )
         );
       return false;

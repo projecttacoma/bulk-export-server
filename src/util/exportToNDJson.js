@@ -27,7 +27,7 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
     fs.mkdirSync(dirpath, { recursive: true });
     let requestTypes = [];
     if (types) {
-      requestTypes = types; //this is the list types to export
+      requestTypes = types; // this is the list types to export
     } else {
       // create list of requested types if request.query._type param doesn't exist
       requestTypes.push(...supportedResources);
@@ -36,19 +36,21 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
     if (typeFilter) {
       let tyq = typeFilter.split(',');
       tyq.forEach(line => {
-        let resourceType = line.substring(0, line.indexOf('?'));
-
-        let propertyValue = line.substring(line.indexOf('?') + 1, line.indexOf(':'));
-        let vsUrl = line.substring(line.indexOf('=') + 1);
-        if (typefilterLookup[resourceType]) {
-          if (typefilterLookup[resourceType][propertyValue]) {
-            typefilterLookup[resourceType][propertyValue].push(vsUrl);
+        const resourceType = line.substring(0, line.indexOf('?'));
+        const properties = line.substring(line.indexOf('?') + 1).split('&');
+        properties.forEach(p => {
+          const property = p.substring(0, p.indexOf('='));
+          const propertyValue = p.substring(p.indexOf('=') + 1);
+          if (typefilterLookup[resourceType]) {
+            if (typefilterLookup[resourceType][property]) {
+              typefilterLookup[resourceType][property].push(propertyValue);
+            } else {
+              typefilterLookup[resourceType][property] = [propertyValue];
+            }
           } else {
-            typefilterLookup[resourceType][propertyValue] = [vsUrl];
+            typefilterLookup[resourceType] = { [property]: [propertyValue] };
           }
-        } else {
-          typefilterLookup[resourceType] = { [propertyValue]: [vsUrl] };
-        }
+        });
       });
     }
 
