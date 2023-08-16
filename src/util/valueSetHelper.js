@@ -3,20 +3,21 @@
  * @param valueSetResources FHIR ValueSets.
  * @returns an array of the codes in the valueSet
  */
-function getHierarchicalCodes(valueSet) {
+function getHierarchicalCodes(valueSetResources) {
   const codes = [];
-  if (!valueSet.abstract && !valueSet.inactive && valueSet.code && valueSet.system) {
-    codes.push({
-      code: valueSet.code,
-      system: valueSet.system,
-      version: valueSet.version,
-      display: valueSet.display
-    });
-  }
-  if (valueSet.contains && valueSet.contains.length > 0) {
-    codes.push(...getHierarchicalCodes(valueSet.contains));
-  }
-
+  valueSetResources.forEach(valueSet => {
+    if (!valueSet.abstract && !valueSet.inactive && valueSet.code && valueSet.system) {
+      codes.push({
+        code: valueSet.code,
+        system: valueSet.system,
+        version: valueSet.version,
+        display: valueSet.display
+      });
+    }
+    if (valueSet.contains && valueSet.contains.length > 0) {
+      codes.push(...getHierarchicalCodes(valueSet.contains));
+    }
+  });
   return codes;
 }
 /**
