@@ -11,7 +11,21 @@ const {
   findResourceById
 } = require('./mongo.controller');
 const patientRefs = require('../compartment-definition/patient-references');
+const QueryBuilder = require('@asymmetrik/fhir-qb');
+const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 
+const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
+
+const buildSearchParamList = resourceType => {
+  const searchParams = {};
+  const searchParameterList = getSearchParameters(resourceType, '4_0_1');
+  searchParameterList.forEach(paramDef => {
+    {
+      searchParams[paramDef.name] = paramDef;
+    }
+  });
+  return searchParams;
+};
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
  * if the _type member doesn't exist it will simply export everything included in the supportedResources list
@@ -35,22 +49,29 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
     let typefilterLookup = {};
     if (typeFilter) {
       let tyq = typeFilter.split(',');
+      // loop over each query
       tyq.forEach(line => {
         const resourceType = line.substring(0, line.indexOf('?'));
+        // build mapping of search parameters for the given resource type
+        const searchParams = buildSearchParamList(resourceType);
         const properties = line.substring(line.indexOf('?') + 1).split('&');
+        const subqueries = {};
         properties.forEach(p => {
           const property = p.substring(0, p.indexOf('='));
           const propertyValue = p.substring(p.indexOf('=') + 1);
-          if (typefilterLookup[resourceType]) {
-            if (typefilterLookup[resourceType][property]) {
-              typefilterLookup[resourceType][property].push(propertyValue);
-            } else {
-              typefilterLookup[resourceType][property] = [propertyValue];
-            }
-          } else {
-            typefilterLookup[resourceType] = { [property]: [propertyValue] };
-          }
+          subqueries[property] = propertyValue;
         });
+        const filter = qb.buildSearchQuery({
+          req: { method: 'GET', query: subqueries, params: {} },
+          parameterDefinitions: searchParams
+        });
+        if (filter.query) {
+          if (typefilterLookup[resourceType]) {
+            typefilterLookup[resourceType].push(filter.query);
+          } else {
+            typefilterLookup[resourceType] = [filter.query];
+          }
+        }
       });
     }
 
@@ -154,7 +175,6 @@ const writeToFile = function (doc, type, clientId) {
  */
 const processTypeFilter = async function (typefilterLookupEntry) {
   let queryArray = [];
-
   if (typefilterLookupEntry) {
     // throw  an error if we don't have the value set
     for (const propertyValue in typefilterLookupEntry) {
