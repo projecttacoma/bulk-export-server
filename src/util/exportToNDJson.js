@@ -8,11 +8,12 @@ const {
   BULKSTATUS_FAILED,
   findOneResourceWithQuery,
   findResourcesWithQuery,
-  findResourceById
+  findResourceById,
+  findResourcesWithAggregation
 } = require('./mongo.controller');
 const patientRefs = require('../compartment-definition/patient-references');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
-const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
+const { getSearchParameters, resolveSchema } = require('@projecttacoma/node-fhir-server-core');
 
 const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
 
@@ -63,7 +64,8 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
         });
         const filter = qb.buildSearchQuery({
           req: { method: 'GET', query: subqueries, params: {} },
-          parameterDefinitions: searchParams
+          parameterDefinitions: searchParams,
+          includeArchived: true
         });
         if (filter.query) {
           if (typefilterLookup[resourceType]) {
@@ -117,31 +119,48 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
 const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
-  let query = {};
-  if (typefilterLookup[collectionName]) {
-    query = await processTypeFilter(typefilterLookup[collectionName]);
-  }
+  let docs = [];
+  let patQuery;
   // Group export
   if (patientIds) {
     if (patientIds.length == 0) {
       // if no patients in group, return no documents
       return { document: [], collectionName: collectionName };
     }
-    let patQuery;
     if (collectionName === 'Patient') {
       // simple patient id query
       patQuery = { id: { $in: patientIds } };
     } else {
       patQuery = await patientsQueryForType(patientIds, collectionName);
     }
-    // $and patient filtering with existing query
-    query = {
-      $and: [query, patQuery]
-    };
   }
 
-  const doc = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
-  return { document: doc, collectionName: collectionName };
+  if (typefilterLookup[collectionName]) {
+    const queries = typefilterLookup[collectionName];//await processTypeFilter(typefilterLookup[collectionName]);
+    const dataType = resolveSchema('4_0_1', collectionName.toLowerCase());
+    docs = queries.map(async q => {
+      let query = q;
+      // wherever we have a $match, we need to add another and statement containing the pat query
+      query.filter(q => '$match' in q).forEach(q => q['$match'] = {$and : [q['$match'], patQuery]});
+
+      // grab the results from aggregation. has metadata about counts and data with resources in the first array position
+      const results = (await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } }))[0];
+      if (results && results.metadata[0]) {
+        // issue: returns an array instead of ndjson?
+        return results.data.map(r => new dataType(r));
+      }
+    });
+    docs = await Promise.all(docs);
+    docs = docs.flatMap(r => r);
+  } else if (patQuery) {
+    const query = {
+      $and: [{}, patQuery]
+    };
+    docs = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
+  } else {
+    docs = await findResourcesWithQuery({}, collectionName, { projection: { _id: 0 } });
+  }
+  return { document: docs, collectionName: collectionName };
 };
 
 /**
@@ -161,8 +180,8 @@ const writeToFile = function (doc, type, clientId) {
 
   if (Object.keys(doc).length > 0) {
     const stream = fs.createWriteStream(filename, { flags: 'a' });
-    doc.forEach(function (doc) {
-      stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(doc));
+    doc.forEach(d => {
+      stream.write((++lineCount === 1 ? '' : '\r\n') + JSON.stringify(d));
     });
     stream.end();
   } else return;
