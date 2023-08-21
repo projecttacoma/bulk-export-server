@@ -22,7 +22,7 @@ const buildSearchParamList = resourceType => {
   const searchParameterList = getSearchParameters(resourceType, '4_0_1');
   searchParameterList.forEach(paramDef => {
     {
-      searchParams[paramDef.name] = paramDef;
+      searchParams[paramDef.xpath.substring(paramDef.xpath.indexOf('.') + 1)] = paramDef;
     }
   });
   return searchParams;
@@ -76,7 +76,6 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
         }
       });
     }
-
     let docs = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
     docs = docs.map(async element => {
       return getDocuments(element, typefilterLookup, patientIds);
@@ -141,7 +140,9 @@ const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
     docs = queries.map(async q => {
       let query = q;
       // wherever we have a $match, we need to add another and statement containing the pat query
-      query.filter(q => '$match' in q).forEach(q => q['$match'] = {$and : [q['$match'], patQuery]});
+      if (patQuery) {
+        query.filter(q => '$match' in q).forEach(q => q['$match'] = {$and : [q['$match'], patQuery]});
+      }
 
       // grab the results from aggregation. has metadata about counts and data with resources in the first array position
       const results = (await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } }))[0];
@@ -177,7 +178,6 @@ const writeToFile = function (doc, type, clientId) {
   const filename = path.join(dirpath, `${type}.ndjson`);
 
   let lineCount = 0;
-
   if (Object.keys(doc).length > 0) {
     const stream = fs.createWriteStream(filename, { flags: 'a' });
     doc.forEach(d => {
