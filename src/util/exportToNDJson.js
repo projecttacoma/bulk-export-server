@@ -17,6 +17,13 @@ const { getSearchParameters, resolveSchema } = require('@projecttacoma/node-fhir
 
 const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
 
+/**
+ * Uses Asymmetrik's getSearchParameters to retrieve the valid search parameters for a given
+ * resource type. Builds a mapping of the search parameter x path to the parameter definition, which
+ * contains the version, name, type, fhirtype, xpatah, definition, and description.
+ * @param {string} resourceType FHIR resource type provided for export
+ * @returns Record of valid search parameters and their associated data
+ */
 const buildSearchParamList = resourceType => {
   const searchParams = {};
   const searchParameterList = getSearchParameters(resourceType, '4_0_1');
@@ -27,6 +34,7 @@ const buildSearchParamList = resourceType => {
   });
   return searchParams;
 };
+
 /**
  * Exports the list of resources included in the _type member of the request object to NDJson
  * if the _type member doesn't exist it will simply export everything included in the supportedResources list
@@ -49,13 +57,16 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
     }
     let typefilterLookup = {};
     if (typeFilter) {
+      // Subqueries may be joined together with a comma for a logical "or"
       let tyq = typeFilter.split(',');
-      // loop over each query
+      // loop over each subquery
       tyq.forEach(line => {
         const resourceType = line.substring(0, line.indexOf('?'));
         // build mapping of search parameters for the given resource type
         const searchParams = buildSearchParamList(resourceType);
+        // extract all properties that may be part of the same subquery via the "&" operator
         const properties = line.substring(line.indexOf('?') + 1).split('&');
+        // create mapping of properties to their values within the given subquery
         const subqueries = {};
         properties.forEach(p => {
           const property = p.substring(0, p.indexOf('='));
@@ -67,6 +78,7 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
           parameterDefinitions: searchParams,
           includeArchived: true
         });
+        // TODO: add error handling here if a query cannot be built
         if (filter.query) {
           if (typefilterLookup[resourceType]) {
             typefilterLookup[resourceType].push(filter.query);
@@ -120,7 +132,7 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
 const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
   let docs = [];
   let patQuery;
-  // Group export
+  // Create patient id query (for Group export only)
   if (patientIds) {
     if (patientIds.length == 0) {
       // if no patients in group, return no documents
@@ -135,24 +147,24 @@ const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
   }
 
   if (typefilterLookup[collectionName]) {
-    const queries = typefilterLookup[collectionName];//await processTypeFilter(typefilterLookup[collectionName]);
+    const queries = typefilterLookup[collectionName];
     const dataType = resolveSchema('4_0_1', collectionName.toLowerCase());
     docs = queries.map(async q => {
       let query = q;
-      // wherever we have a $match, we need to add another and statement containing the pat query
+      // wherever we have a $match, we need to add another "and" operator containing the patient query
       if (patQuery) {
-        query.filter(q => '$match' in q).forEach(q => q['$match'] = {$and : [q['$match'], patQuery]});
+        query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
 
       // grab the results from aggregation. has metadata about counts and data with resources in the first array position
       const results = (await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } }))[0];
       if (results && results.metadata[0]) {
-        // issue: returns an array instead of ndjson?
         return results.data.map(r => new dataType(r));
       }
     });
     docs = await Promise.all(docs);
     docs = docs.flatMap(r => r);
+    // Group export without a _typeFilter query to filter on
   } else if (patQuery) {
     const query = {
       $and: [{}, patQuery]

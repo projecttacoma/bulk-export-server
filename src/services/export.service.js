@@ -165,6 +165,7 @@ function validateExportParams(request, reply) {
       // consider the query "unsupported" if no resource type is provided in query
       if (!resourceType) {
         unsupportedTypeFilterTypes.push(line);
+        // consider the query "unsupported" if the resource type is not supported by the server
       } else if (!supportedResources.includes(resourceType)) {
         unsupportedTypeFilterTypes.push(resourceType);
       }
