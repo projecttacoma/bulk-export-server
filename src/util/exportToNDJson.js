@@ -56,6 +56,7 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
       requestTypes.push(...supportedResources);
     }
     let typefilterLookup = {};
+    const valueSetQueries = {};
     if (typeFilter) {
       // Subqueries may be joined together with a comma for a logical "or"
       let tyq = typeFilter.split(',');
@@ -71,30 +72,47 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
         properties.forEach(p => {
           const property = p.substring(0, p.indexOf('='));
           const propertyValue = p.substring(p.indexOf('=') + 1);
-          subqueries[property] = propertyValue;
-        });
-        const filter = qb.buildSearchQuery({
-          req: { method: 'GET', query: subqueries, params: {} },
-          parameterDefinitions: searchParams,
-          includeArchived: true
-        });
-        // TODO: add error handling here if a query cannot be built
-        if (filter.query) {
-          if (typefilterLookup[resourceType]) {
-            typefilterLookup[resourceType].push(filter.query);
+          // type:in, code:in, etc.
+          if (property.endsWith(':in')) {
+            if (valueSetQueries[resourceType]) {
+              if (valueSetQueries[resourceType][property]) {
+                valueSetQueries[resourceType][property].push(propertyValue);
+              } else {
+                valueSetQueries[resourceType][property] = [propertyValue];
+              }
+            } else {
+              valueSetQueries[resourceType] = { [property]: [propertyValue] };
+            }
           } else {
-            typefilterLookup[resourceType] = [filter.query];
+            subqueries[property] = propertyValue;
+          }
+        });
+        if (Object.keys(subqueries).length > 0) {
+          const filter = qb.buildSearchQuery({
+            req: { method: 'GET', query: subqueries, params: {} },
+            parameterDefinitions: searchParams,
+            includeArchived: true
+          });
+          // TODO: add error handling here if a query cannot be built
+          if (filter.query) {
+            if (typefilterLookup[resourceType]) {
+              typefilterLookup[resourceType].push(filter.query);
+            } else {
+              typefilterLookup[resourceType] = [filter.query];
+            }
           }
         }
       });
     }
     let docs = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
     docs = docs.map(async element => {
-      return getDocuments(element, typefilterLookup, patientIds);
+      return getDocuments(element, typefilterLookup, valueSetQueries, patientIds);
     });
     docs = await Promise.all(docs);
     docs.forEach(doc => {
-      writeToFile(doc.document, doc.collectionName, clientId);
+      if (doc.document) {
+        writeToFile(doc.document, doc.collectionName, clientId);
+      }
     });
 
     /* 
@@ -126,12 +144,14 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
  * @param {string} collectionName The collection of interest in the mongodb
  * @param {Object} typefilterLookup The entry in the _typeFilter that should be used to filter data to be exported
  * from the server
+ * @param {Object} valueSetQueries
  * @param {Array} patientIds Array of patient ids for which the returned documents should have references
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
-const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
+const getDocuments = async (collectionName, typefilterLookup, valueSetQueries, patientIds) => {
   let docs = [];
   let patQuery;
+  let vsQuery;
   // Create patient id query (for Group export only)
   if (patientIds) {
     if (patientIds.length == 0) {
@@ -146,12 +166,18 @@ const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
     }
   }
 
+  if (valueSetQueries[collectionName]) {
+    vsQuery = await processTypeFilter(valueSetQueries[collectionName]);
+  }
   if (typefilterLookup[collectionName]) {
     const queries = typefilterLookup[collectionName];
     const dataType = resolveSchema('4_0_1', collectionName.toLowerCase());
     docs = queries.map(async q => {
       let query = q;
       // wherever we have a $match, we need to add another "and" operator containing the patient query
+      if (vsQuery) {
+        query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], vsQuery] }));
+      }
       if (patQuery) {
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
@@ -160,10 +186,21 @@ const getDocuments = async (collectionName, typefilterLookup, patientIds) => {
       const results = (await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } }))[0];
       if (results && results.metadata[0]) {
         return results.data.map(r => new dataType(r));
-      }
+      } else return [];
     });
+
     docs = await Promise.all(docs);
     docs = docs.flatMap(r => r);
+  } else if (vsQuery) {
+    console.log('vs query exists');
+    if (patQuery) {
+      const query = {
+        $and: [vsQuery, patQuery]
+      };
+      docs = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
+    } else {
+      docs = await findResourcesWithQuery(vsQuery, collectionName, { projection: { _id: 0 } });
+    }
     // Group export without a _typeFilter query to filter on
   } else if (patQuery) {
     const query = {
@@ -215,9 +252,9 @@ const processTypeFilter = async function (typefilterLookupEntry) {
           throw new Error('Value set was not found in the database');
         }
         let vsResolved = getCodesFromValueSet(vs);
-
+        const strippedPropertyValue = propertyValue.substring(0, propertyValue.indexOf(':'));
         vsResolved.forEach(code => {
-          queryArray.push({ [`${propertyValue}.coding.code`]: code.code });
+          queryArray.push({ [`${strippedPropertyValue}.coding.code`]: code.code });
         });
       });
       await Promise.all(results);
