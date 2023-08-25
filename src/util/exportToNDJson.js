@@ -13,21 +13,23 @@ const {
 } = require('./mongo.controller');
 const patientRefs = require('../compartment-definition/patient-references');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
-const { getSearchParameters, resolveSchema } = require('@projecttacoma/node-fhir-server-core');
+const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 
 const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
 
 /**
- * Uses Asymmetrik's getSearchParameters to retrieve the valid search parameters for a given
- * resource type. Builds a mapping of the search parameter x path to the parameter definition, which
- * contains the version, name, type, fhirtype, xpatah, definition, and description.
+ * Uses Asymmetrik's getSearchParameters function to retrieve the valid search parameters for a given
+ * resource type. Builds a mapping of the search parameter xpath to the parameter definition, which
+ * contains the version, name, type, fhirtype, xpath, definition, and description.
  * @param {string} resourceType FHIR resource type provided for export
  * @returns Record of valid search parameters and their associated data
  */
 const buildSearchParamList = resourceType => {
   const searchParams = {};
+  // get search parameters for FHIR Version 4.0.1
   const searchParameterList = getSearchParameters(resourceType, '4_0_1');
   searchParameterList.forEach(paramDef => {
+    // map xpath to parameter description
     {
       searchParams[paramDef.xpath.substring(paramDef.xpath.indexOf('.') + 1)] = paramDef;
     }
@@ -36,8 +38,9 @@ const buildSearchParamList = resourceType => {
 };
 
 /**
- * Exports the list of resources included in the _type member of the request object to NDJson
- * if the _type member doesn't exist it will simply export everything included in the supportedResources list
+ * Exports the list of resources included in the _type parameter to NDJSON, filtered according to the
+ * FHIR queries included in the _typeFilter parameter.
+ * If the _type parameter doesn't exist, the function will simply export all resource types included in the supportedResources list.
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  * @param {string} typeFilter String of comma separated FHIR REST search queries
@@ -46,27 +49,31 @@ const buildSearchParamList = resourceType => {
  */
 const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, patientIds) => {
   try {
-    let dirpath = './tmp/';
+    const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
     let requestTypes = [];
     if (types) {
-      requestTypes = types; // this is the list types to export
+      // filter requested resource types to those specified with the _type parameter
+      requestTypes = types;
     } else {
       // create list of requested types if request.query._type param doesn't exist
       requestTypes.push(...supportedResources);
     }
-    let typefilterLookup = {};
+    // create lookup objects for (1) _typeFilter queries that contain search parameters, and (2) _typeFilter
+    // queries that contain type:in/code:in/etc. queries
+    const searchParameterQueries = {};
     const valueSetQueries = {};
     if (typeFilter) {
-      // Subqueries may be joined together with a comma for a logical "or"
-      let tyq = typeFilter.split(',');
-      // loop over each subquery
-      tyq.forEach(line => {
-        const resourceType = line.substring(0, line.indexOf('?'));
+      // subqueries may be joined together with a comma for a logical "or"
+      const tyq = typeFilter.split(',');
+      // loop over each subquery and extract all search params, which are joined via the "&" operator
+      // each subquery is of the format <resource type>?<query>
+      tyq.forEach(query => {
+        const resourceType = query.substring(0, query.indexOf('?'));
         // build mapping of search parameters for the given resource type
         const searchParams = buildSearchParamList(resourceType);
         // extract all properties that may be part of the same subquery via the "&" operator
-        const properties = line.substring(line.indexOf('?') + 1).split('&');
+        const properties = query.substring(query.indexOf('?') + 1).split('&');
         // create mapping of properties to their values within the given subquery
         const subqueries = {};
         properties.forEach(p => {
@@ -87,26 +94,31 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
             subqueries[property] = propertyValue;
           }
         });
+        // pass all search parameter-related _typeFilter queries into the Asymmetrik query builder
         if (Object.keys(subqueries).length > 0) {
           const filter = qb.buildSearchQuery({
             req: { method: 'GET', query: subqueries, params: {} },
             parameterDefinitions: searchParams,
             includeArchived: true
           });
-          // TODO: add error handling here if a query cannot be built
           if (filter.query) {
-            if (typefilterLookup[resourceType]) {
-              typefilterLookup[resourceType].push(filter.query);
+            if (searchParameterQueries[resourceType]) {
+              searchParameterQueries[resourceType].push(filter.query);
             } else {
-              typefilterLookup[resourceType] = [filter.query];
+              searchParameterQueries[resourceType] = [filter.query];
             }
           }
         }
       });
     }
-    let docs = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
-    docs = docs.map(async element => {
-      return getDocuments(element, typefilterLookup, valueSetQueries, patientIds);
+    const exportTypes = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
+    let docs = exportTypes.map(async collectionName => {
+      return getDocuments(
+        collectionName,
+        searchParameterQueries[collectionName],
+        valueSetQueries[collectionName],
+        patientIds
+      );
     });
     docs = await Promise.all(docs);
     docs.forEach(doc => {
@@ -142,16 +154,15 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
 /**
  * Retrieves all documents from the requested collection and wraps them in an object with the collection name
  * @param {string} collectionName The collection of interest in the mongodb
- * @param {Object} typefilterLookup The entry in the _typeFilter that should be used to filter data to be exported
- * from the server
- * @param {Object} valueSetQueries
+ * @param {Object} searchParameterQueries The _typeFilter search parameter queries for the given resource type
+ * @param {Object} valueSetQueries list of ValueSet-related queries for the given resource type
  * @param {Array} patientIds Array of patient ids for which the returned documents should have references
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
-const getDocuments = async (collectionName, typefilterLookup, valueSetQueries, patientIds) => {
+const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds) => {
   let docs = [];
-  let patQuery;
-  let vsQuery;
+  let patQuery = {};
+  let vsQuery = {};
   // Create patient id query (for Group export only)
   if (patientIds) {
     if (patientIds.length == 0) {
@@ -166,45 +177,32 @@ const getDocuments = async (collectionName, typefilterLookup, valueSetQueries, p
     }
   }
 
-  if (valueSetQueries[collectionName]) {
-    vsQuery = await processTypeFilter(valueSetQueries[collectionName]);
+  if (valueSetQueries) {
+    // extract codes from the ValueSet queries to use for filtering
+    vsQuery = await processVSTypeFilter(valueSetQueries);
   }
-  if (typefilterLookup[collectionName]) {
-    const queries = typefilterLookup[collectionName];
-    const dataType = resolveSchema('4_0_1', collectionName.toLowerCase());
-    docs = queries.map(async q => {
+
+  if (searchParameterQueries) {
+    docs = searchParameterQueries.map(async q => {
       let query = q;
-      // wherever we have a $match, we need to add another "and" operator containing the patient query
+      // wherever we have a $match, we need to add another "and" operator containing the ValueSet and/or patient query
       if (vsQuery) {
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], vsQuery] }));
       }
       if (patQuery) {
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
-
-      // grab the results from aggregation. has metadata about counts and data with resources in the first array position
+      // grab the results from aggregation - has metadata about counts and data with resources in the first array position
       const results = (await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } }))[0];
       if (results && results.metadata[0]) {
-        return results.data.map(r => new dataType(r));
+        return results.data;
       } else return [];
     });
-
-    docs = await Promise.all(docs);
-    docs = docs.flatMap(r => r);
-  } else if (vsQuery) {
-    console.log('vs query exists');
-    if (patQuery) {
-      const query = {
-        $and: [vsQuery, patQuery]
-      };
-      docs = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
-    } else {
-      docs = await findResourcesWithQuery(vsQuery, collectionName, { projection: { _id: 0 } });
-    }
-    // Group export without a _typeFilter query to filter on
-  } else if (patQuery) {
+    // use flatMap to flatten the output from aggregation
+    docs = (await Promise.all(docs)).flatMap(r => r);
+  } else if (vsQuery || patQuery) {
     const query = {
-      $and: [{}, patQuery]
+      $and: [vsQuery, patQuery]
     };
     docs = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
   } else {
@@ -236,25 +234,26 @@ const writeToFile = function (doc, type, clientId) {
   } else return;
 };
 /**
- * Processes the  entry in the _typeFilter and performs the lookup to determine if the type and code are present
- * in the listed value set.
- * @param {Object} typefilterLookupEntry an entry in the _typefilter to perform the valueSet lookup with
+ * Processes the entry in the _typeFilter parameter and performs the lookup to determine if the type and code are present
+ * in the listed ValueSet. Only relevant for _typeFilter queries that reference a ValueSet.
+ * @param {Object} valueSetQueries an entry in the _typefilter to perform the valueSet lookup with
  * @returns {Object} a query object to be run as part of the export
  */
-const processTypeFilter = async function (typefilterLookupEntry) {
+const processVSTypeFilter = async function (valueSetQueries) {
   let queryArray = [];
-  if (typefilterLookupEntry) {
-    // throw  an error if we don't have the value set
-    for (const propertyValue in typefilterLookupEntry) {
-      let results = typefilterLookupEntry[propertyValue].map(async value => {
+  if (valueSetQueries) {
+    for (const property in valueSetQueries) {
+      let results = valueSetQueries[property].map(async value => {
         let vs = await findOneResourceWithQuery({ url: value }, 'ValueSet');
+        // throw an error if we don't have the value set
         if (!vs) {
           throw new Error('Value set was not found in the database');
         }
-        let vsResolved = getCodesFromValueSet(vs);
-        const strippedPropertyValue = propertyValue.substring(0, propertyValue.indexOf(':'));
+        const vsResolved = getCodesFromValueSet(vs);
+        // extract the property (i.e. code, type)
+        const strippedProperty = property.substring(0, property.indexOf(':'));
         vsResolved.forEach(code => {
-          queryArray.push({ [`${strippedPropertyValue}.coding.code`]: code.code });
+          queryArray.push({ [`${strippedProperty}.coding.code`]: code.code });
         });
       });
       await Promise.all(results);
