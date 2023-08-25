@@ -134,7 +134,9 @@ describe('Check barebones bulk export logic (failure)', () => {
       .get('/$export?_type=invalid')
       .expect(400)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
           'The following resourceTypes are not supported for _type param for $export: invalid.'
         );
       });
@@ -145,7 +147,9 @@ describe('Check barebones bulk export logic (failure)', () => {
       .get('/$export?_unrecognizedparam=invalid')
       .expect(400)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
           'The following parameters are unrecognized by the server: _unrecognizedparam.'
         );
       });
@@ -187,7 +191,9 @@ describe('Check patient-level export logic (failure)', () => {
       .get('/Patient/$export?_type=invalid')
       .expect(400)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
           'The following resourceTypes are not supported for _type param for $export: invalid.'
         );
       });
@@ -199,7 +205,9 @@ describe('Check patient-level export logic (failure)', () => {
       .get('/Patient/$export?_type=Parameters')
       .expect(400)
       .then(response => {
-        expect(JSON.parse(response.text).issue[0].details.text).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
           'None of the provided resource types are permitted for Patient/Group export.'
         );
       });
@@ -210,7 +218,9 @@ describe('Check patient-level export logic (failure)', () => {
       .get('/Patient/$export?_unrecognizedparam=invalid')
       .expect(400)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual(
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
           'The following parameters are unrecognized by the server: _unrecognizedparam.'
         );
       });

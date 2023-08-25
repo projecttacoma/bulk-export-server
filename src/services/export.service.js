@@ -149,8 +149,11 @@ function validateExportParams(request, reply) {
       reply
         .code(400)
         .send(
-          new Error(
-            `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(', ')}.`
+          createOperationOutcome(
+            `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(
+              ', '
+            )}.`,
+            { issueCode: 400, severity: 'error' }
           )
         );
       return false;
@@ -174,10 +177,11 @@ function validateExportParams(request, reply) {
       reply
         .code(400)
         .send(
-          new Error(
+          createOperationOutcome(
             `The following resourceTypes are not supported for _typeFilter param for $export: ${unsupportedTypeFilterTypes.join(
               ', '
-            )}.`
+            )}.`,
+            { issueCode: 400, severity: 'error' }
           )
         );
       return false;
@@ -193,8 +197,12 @@ function validateExportParams(request, reply) {
   if (unrecognizedParams.length > 0) {
     reply
       .code(400)
-      .send(new Error(`The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`));
-
+      .send(
+        createOperationOutcome(
+          `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
+          { issueCode: 400, severity: 'error' }
+        )
+      );
     return false;
   }
   return true;

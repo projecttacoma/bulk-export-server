@@ -186,10 +186,10 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     docs = searchParameterQueries.map(async q => {
       let query = q;
       // wherever we have a $match, we need to add another "and" operator containing the ValueSet and/or patient query
-      if (vsQuery) {
+      if (Object.keys(vsQuery).length > 0) {
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], vsQuery] }));
       }
-      if (patQuery) {
+      if (Object.keys(patQuery).length > 0) {
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
       // grab the results from aggregation - has metadata about counts and data with resources in the first array position
@@ -290,4 +290,4 @@ const patientsQueryForType = async function (patientIds, type) {
   return { $or: results };
 };
 
-module.exports = { exportToNDJson, patientsQueryForType, getDocuments };
+module.exports = { exportToNDJson, patientsQueryForType, getDocuments, buildSearchParamList };
