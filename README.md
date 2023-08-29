@@ -124,7 +124,7 @@ For more information on the export endpoints, read this documentation on the [Ex
 The server supports the following query parameters:
 - `_type`: Filters the response to only include resources of the specified resource type(s)
   - If omitted, system-level requests will return all resources supported by the server within the scope of the client authorization
-  - For Patient- and Group-level requests, the [Patient Compartment](https://www.hl7.org/fhir/compartmentdefinition-patient.html) is used as a point of reference for filtering the resource types that are returned.`
+  - For Patient- and Group-level requests, the [Patient Compartment](https://www.hl7.org/fhir/compartmentdefinition-patient.html) is used as a point of reference for filtering the resource types that are returned.
 - `_outputFormat`: The server supports the following formats: `application/fhir+ndjson`, `application/ndjson+fhir`, `application/ndjson`, `ndjson`
 - `_typeFilter`: Filters the response to only include resources that meet the criteria of the specified comma-delimited FHIR REST queries. Returns an error for queries specified by the client that are unsupported by the server. Supports queries on the ValueSets (`type:in`, `code:in`, etc.) of a given resource type.
 
