@@ -41,6 +41,8 @@ const buildSearchParamList = resourceType => {
  * Exports the list of resources included in the _type parameter to NDJSON, filtered according to the
  * FHIR queries included in the _typeFilter parameter.
  * If the _type parameter doesn't exist, the function will simply export all resource types included in the supportedResources list.
+ * If the _typeFilter parameter is defined but the _type parameter is *not* defined, the function will export all resource types
+ * included in the supportedResources list, but the resource types specified in the _typeFilter query will be filtered.
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  * @param {string} typeFilter String of comma separated FHIR REST search queries
@@ -234,10 +236,11 @@ const writeToFile = function (doc, type, clientId) {
   } else return;
 };
 /**
- * Processes the entry in the _typeFilter parameter and performs the lookup to determine if the type and code are present
- * in the listed ValueSet. Only relevant for _typeFilter queries that reference a ValueSet.
- * @param {Object} valueSetQueries an entry in the _typefilter to perform the valueSet lookup with
- * @returns {Object} a query object to be run as part of the export
+ * Processes the _typeFilter queries that reference a ValueSet for a single resource type. For each query parameter,
+ * retrieves the ValueSet resource, extracts the codes from the ValueSet, and generates the appropriate code-level queries.
+ * Throws error if ValueSet cannot be found in the database.
+ * @param {Object} valueSetQueries collection of query parameters that map to ValueSets
+ * @returns {Object} an $or query object to be run as part of the export
  */
 const processVSTypeFilter = async function (valueSetQueries) {
   let queryArray = [];
