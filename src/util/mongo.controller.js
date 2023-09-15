@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const BULKSTATUS_INPROGRESS = 'In Progress';
 const BULKSTATUS_COMPLETED = 'Completed';
 const BULKSTATUS_FAILED = 'Failed';
+const fs = require('fs');
 
 /**
  * creates a new document in the specified collection
@@ -86,9 +87,14 @@ const removeResource = async (id, resourceType) => {
  * @param {*} resourceType The resource type (collection) to aggregate on.
  * @returns Array promise of results.
  */
-const findResourcesWithAggregation = async (query, resourceType) => {
+const findResourcesWithAggregation = async (query, resourceType) => { 
+  // take a slice to remove the $facet object included in the aggregation pipeline
+  // Asymmetrik uses $facet to provide user-friendly pagination, which is not relevant here
+  // so it gets removed
+  const newQuery = query.slice(0, -1);
+  fs.writeFileSync('query.json', JSON.stringify(newQuery, null, 2));
   const collection = db.collection(resourceType);
-  return (await collection.aggregate(query)).toArray();
+  return (await collection.aggregate(newQuery)).toArray();
 };
 
 /**
