@@ -195,9 +195,7 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
       // grab the results from aggregation - has metadata about counts and data with resources in the first array position
-      const results = (await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } }));
-      // if (results && results.metadata[0]) {
-        // return results.data;
+      const results = await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } });
       return results || [];
     });
     // use flatMap to flatten the output from aggregation
