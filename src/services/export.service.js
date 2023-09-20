@@ -139,7 +139,7 @@ function validateExportParams(request, reply) {
   if (request.query._type) {
     // type filter is comma-delimited
     const requestTypes = request.query._type.split(',');
-    let unsupportedTypes = [];
+    const unsupportedTypes = [];
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
         unsupportedTypes.push(type);
@@ -149,8 +149,39 @@ function validateExportParams(request, reply) {
       reply
         .code(400)
         .send(
-          new Error(
-            `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(', ')}.`
+          createOperationOutcome(
+            `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(
+              ', '
+            )}.`,
+            { issueCode: 400, severity: 'error' }
+          )
+        );
+      return false;
+    }
+  }
+
+  if (request.query._typeFilter) {
+    const typeFilterArray = request.query._typeFilter.split(',');
+    const unsupportedTypeFilterTypes = [];
+    typeFilterArray.forEach(line => {
+      const resourceType = line.substring(0, line.indexOf('?'));
+      // consider the query "unsupported" if no resource type is provided in query
+      if (!resourceType) {
+        unsupportedTypeFilterTypes.push(line);
+        // consider the query "unsupported" if the resource type is not supported by the server
+      } else if (!supportedResources.includes(resourceType)) {
+        unsupportedTypeFilterTypes.push(resourceType);
+      }
+    });
+    if (unsupportedTypeFilterTypes.length > 0) {
+      reply
+        .code(400)
+        .send(
+          createOperationOutcome(
+            `The following resourceTypes are not supported for _typeFilter param for $export: ${unsupportedTypeFilterTypes.join(
+              ', '
+            )}.`,
+            { issueCode: 400, severity: 'error' }
           )
         );
       return false;
@@ -166,8 +197,12 @@ function validateExportParams(request, reply) {
   if (unrecognizedParams.length > 0) {
     reply
       .code(400)
-      .send(new Error(`The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`));
-
+      .send(
+        createOperationOutcome(
+          `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
+          { issueCode: 400, severity: 'error' }
+        )
+      );
     return false;
   }
   return true;

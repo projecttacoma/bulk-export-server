@@ -87,8 +87,14 @@ const removeResource = async (id, resourceType) => {
  * @returns Array promise of results.
  */
 const findResourcesWithAggregation = async (query, resourceType) => {
+  /*
+  Asymmetrik includes a $facet object to provide user-friendly pagination, which
+  is not relevant here since we are applying the Asymmetrik query to the _typeFilter
+  parameter. The query is sliced to remove the $facet object from the aggregation pipeline.
+  */
+  const queryWithoutFacet = query.slice(0, -1);
   const collection = db.collection(resourceType);
-  return (await collection.aggregate(query)).toArray();
+  return (await collection.aggregate(queryWithoutFacet)).toArray();
 };
 
 /**

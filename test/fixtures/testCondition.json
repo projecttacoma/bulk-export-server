@@ -1,0 +1,9 @@
+{
+  "resourceType": "Condition",
+  "id": "test-condition",
+  "onsetDateTime": "2019-01-03T00:00:00Z",
+  "recordedDate": "2019-01-03T00:00:00Z",
+  "subject": {
+    "reference": "Patient/testPatient"
+  }
+}
