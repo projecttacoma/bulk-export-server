@@ -10,7 +10,18 @@ const { createOperationOutcome } = require('../util/errorUtils');
  * @param {Object} reply the response object
  */
 const bulkExport = async (request, reply) => {
-  if (validateExportParams(request, reply)) {
+  if (request.query.patient || (request.body && request.body.parameter.find(param => param.name == 'patient'))) {
+    reply
+      .code(400)
+      .send(
+        createOperationOutcome('The "patient" parameter cannot be used in a system-level export request.', {
+          issueCode: 400,
+          severity: 'error'
+        })
+      );
+  }
+  const parameters = gatherParams(request.query, request.body);
+  if (validateExportParams(parameters, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
@@ -20,6 +31,7 @@ const bulkExport = async (request, reply) => {
     }
 
     // Enqueue a new job into Redis for handling
+    // TODO: add patient param as an input here
     const job = {
       clientEntry: clientEntry,
       types: types,
@@ -41,7 +53,17 @@ const bulkExport = async (request, reply) => {
  * @param {Object} reply the response object
  */
 const patientBulkExport = async (request, reply) => {
-  if (validateExportParams(request, reply)) {
+  if (request.query && request.query.patient) {
+    reply
+      .code(400)
+      .send(
+        new Error(
+          'The "patient" parameter cannot be used in the query of a GET request. The parameter must be specified in a POST request only.'
+        )
+      );
+  }
+  const parameters = gatherParams(request.query, request.body);
+  if (validateExportParams(parameters, reply)) {
     request.log.info('Patient >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
@@ -53,6 +75,7 @@ const patientBulkExport = async (request, reply) => {
     }
 
     // Enqueue a new job into Redis for handling
+    // TODO: add patient param as an input here
     const job = {
       clientEntry: clientEntry,
       types: types,
@@ -74,7 +97,17 @@ const patientBulkExport = async (request, reply) => {
  * @param {Object} reply the response object
  */
 const groupBulkExport = async (request, reply) => {
-  if (validateExportParams(request, reply)) {
+  if (request.query && request.query.patient) {
+    reply
+      .code(400)
+      .send(
+        new Error(
+          'The "patient" parameter cannot be used in the query of a GET request. The parameter must be specified in a POST request only.'
+        )
+      );
+  }
+  const parameters = gatherParams(request.query, request.body);
+  if (validateExportParams(parameters, reply)) {
     request.log.info('Group >>> $export');
     const group = await findResourceById(request.params.groupId, 'Group');
     if (!group) {
@@ -96,6 +129,7 @@ const groupBulkExport = async (request, reply) => {
     }
 
     // Enqueue a new job into Redis for handling
+    // TODO: add patient param as an input here
     const job = {
       clientEntry: clientEntry,
       types: types,
@@ -114,31 +148,31 @@ const groupBulkExport = async (request, reply) => {
 /**
  * Checks that the parameters input to $export are valid. Returns true if all the
  * export params are valid, meaning no errors were thrown in the process.
- * @param {Object} request http request object
+ * @param {Object} parameters object containing a combination of request parameters from request query and body
  * @param {*} reply the response object
  */
-function validateExportParams(request, reply) {
+function validateExportParams(parameters, reply) {
   /**
    * According to http://hl7.org/fhir/async.html, we should also
    * account for abbreviated representations of ndjson
    */
   const ACCEPTEDOUTPUTFORMATS = ['application/fhir+ndjson', 'application/ndjson+fhir', 'application/ndjson', 'ndjson'];
-  if (request.query._outputFormat) {
-    if (!ACCEPTEDOUTPUTFORMATS.includes(request.query._outputFormat)) {
+  if (parameters._outputFormat) {
+    if (!ACCEPTEDOUTPUTFORMATS.includes(parameters._outputFormat)) {
       reply
         .code(400)
         .send(
           new Error(
-            `The following output format is not supported for _outputFormat param for $export: ${request.query._outputFormat}`
+            `The following output format is not supported for _outputFormat param for $export: ${parameters._outputFormat}`
           )
         );
       return false;
     }
   }
 
-  if (request.query._type) {
+  if (parameters._type) {
     // type filter is comma-delimited
-    const requestTypes = request.query._type.split(',');
+    const requestTypes = parameters._type.split(',');
     const unsupportedTypes = [];
     requestTypes.forEach(type => {
       if (!supportedResources.includes(type)) {
@@ -160,8 +194,8 @@ function validateExportParams(request, reply) {
     }
   }
 
-  if (request.query._typeFilter) {
-    const typeFilterArray = request.query._typeFilter.split(',');
+  if (parameters._typeFilter) {
+    const typeFilterArray = parameters._typeFilter.split(',');
     const unsupportedTypeFilterTypes = [];
     typeFilterArray.forEach(line => {
       const resourceType = line.substring(0, line.indexOf('?'));
@@ -189,8 +223,8 @@ function validateExportParams(request, reply) {
   }
 
   let unrecognizedParams = [];
-  Object.keys(request.query).forEach(param => {
-    if (!['_outputFormat', '_type', '_typeFilter'].includes(param)) {
+  Object.keys(parameters).forEach(param => {
+    if (!['_outputFormat', '_type', '_typeFilter', 'patient'].includes(param)) {
       unrecognizedParams.push(param);
     }
   });
@@ -207,6 +241,26 @@ function validateExportParams(request, reply) {
   }
   return true;
 }
+
+/**
+ * Pulls query parameters from both the url query and request body and creates a new parameters map
+ * @param {Object} query the query terms on the request URL
+ * @param {Object} body http request body
+ * @returns {Object} an object containing a combination of request parameters from both sources
+ */
+const gatherParams = (query, body) => {
+  const params = { ...query };
+  if (body && body.parameter) {
+    body.parameter.reduce((acc, e) => {
+      if (!e.resource) {
+        // For now, all usable params are expected to be stored under one of these four keys
+        acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode;
+      }
+      return acc;
+    }, params);
+  }
+  return params;
+};
 
 /**
  * Checks provided types against the recommended resource types for patient-level export.

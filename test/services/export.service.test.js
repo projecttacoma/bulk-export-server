@@ -27,10 +27,41 @@ describe('Check barebones bulk export logic (success)', () => {
       });
   });
 
+  test('check 202 returned and content-location populated for POST request', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/$export')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
   test('check 202 returned and content-location populated with params', async () => {
     const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/$export?_outputFormat=ndjson')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 returned and content-location populated with params for POST request', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_type',
+            valueString: 'Patient'
+          }
+        ]
+      })
       .expect(202)
       .then(response => {
         expect(response.headers['content-location']).toBeDefined();
@@ -60,10 +91,41 @@ describe('Check patient-level export logic (success)', () => {
       });
   });
 
+  test('check 202 returned and content-location populated for POST request', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
   test('check 202 returned and content-location populated with params', async () => {
     const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/Patient/$export?_outputFormat=ndjson&_type=Patient,ServiceRequest')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 returned and content-location populated with params for POST request', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_type',
+            valueString: 'Patient'
+          }
+        ]
+      })
       .expect(202)
       .then(response => {
         expect(response.headers['content-location']).toBeDefined();
@@ -101,6 +163,37 @@ describe('Check group-level export logic (success)', () => {
     const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
       .get('/Group/testGroup/$export')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 returned and content-location populated for POST request', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Group/testGroup/$export')
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 returned and content-location populated with params for POST request', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_type',
+            valueString: 'Patient'
+          }
+        ]
+      })
       .expect(202)
       .then(response => {
         expect(response.headers['content-location']).toBeDefined();
@@ -174,6 +267,28 @@ describe('Check barebones bulk export logic (failure)', () => {
         expect(response.body.issue[0].code).toEqual(400);
         expect(response.body.issue[0].details.text).toEqual(
           'The following resourceTypes are not supported for _typeFilter param for $export: invalid.'
+        );
+      });
+  });
+
+  test('throws 400 error when "patient" parameter used in system-level export', async () => {
+    await supertest(app.server)
+      .post('/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'patient',
+            valueString: 'test'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'The "patient" parameter cannot be used in a system-level export request.'
         );
       });
   });
