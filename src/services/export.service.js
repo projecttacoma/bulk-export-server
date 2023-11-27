@@ -77,7 +77,8 @@ const patientBulkExport = async (request, reply) => {
     const job = {
       clientEntry: clientEntry,
       types: types,
-      typeFilter: request.query._typeFilter,
+      typeFilter: parameters._typeFilter,
+      patient: parameters.patient,
       systemLevelExport: false
     };
     await exportQueue.createJob(job).save();
@@ -131,7 +132,8 @@ const groupBulkExport = async (request, reply) => {
     const job = {
       clientEntry: clientEntry,
       types: types,
-      typeFilter: request.query._typeFilter,
+      typeFilter: parameters._typeFilter,
+      patient: parameters.patient,
       systemLevelExport: false,
       patientIds: patientIds
     };

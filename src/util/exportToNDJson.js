@@ -46,10 +46,11 @@ const buildSearchParamList = resourceType => {
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  * @param {string} typeFilter String of comma separated FHIR REST search queries
+ * @param {string | Array} patient Patient references from the "patient" param, used to filter results
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
  */
-const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, patientIds) => {
+const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds) => {
   try {
     const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
