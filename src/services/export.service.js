@@ -11,14 +11,12 @@ const { createOperationOutcome } = require('../util/errorUtils');
  */
 const bulkExport = async (request, reply) => {
   if (request.query.patient || (request.body && request.body.parameter.find(param => param.name == 'patient'))) {
-    reply
-      .code(400)
-      .send(
-        createOperationOutcome('The "patient" parameter cannot be used in a system-level export request.', {
-          issueCode: 400,
-          severity: 'error'
-        })
-      );
+    reply.code(400).send(
+      createOperationOutcome('The "patient" parameter cannot be used in a system-level export request.', {
+        issueCode: 400,
+        severity: 'error'
+      })
+    );
   }
   const parameters = gatherParams(request.query, request.body);
   if (validateExportParams(parameters, reply)) {
@@ -222,6 +220,24 @@ function validateExportParams(parameters, reply) {
     }
   }
 
+  if (parameters.patient) {
+    const referenceFormat = /^Patient\/[\w-]+$/;
+    const errorMessage = 'All patient references must be of the format "Patient/{id}" for the "patient" parameter.';
+    if (Array.isArray(parameters.patient)) {
+      parameters.patient.forEach(p => {
+        if (!referenceFormat.test(p.reference)) {
+          reply.code(400).send(createOperationOutcome(errorMessage, { issueCode: 400, severity: 'error' }));
+          return false;
+        }
+      });
+    } else {
+      if (!referenceFormat.test(parameters.patient.reference)) {
+        reply.code(400).send(createOperationOutcome(errorMessage, { issueCode: 400, severity: 'error' }));
+        return false;
+      }
+    }
+  }
+
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
     if (!['_outputFormat', '_type', '_typeFilter', 'patient'].includes(param)) {
@@ -253,8 +269,18 @@ const gatherParams = (query, body) => {
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {
       if (!e.resource) {
-        // For now, all usable params are expected to be stored under one of these four keys
-        acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode;
+        if (!acc[e.name]) {
+          // For now, all usable params are expected to be stored under one of these four keys
+          acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference;
+        } else {
+          // store an array as the value since multiple values map to the parameter
+          // TODO: only keep this method when acc[e.name] is patient - otherwise consolidate _type, _typeFilter, etc. via commas
+          if (Array.isArray(acc[e.name])) {
+            acc[e.name].push(e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference);
+          } else {
+            acc[e.name] = [acc[e.name], e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference];
+          }
+        }
       }
       return acc;
     }, params);
