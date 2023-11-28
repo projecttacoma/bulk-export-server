@@ -272,7 +272,10 @@ const gatherParams = (query, body) => {
     body.parameter.reduce((acc, e) => {
       if (!e.resource) {
         if (!acc[e.name]) {
-          // For now, all usable params are expected to be stored under one of these four keys
+          if (acc[e.name] === 'patient') {
+            acc[e.name] = [e.valueReference];
+          }
+          // For now, all usable params are expected to be stored under one of these fives keys
           acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference;
         } else {
           // store an array as the value since multiple values map to the parameter
