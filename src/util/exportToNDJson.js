@@ -119,7 +119,7 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
     // if 'patient' parameter is present, apply additional filtering on the resources related to these patients
     // strip off '.reference' to align with the format of the patientIds array
     const patientParamIds = patient.map(p => {
-      const splitRef = p.entity.reference.split('/');
+      const splitRef = p.reference.split('/');
       return splitRef[splitRef.length - 1];
     });
 
