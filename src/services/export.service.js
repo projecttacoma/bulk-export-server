@@ -3,6 +3,7 @@ const supportedResources = require('../util/supportedResources');
 const exportQueue = require('../resources/exportQueue');
 const patientResourceTypes = require('../compartment-definition/patientExportResourceTypes.json');
 const { createOperationOutcome } = require('../util/errorUtils');
+const { verifyPatientsInGroup } = require('../util/groupUtils');
 
 /**
  * Exports data from a FHIR server, whether or not it is associated with a patient.
@@ -65,9 +66,9 @@ const patientBulkExport = async (request, reply) => {
     request.log.info('Patient >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
-    let types;
-    if (request.query._type) {
-      types = filterPatientResourceTypes(request, reply);
+    let types = request.query._type?.split(',') || parameters._type?.split(',');
+    if (types) {
+      types = filterPatientResourceTypes(request, reply, types);
     } else {
       types = patientResourceTypes;
     }
@@ -113,16 +114,18 @@ const groupBulkExport = async (request, reply) => {
       reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
       return;
     }
+    if (parameters.patient) {
+      verifyPatientsInGroup(parameters.patient, group, reply);
+    }
     const patientIds = group.member.map(m => {
       const splitRef = m.entity.reference.split('/');
       return splitRef[splitRef.length - 1];
     });
 
     const clientEntry = await addPendingBulkExportRequest();
-
-    let types;
-    if (request.query._type) {
-      types = filterPatientResourceTypes(request, reply);
+    let types = request.query._type?.split(',') || parameters._type?.split(',');
+    if (types) {
+      types = filterPatientResourceTypes(request, reply, types);
     } else {
       types = patientResourceTypes;
     }
@@ -271,20 +274,15 @@ const gatherParams = (query, body) => {
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {
       if (!e.resource) {
-        if (!acc[e.name]) {
-          if (acc[e.name] === 'patient') {
+        if (e.name === 'patient') {
+          if (!acc[e.name]) {
             acc[e.name] = [e.valueReference];
+          } else {
+            acc[e.name].push(e.valueReference);
           }
+        } else {
           // For now, all usable params are expected to be stored under one of these fives keys
           acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference;
-        } else {
-          // store an array as the value since multiple values map to the parameter
-          // TODO: only keep this method when acc[e.name] is patient - otherwise consolidate _type, _typeFilter, etc. via commas
-          if (Array.isArray(acc[e.name])) {
-            acc[e.name].push(e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference);
-          } else {
-            acc[e.name] = [acc[e.name], e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference];
-          }
         }
       }
       return acc;
@@ -299,11 +297,11 @@ const gatherParams = (query, body) => {
  * OperationOutcome if none of the provided types are present in the patient compartment definition.
  * @param {Object} request http request object
  * @param {Object} reply the response object
+ * @param {string} types the comma-delimited _type parameter, pulled from the query or body
  * @return array of resource types to use as reference for export after filtering out types that
  * are not permitted for patient-level export
  */
-function filterPatientResourceTypes(request, reply) {
-  const types = request.query._type.split(',');
+function filterPatientResourceTypes(request, reply, types) {
   // check types against patient compartment definition and filter
   const filteredTypes = types.filter(type => patientResourceTypes.includes(type));
   if (types.length !== filteredTypes.length) {

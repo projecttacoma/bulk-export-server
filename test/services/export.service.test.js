@@ -466,6 +466,28 @@ describe('Check group-level export logic (failure)', () => {
       });
   });
 
+  test('throws 404 when patient param includes a patient that does not belong to the group', async () => {
+    await supertest(app.server)
+      .post(`/Group/${GROUP_ID}/$export`)
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'patient',
+            valueReference: { reference: 'Patient/unknown_patient' }
+          }
+        ]
+      })
+      .expect(404)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(404);
+        expect(response.body.issue[0].details.text).toEqual(
+          `The following patient ids are not members of the group ${GROUP_ID}: Patient/unknown_patient`
+        );
+      });
+  });
+
   afterEach(async () => {
     await cleanUpDb();
   });

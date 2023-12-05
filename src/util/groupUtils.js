@@ -1,4 +1,5 @@
 const { createResource } = require('./mongo.controller');
+const { createOperationOutcome } = require('./errorUtils');
 
 /**
  * Creates a FHIR Group resource that represents the Patients associated with a given Measure
@@ -30,4 +31,34 @@ async function createPatientGroupsPerMeasure(measureId, patientIds) {
   }
 }
 
-module.exports = { createPatientGroupsPerMeasure };
+/**
+ * Verifies that all patients specified in the "patient" parameter are members of the group, for a
+ * given group export. Throws a 404 error wrapped in an OperationOutcome if any patients are specified
+ * that do *not* belong to the group.
+ * @param {Object} patientParam object containing array of patient references
+ * @param {Object} group FHIR Group resource
+ * @param {Object} reply the response object
+ */
+function verifyPatientsInGroup(patientParam, group, reply) {
+  const unknownPatientReferences = [];
+
+  const groupMembers = group.member.map(m => {
+    return m.entity.reference;
+  });
+
+  patientParam.forEach(p => {
+    if (!groupMembers.find(member => member === p.reference)) {
+      unknownPatientReferences.push(p.reference);
+    }
+  });
+
+  if (unknownPatientReferences.length > 0) {
+    const errorMessage = `The following patient ids are not members of the group ${
+      group.id
+    }: ${unknownPatientReferences.join(', ')}`;
+    reply.code(404).send(createOperationOutcome(errorMessage, { issueCode: 404, severity: 'error' }));
+  }
+  return false;
+}
+
+module.exports = { createPatientGroupsPerMeasure, verifyPatientsInGroup };
