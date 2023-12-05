@@ -63,6 +63,10 @@ const patientBulkExport = async (request, reply) => {
   }
   const parameters = gatherParams(request.query, request.body);
   if (validateExportParams(parameters, reply)) {
+    if (parameters.patient) {
+      // validate patients are available on the server
+      await validatePatientReferences(parameters.patient, reply);
+    }
     request.log.info('Patient >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
@@ -321,6 +325,34 @@ function filterPatientResourceTypes(request, reply, types) {
     );
   }
   return filteredTypes;
+}
+
+/**
+ * Validates whether all the specified patients are available in the database.
+ * Throws OperationOutcome if patients are specified that do not exist in the database.
+ * @param {Array} patientParam array of patient references
+ * @param {Object} reply the response object
+ */
+async function validatePatientReferences(patientParam, reply) {
+  console.log(patientParam);
+
+  const unknownPatientPromises = patientParam.map(async p => {
+    const splitRef = p.reference.split('/');
+    const patientId = splitRef[splitRef.length - 1];
+    const patient = await findResourceById(patientId, 'Patient');
+    if (!patient) {
+      return p.reference;
+    }
+    return null;
+  });
+
+  const results = (await Promise.all(unknownPatientPromises)).filter(p => p);
+
+  if (results.length > 0) {
+    const errorMessage = `The following patient ids are not available on the server: ${results.join(', ')}`;
+    reply.code(404).send(createOperationOutcome(errorMessage, { issueCode: 404, severity: 'error' }));
+  }
+  return false;
 }
 
 module.exports = { bulkExport, patientBulkExport, groupBulkExport };

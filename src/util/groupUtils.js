@@ -35,7 +35,7 @@ async function createPatientGroupsPerMeasure(measureId, patientIds) {
  * Verifies that all patients specified in the "patient" parameter are members of the group, for a
  * given group export. Throws a 404 error wrapped in an OperationOutcome if any patients are specified
  * that do *not* belong to the group.
- * @param {Object} patientParam object containing array of patient references
+ * @param {Array} patientParam array of patient references
  * @param {Object} group FHIR Group resource
  * @param {Object} reply the response object
  */

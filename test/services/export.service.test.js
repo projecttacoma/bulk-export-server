@@ -377,6 +377,28 @@ describe('Check patient-level export logic (failure)', () => {
       });
   });
 
+  test('throws 404 when patient param is supplied with a patient that is not on the server', async () => {
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'patient',
+            valueReference: { reference: 'Patient/unknown_patient' }
+          }
+        ]
+      })
+      .expect(404)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(404);
+        expect(response.body.issue[0].details.text).toEqual(
+          'The following patient ids are not available on the server: Patient/unknown_patient'
+        );
+      });
+  });
+
   afterEach(async () => {
     await cleanUpDb();
   });
