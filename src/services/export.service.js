@@ -334,7 +334,6 @@ function filterPatientResourceTypes(request, reply, types) {
  * @param {Object} reply the response object
  */
 async function validatePatientReferences(patientParam, reply) {
-  console.log(patientParam);
 
   const unknownPatientPromises = patientParam.map(async p => {
     const splitRef = p.reference.split('/');
