@@ -377,6 +377,27 @@ describe('Check patient-level export logic (failure)', () => {
       });
   });
 
+  test('throws 400 error when patient param is supplied with invalid format', async () => {
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'patient',
+            valueReference: { reference: 'testPatient' }
+          }
+        ]
+      })
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'All patient references must be of the format "Patient/{id}" for the "patient" parameter.'
+        );
+      });
+  });
+
   test('throws 404 when patient param is supplied with a patient that is not on the server', async () => {
     await supertest(app.server)
       .post('/Patient/$export')
@@ -506,6 +527,27 @@ describe('Check group-level export logic (failure)', () => {
         expect(response.body.issue[0].code).toEqual(404);
         expect(response.body.issue[0].details.text).toEqual(
           `The following patient ids are not members of the group ${GROUP_ID}: Patient/unknown_patient`
+        );
+      });
+  });
+
+  test('throws 400 error when patient param is supplied with invalid format', async () => {
+    await supertest(app.server)
+      .post(`/Group/${GROUP_ID}/$export`)
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'patient',
+            valueReference: { reference: 'testPatient' }
+          }
+        ]
+      })
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'All patient references must be of the format "Patient/{id}" for the "patient" parameter.'
         );
       });
   });

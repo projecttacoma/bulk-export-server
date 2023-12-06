@@ -11,7 +11,8 @@ const { verifyPatientsInGroup } = require('../util/groupUtils');
  * @param {Object} reply the response object
  */
 const bulkExport = async (request, reply) => {
-  if (request.query.patient || (request.body && request.body.parameter.find(param => param.name == 'patient'))) {
+  const parameters = gatherParams(request.query, request.body);
+  if (parameters.patient) {
     reply.code(400).send(
       createOperationOutcome('The "patient" parameter cannot be used in a system-level export request.', {
         issueCode: 400,
@@ -19,18 +20,13 @@ const bulkExport = async (request, reply) => {
       })
     );
   }
-  const parameters = gatherParams(request.query, request.body);
   if (validateExportParams(parameters, reply)) {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
-    let types;
-    if (request.query._type) {
-      types = request.query._type.split(',');
-    }
+    const types = request.query._type?.split(',') || parameters._type?.split(',');
 
     // Enqueue a new job into Redis for handling
-    // TODO: add patient param as an input here
     const job = {
       clientEntry: clientEntry,
       types: types,
@@ -78,7 +74,6 @@ const patientBulkExport = async (request, reply) => {
     }
 
     // Enqueue a new job into Redis for handling
-    // TODO: add patient param as an input here
     const job = {
       clientEntry: clientEntry,
       types: types,
@@ -135,7 +130,6 @@ const groupBulkExport = async (request, reply) => {
     }
 
     // Enqueue a new job into Redis for handling
-    // TODO: add patient param as an input here
     const job = {
       clientEntry: clientEntry,
       types: types,
@@ -156,7 +150,7 @@ const groupBulkExport = async (request, reply) => {
  * Checks that the parameters input to $export are valid. Returns true if all the
  * export params are valid, meaning no errors were thrown in the process.
  * @param {Object} parameters object containing a combination of request parameters from request query and body
- * @param {*} reply the response object
+ * @param {Object} reply the response object
  */
 function validateExportParams(parameters, reply) {
   /**
@@ -232,19 +226,12 @@ function validateExportParams(parameters, reply) {
   if (parameters.patient) {
     const referenceFormat = /^Patient\/[\w-]+$/;
     const errorMessage = 'All patient references must be of the format "Patient/{id}" for the "patient" parameter.';
-    if (Array.isArray(parameters.patient)) {
-      parameters.patient.forEach(p => {
-        if (!referenceFormat.test(p.reference)) {
-          reply.code(400).send(createOperationOutcome(errorMessage, { issueCode: 400, severity: 'error' }));
-          return false;
-        }
-      });
-    } else {
-      if (!referenceFormat.test(parameters.patient.reference)) {
+    parameters.patient.forEach(p => {
+      if (!referenceFormat.test(p.reference)) {
         reply.code(400).send(createOperationOutcome(errorMessage, { issueCode: 400, severity: 'error' }));
         return false;
       }
-    }
+    });
   }
 
   let unrecognizedParams = [];
@@ -334,7 +321,6 @@ function filterPatientResourceTypes(request, reply, types) {
  * @param {Object} reply the response object
  */
 async function validatePatientReferences(patientParam, reply) {
-
   const unknownPatientPromises = patientParam.map(async p => {
     const splitRef = p.reference.split('/');
     const patientId = splitRef[splitRef.length - 1];
