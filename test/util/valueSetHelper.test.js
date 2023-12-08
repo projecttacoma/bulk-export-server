@@ -1,5 +1,7 @@
 const { getHierarchicalCodes, getCodesFromValueSet } = require('../../src/util/valueSetHelper');
-
+// import queue to close open handles after tests pass
+// TODO: investigate why queues are leaving open handles in this file
+const queue = require('../../src/resources/exportQueue');
 describe('getHierarchicalCodes', () => {
   test('Returns array of codes in ValueSet', () => {
     const valueSetArray = [
@@ -72,5 +74,11 @@ describe('getCodesFromValueSet', () => {
     };
     const results = getCodesFromValueSet(valueSet);
     expect(results).toEqual(expected_codes);
+  });
+
+  // Close export queue that is created when processing these tests
+  // TODO: investigate why queues are leaving open handles in this file
+  afterEach(async () => {
+    await queue.close();
   });
 });
