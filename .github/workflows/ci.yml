@@ -67,14 +67,9 @@ jobs:
         with:
           redis-version: ${{ matrix.redis-version }}
 
-      - name: Setup Dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build --if-present
-
       - name: Run Jest Coverage Report
         uses: artiomtr/jest-coverage-report-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           threshold: 60
+          test-script: npm test
