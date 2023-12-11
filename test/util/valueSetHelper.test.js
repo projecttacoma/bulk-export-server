@@ -75,10 +75,10 @@ describe('getCodesFromValueSet', () => {
     const results = getCodesFromValueSet(valueSet);
     expect(results).toEqual(expected_codes);
   });
+});
 
-  // Close export queue that is created when processing these tests
-  // TODO: investigate why queues are leaving open handles in this file
-  afterEach(async () => {
-    await queue.close();
-  });
+// Close export queue that is created when processing these tests
+// TODO: investigate why queues are leaving open handles in this file
+afterAll(async () => {
+  await queue.close();
 });

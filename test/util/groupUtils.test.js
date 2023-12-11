@@ -13,10 +13,10 @@ describe('createPatientGroupsPerMeasure', () => {
   afterEach(async () => {
     await cleanUpDb();
   });
+});
 
-  // Close export queue that is created when processing these tests
-  // TODO: investigate why queues are leaving open handles in this file
-  afterAll(async () => {
-    await queue.close();
-  });
+// Close export queue that is created when processing these tests
+// TODO: investigate why queues are leaving open handles in this file
+afterAll(async () => {
+  await queue.close();
 });
