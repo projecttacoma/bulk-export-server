@@ -11,7 +11,7 @@ const { verifyPatientsInGroup } = require('../util/groupUtils');
  * @param {Object} reply the response object
  */
 const bulkExport = async (request, reply) => {
-  const parameters = gatherParams(request.query, request.body);
+  const parameters = gatherParams(request.method, request.query, request.body, reply);
   if (parameters.patient) {
     reply.code(400).send(
       createOperationOutcome('The "patient" parameter cannot be used in a system-level export request.', {
@@ -57,7 +57,7 @@ const patientBulkExport = async (request, reply) => {
         )
       );
   }
-  const parameters = gatherParams(request.query, request.body);
+  const parameters = gatherParams(request.method, request.query, request.body, reply);
   if (validateExportParams(parameters, reply)) {
     if (parameters.patient) {
       // validate patients are available on the server
@@ -105,7 +105,7 @@ const groupBulkExport = async (request, reply) => {
         )
       );
   }
-  const parameters = gatherParams(request.query, request.body);
+  const parameters = gatherParams(request.method, request.query, request.body, reply);
   if (validateExportParams(parameters, reply)) {
     request.log.info('Group >>> $export');
     const group = await findResourceById(request.params.groupId, 'Group');
@@ -256,11 +256,31 @@ function validateExportParams(parameters, reply) {
 
 /**
  * Pulls query parameters from both the url query and request body and creates a new parameters map
+ * @param {string} method the request method (POST, GET, etc.)
  * @param {Object} query the query terms on the request URL
  * @param {Object} body http request body
+ * @param {Object} reply the response object
  * @returns {Object} an object containing a combination of request parameters from both sources
  */
-const gatherParams = (query, body) => {
+const gatherParams = (method, query, body, reply) => {
+  if (method === 'POST' && Object.keys(query).length > 0) {
+    reply.code(400).send(
+      createOperationOutcome('Parameters must be specified in a request body for POST requests.', {
+        issueCode: 400,
+        severity: 'error'
+      })
+    );
+  }
+  if (body) {
+    if (!body.resourceType || body.resourceType !== 'Parameters') {
+      reply.code(400).send(
+        createOperationOutcome('Parameters must be specified in a request body of resourceType "Parameters."', {
+          issueCode: 400,
+          severity: 'error'
+        })
+      );
+    }
+  }
   const params = { ...query };
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {

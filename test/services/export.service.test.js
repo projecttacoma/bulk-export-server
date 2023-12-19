@@ -293,6 +293,41 @@ describe('Check barebones bulk export logic (failure)', () => {
       });
   });
 
+  test('throws 400 error when POST request body is not of resourceType "Parameters"', async () => {
+    await supertest(app.server)
+      .post('/$export')
+      .send({
+        resourceType: 'Patient',
+        parameter: [
+          {
+            name: 'patient',
+            valueString: 'test'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Parameters must be specified in a request body of resourceType "Parameters."'
+        );
+      });
+  });
+
+  test('throws 400 error when method is POST and parameters are supplied in the url', async () => {
+    await supertest(app.server)
+      .post(`/Patient/$export?_type=Encounter`)
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Parameters must be specified in a request body for POST requests.'
+        );
+      });
+  });
+
   afterEach(async () => {
     await cleanUpDb();
   });
@@ -416,6 +451,41 @@ describe('Check patient-level export logic (failure)', () => {
         expect(response.body.issue[0].code).toEqual(404);
         expect(response.body.issue[0].details.text).toEqual(
           'The following patient ids are not available on the server: Patient/unknown_patient'
+        );
+      });
+  });
+
+  test('throws 400 error when POST request body is not of resourceType "Parameters"', async () => {
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .send({
+        resourceType: 'Patient',
+        parameter: [
+          {
+            name: 'patient',
+            valueString: 'test'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Parameters must be specified in a request body of resourceType "Parameters."'
+        );
+      });
+  });
+
+  test('throws 400 error when method is POST and parameters are supplied in the url', async () => {
+    await supertest(app.server)
+      .post(`/Patient/$export?_type=Encounter`)
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Parameters must be specified in a request body for POST requests.'
         );
       });
   });
@@ -548,6 +618,41 @@ describe('Check group-level export logic (failure)', () => {
         expect(response.body.issue[0].code).toEqual(400);
         expect(response.body.issue[0].details.text).toEqual(
           'All patient references must be of the format "Patient/{id}" for the "patient" parameter.'
+        );
+      });
+  });
+
+  test('throws 400 error when POST request body is not of resourceType "Parameters"', async () => {
+    await supertest(app.server)
+      .post(`/Group/${GROUP_ID}/$export`)
+      .send({
+        resourceType: 'Patient',
+        parameter: [
+          {
+            name: 'patient',
+            valueString: 'test'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Parameters must be specified in a request body of resourceType "Parameters."'
+        );
+      });
+  });
+
+  test('throws 400 error when method is POST and parameters are supplied in the url', async () => {
+    await supertest(app.server)
+      .post(`/Group/${GROUP_ID}/$export?_type=Encounter`)
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Parameters must be specified in a request body for POST requests.'
         );
       });
   });
