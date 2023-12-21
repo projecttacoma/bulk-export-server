@@ -53,4 +53,4 @@ function getCodesFromValueSet(valueSet) {
   }
   return codes;
 }
-module.exports = { getCodesFromValueSet };
+module.exports = { getHierarchicalCodes, getCodesFromValueSet };

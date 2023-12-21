@@ -46,10 +46,11 @@ const buildSearchParamList = resourceType => {
  * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  * @param {string} typeFilter String of comma separated FHIR REST search queries
+ * @param {string | Array} patient Patient references from the "patient" param, used to filter results
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
  */
-const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, patientIds) => {
+const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds) => {
   try {
     const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
@@ -114,12 +115,20 @@ const exportToNDJson = async (clientId, types, typeFilter, systemLevelExport, pa
       });
     }
     const exportTypes = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
+
+    // if 'patient' parameter is present, apply additional filtering on the resources related to these patients
+    // strip off '.reference' to align with the format of the patientIds array
+    const patientParamIds = patient?.map(p => {
+      const splitRef = p.reference.split('/');
+      return splitRef[splitRef.length - 1];
+    });
+
     let docs = exportTypes.map(async collectionName => {
       return getDocuments(
         collectionName,
         searchParameterQueries[collectionName],
         valueSetQueries[collectionName],
-        patientIds
+        patientParamIds || patientIds
       );
     });
     docs = await Promise.all(docs);

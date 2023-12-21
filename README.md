@@ -106,17 +106,23 @@ FHIR Operation to obtain a detailed set of FHIR resources of diverse resource ty
 
 Endpoint: `GET [fhir base]/Patient/$export`
 
+Alternatively, a POST request (`POST [fhir base]/Patient/$export`) can be sent. The export parameters must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) in the request body.
+
 #### All Patients in a Group
 
 FHIR Operation to obtain a detailed set of FHIR resources of diverse resource types pertaining to all patients that belong to a defined Group resource.
 
 Endpoint: `GET [fhir base]/Group/[id]/$export`
 
+Alternatively, a POST request (`POST [fhir base]/Group/[id]/$export`) can be sent. The export parameters must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) in the request body.
+
 #### System Level Export
 
 Export data from a FHIR server, whether or not it is associated with a patient. This supports use cases like backing up a server, or exporting terminology data by restricting the resources returned using the `_type` parameter.
 
 Endpoint: `GET [fhir base]/$export`
+
+Alternatively, a POST request (`POST [fhir base]/$export`) can be sent. The export parameters must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) in the request body.
 
 For more information on the export endpoints, read this documentation on the [Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export/index.html#request-flow).
 
@@ -127,6 +133,7 @@ The server supports the following query parameters:
   - For Patient- and Group-level requests, the [Patient Compartment](https://www.hl7.org/fhir/compartmentdefinition-patient.html) is used as a point of reference for filtering the resource types that are returned.
 - `_outputFormat`: The server supports the following formats: `application/fhir+ndjson`, `application/ndjson+fhir`, `application/ndjson`, `ndjson`
 - `_typeFilter`: Filters the response to only include resources that meet the criteria of the specified comma-delimited FHIR REST queries. Returns an error for queries specified by the client that are unsupported by the server. Supports queries on the ValueSets (`type:in`, `code:in`, etc.) of a given resource type.
+- `patient`: Only applicable to POST requests for group-level and patient-level requests. When provided, the server SHALL NOT return resources in the patient compartment definition belonging to patients outside the list. Can support multiple patient references in a single request.
 
 ## License
 

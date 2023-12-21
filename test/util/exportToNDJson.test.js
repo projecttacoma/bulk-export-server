@@ -90,88 +90,95 @@ describe('check export logic', () => {
   });
 
   describe('getDocuments', () => {
-    test('returns Condition document when _typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z', async () => {
-      const property = {
-        recordedDate: 'gt2019-01-03T00:00:00Z'
-      };
-      const searchParams = buildSearchParamList('Condition');
-      const filter = qb.buildSearchQuery({
-        req: { method: 'GET', query: property, params: {} },
-        parameterDefinitions: searchParams,
-        includeArchived: true
+    describe('_typeFilter tests', () => {
+      test('returns Condition document when _typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z', async () => {
+        const property = {
+          recordedDate: 'gt2019-01-03T00:00:00Z'
+        };
+        const searchParams = buildSearchParamList('Condition');
+        const filter = qb.buildSearchQuery({
+          req: { method: 'GET', query: property, params: {} },
+          parameterDefinitions: searchParams,
+          includeArchived: true
+        });
+        const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
+        expect(docObj.document.length).toEqual(1);
       });
-      const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
-      expect(docObj.document.length).toEqual(1);
-    });
 
-    test('returns Condition document when _typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z&onsetDateTime=gt2019-01-03T00:00:00Z', async () => {
-      // test for the "&" operator within the query
-      const properties = {
-        recordedDate: 'gt2019-01-03T00:00:00Z',
-        onsetDateTime: 'gt2019-01-03T00:00:00Z'
-      };
-      const searchParams = buildSearchParamList('Condition');
-      const filter = qb.buildSearchQuery({
-        req: { method: 'GET', query: properties, params: {} },
-        parameterDefinitions: searchParams,
-        includeArchived: true
+      test('returns Condition document when _typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z&onsetDateTime=gt2019-01-03T00:00:00Z', async () => {
+        // test for the "&" operator within the query
+        const properties = {
+          recordedDate: 'gt2019-01-03T00:00:00Z',
+          onsetDateTime: 'gt2019-01-03T00:00:00Z'
+        };
+        const searchParams = buildSearchParamList('Condition');
+        const filter = qb.buildSearchQuery({
+          req: { method: 'GET', query: properties, params: {} },
+          parameterDefinitions: searchParams,
+          includeArchived: true
+        });
+        const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
+        expect(docObj.document.length).toEqual(1);
       });
-      const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
-      expect(docObj.document.length).toEqual(1);
-    });
 
-    test('returns no documents when _typeFilter filters out all documents (_typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z&onsetDateTime=lt2019-01-03T00:00:00Z', async () => {
-      const properties = {
-        recordedDate: 'gt2019-01-03T00:00:00Z',
-        onsetDateTime: 'lt2019-01-03T00:00:00Z'
-      };
-      const searchParams = buildSearchParamList('Condition');
-      const filter = qb.buildSearchQuery({
-        req: { method: 'GET', query: properties, params: {} },
-        parameterDefinitions: searchParams,
-        includeArchived: true
+      test('returns no documents when _typeFilter filters out all documents (_typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z&onsetDateTime=lt2019-01-03T00:00:00Z', async () => {
+        const properties = {
+          recordedDate: 'gt2019-01-03T00:00:00Z',
+          onsetDateTime: 'lt2019-01-03T00:00:00Z'
+        };
+        const searchParams = buildSearchParamList('Condition');
+        const filter = qb.buildSearchQuery({
+          req: { method: 'GET', query: properties, params: {} },
+          parameterDefinitions: searchParams,
+          includeArchived: true
+        });
+        const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
+        expect(docObj.document.length).toEqual(0);
       });
-      const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
-      expect(docObj.document.length).toEqual(0);
-    });
 
-    test('returns Condition document when _typeFilter has "or" condition (_typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z,onsetDateTime=lt2019-01-03T00:00:00Z', async () => {
-      const recordedDateProperty = {
-        recordedDate: 'gt2019-01-03T00:00:00Z'
-      };
-      const onsetDateTimeProperty = {
-        onsetDateTime: 'lt2019-01-03T00:00:00Z'
-      };
-      const searchParams = buildSearchParamList('Condition');
-      const recordedDateFilter = qb.buildSearchQuery({
-        req: { method: 'GET', query: recordedDateProperty, params: {} },
-        parameterDefinitions: searchParams,
-        includeArchived: true
+      test('returns Condition document when _typeFilter has "or" condition (_typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z,onsetDateTime=lt2019-01-03T00:00:00Z', async () => {
+        const recordedDateProperty = {
+          recordedDate: 'gt2019-01-03T00:00:00Z'
+        };
+        const onsetDateTimeProperty = {
+          onsetDateTime: 'lt2019-01-03T00:00:00Z'
+        };
+        const searchParams = buildSearchParamList('Condition');
+        const recordedDateFilter = qb.buildSearchQuery({
+          req: { method: 'GET', query: recordedDateProperty, params: {} },
+          parameterDefinitions: searchParams,
+          includeArchived: true
+        });
+        const onsetDateTimeFilter = qb.buildSearchQuery({
+          req: { method: 'GET', query: onsetDateTimeProperty, params: {} },
+          parameterDefinitions: searchParams,
+          includeArchived: true
+        });
+        const docObj = await getDocuments(
+          'Condition',
+          [recordedDateFilter.query, onsetDateTimeFilter.query],
+          undefined,
+          ['testPatient']
+        );
+        expect(docObj.document.length).toEqual(1);
       });
-      const onsetDateTimeFilter = qb.buildSearchQuery({
-        req: { method: 'GET', query: onsetDateTimeProperty, params: {} },
-        parameterDefinitions: searchParams,
-        includeArchived: true
+    });
+
+    describe('Patient-based filtering tests', () => {
+      test('Expect getDocuments to find a resource associated with a patient (Group export)', async () => {
+        const docObj = await getDocuments('Encounter', undefined, undefined, ['testPatient']);
+        expect(docObj.document.length).toEqual(1);
       });
-      const docObj = await getDocuments('Condition', [recordedDateFilter.query, onsetDateTimeFilter.query], undefined, [
-        'testPatient'
-      ]);
-      expect(docObj.document.length).toEqual(1);
-    });
 
-    test('Expect getDocuments to find a resource associated with a patient (Group export)', async () => {
-      const docObj = await getDocuments('Encounter', undefined, undefined, ['testPatient']);
-      expect(docObj.document.length).toEqual(1);
-    });
+      test('Expect getDocuments to find the encounter resource with no patient association (Patient export)', async () => {
+        const docObj = await getDocuments('Encounter', undefined, undefined, undefined);
+        expect(docObj.document.length).toEqual(1);
+      });
 
-    test('Expect getDocuments to find the encounter resource with no patient association (Patient export)', async () => {
-      const docObj = await getDocuments('Encounter', undefined, undefined, undefined);
-      expect(docObj.document.length).toEqual(1);
-    });
-
-    test('Expect getDocuments to return empty results for 0 patient association (empty Group)', async () => {
-      const docObj = await getDocuments('Encounter', undefined, undefined, []);
-      expect(docObj.document.length).toEqual(0);
+      test('Expect getDocuments to return empty results for 0 patient association (empty Group)', async () => {
+        const docObj = await getDocuments('Encounter', undefined, undefined, []);
+        expect(docObj.document.length).toEqual(0);
+      });
     });
   });
 

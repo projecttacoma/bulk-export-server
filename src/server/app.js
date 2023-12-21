@@ -10,8 +10,11 @@ const { uploadTransactionOrBatchBundle } = require('../services/bundle.service')
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
   app.get('/$export', bulkExport);
+  app.post('/$export', bulkExport);
   app.get('/Patient/$export', patientBulkExport);
+  app.post('/Patient/$export', patientBulkExport);
   app.get('/Group/:groupId/$export', groupBulkExport);
+  app.post('/Group/:groupId/$export', groupBulkExport);
   app.get('/bulkstatus/:clientId', checkBulkStatus);
   app.get('/:clientId/:fileName', returnNDJsonContent);
   app.get('/Group/:groupId', groupSearchById);

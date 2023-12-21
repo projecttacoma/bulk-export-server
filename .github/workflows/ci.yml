@@ -7,8 +7,8 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [14.x]
-        mongodb-version: ['5.0']
+        node-version: [18.x]
+        mongodb-version: ['7.0']
 
     steps:
       - uses: actions/checkout@v2
@@ -47,8 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
-        mongodb-version: ['5.0']
+        node-version: [18.x]
+        mongodb-version: ['7.0']
     steps:
       - uses: actions/checkout@v2
 
@@ -68,7 +68,8 @@ jobs:
           redis-version: ${{ matrix.redis-version }}
 
       - name: Run Jest Coverage Report
-        uses: artiomtr/jest-coverage-report-action@v2.0-rc.4
+        uses: artiomtr/jest-coverage-report-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           threshold: 60
+          test-script: npm test
