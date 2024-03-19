@@ -1,11 +1,9 @@
 name: Continuous Integration
 on:
   push:
-    branches:
-      - main
+    branches-ignore:
+      - 'dependabot/**'
   pull_request:
-    branches:
-      - main
 
 jobs:
   checks:
