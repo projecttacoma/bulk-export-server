@@ -1,9 +1,5 @@
 name: Continuous Integration
-on:
-  push:
-    branches-ignore:
-      - 'dependabot/**'
-  pull_request:
+on: [pull_request]
 
 jobs:
   checks:
@@ -48,6 +44,10 @@ jobs:
         run: npm run test
 
   coverage:
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: write
     runs-on: ubuntu-latest
     strategy:
       matrix:
