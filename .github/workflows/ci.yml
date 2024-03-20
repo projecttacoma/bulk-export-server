@@ -1,11 +1,5 @@
 name: Continuous Integration
-on:
-  pull_request_target:
-    branches:
-      - main
-
-permissions:
-  pull-requests: write
+on: [pull_request]
 
 jobs:
   checks:
@@ -50,6 +44,10 @@ jobs:
         run: npm run test
 
   coverage:
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: write
     runs-on: ubuntu-latest
     strategy:
       matrix:
