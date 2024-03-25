@@ -214,6 +214,25 @@ function validateExportParams(parameters, reply) {
     }
   }
 
+  // add validation for the _elements query param
+  if (parameters._elements) {
+    const elementsArray = parameters._elements.split(',');
+    const unsupportedResourceTypes = [];
+    const unsupportedElementTypes = [];
+    elementsArray.forEach(line => {
+      let resourceType = null;
+      let elementName;
+      if (line.includes('.')) {
+        resourceType = line.split('.')[0];
+        elementName = line.split('.')[1];
+        if (!supportedResources.includes(resourceType)) {
+          unsupportedResourceTypes.push(resourceType);
+        }
+      } else {
+      }
+    });
+  }
+
   if (parameters.patient) {
     const referenceFormat = /^Patient\/[\w-]+$/;
     const errorMessage = 'All patient references must be of the format "Patient/{id}" for the "patient" parameter.';
