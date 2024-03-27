@@ -236,14 +236,14 @@ function validateExportParams(parameters, reply) {
       let elementName;
       if (line.includes('.')) {
         resourceType = line.split('.')[0];
-        elementName = line.split('.')[1];
+        // elementName = line.split('.')[1];
         if (!supportedResources.includes(resourceType)) {
           unsupportedResourceTypes.push(resourceType);
         } else {
           // TODO: do we need to check if an element name exists on the given resourceType ?
         }
       } else {
-        elementName = line;
+        // elementName = line;
         // TODO: go through all the supported resources and make sure that the element name exists on the resource ?
         // do we need to do this ? I don't think it's done for other parts of this server
       }
