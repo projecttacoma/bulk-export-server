@@ -84,15 +84,18 @@ const removeResource = async (id, resourceType) => {
  * Run an aggregation query on the database.
  * @param {*[]} query Mongo aggregation pipeline array.
  * @param {*} resourceType The resource type (collection) to aggregate on.
+ * @param options Passed in aggregation options, in the case of aggregation,
+ * elements that we want to use in a $project
  * @returns Array promise of results.
  */
-const findResourcesWithAggregation = async (query, resourceType) => {
+const findResourcesWithAggregation = async (query, resourceType, options = {}) => {
   /*
   Asymmetrik includes a $facet object to provide user-friendly pagination, which
   is not relevant here since we are applying the Asymmetrik query to the _typeFilter
   parameter. The query is sliced to remove the $facet object from the aggregation pipeline.
   */
   const queryWithoutFacet = query.slice(0, -1);
+  queryWithoutFacet.push({ $project: options });
   const collection = db.collection(resourceType);
   return (await collection.aggregate(queryWithoutFacet)).toArray();
 };

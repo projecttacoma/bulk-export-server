@@ -27,14 +27,18 @@ const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_i
 const buildSearchParamList = resourceType => {
   const searchParams = {};
   // get search parameters for FHIR Version 4.0.1
-  const searchParameterList = getSearchParameters(resourceType, '4_0_1');
-  searchParameterList.forEach(paramDef => {
-    // map xpath to parameter description
-    {
-      searchParams[paramDef.xpath.substring(paramDef.xpath.indexOf('.') + 1)] = paramDef;
-    }
-  });
-  return searchParams;
+  try {
+    const searchParameterList = getSearchParameters(resourceType, '4_0_1');
+    searchParameterList.forEach(paramDef => {
+      // map xpath to parameter description
+      {
+        searchParams[paramDef.xpath.substring(paramDef.xpath.indexOf('.') + 1)] = paramDef;
+      }
+    });
+    return searchParams;
+  } catch (e) {
+    return {};
+  }
 };
 
 /**
@@ -50,7 +54,7 @@ const buildSearchParamList = resourceType => {
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
  */
-const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds) => {
+const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds, elements) => {
   try {
     const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
@@ -114,6 +118,34 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
         }
       });
     }
+
+    const elementsQueries = {};
+    // create lookup object for _elements parameter
+    if (elements) {
+      elements.forEach(e => {
+        let resourceType = 'all';
+        let elementName;
+        if (e.includes('.')) {
+          resourceType = e.split('.')[0];
+          elementName = e.split('.')[1];
+          if (elementsQueries[resourceType]) {
+            elementsQueries[resourceType].push(elementName);
+          } else {
+            elementsQueries[resourceType] = [elementName];
+          }
+        } else {
+          elementName = e;
+          supportedResources.forEach(resourceType => {
+            if (elementsQueries[resourceType]) {
+              elementsQueries[resourceType].push(elementName);
+            } else {
+              elementsQueries[resourceType] = [elementName];
+            }
+          });
+        }
+      });
+    }
+
     const exportTypes = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
 
     // if 'patient' parameter is present, apply additional filtering on the resources related to these patients
@@ -128,7 +160,8 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
         collectionName,
         searchParameterQueries[collectionName],
         valueSetQueries[collectionName],
-        patientParamIds || patientIds
+        patientParamIds || patientIds,
+        elementsQueries[collectionName]
       );
     });
     docs = await Promise.all(docs);
@@ -168,9 +201,10 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
  * @param {Object} searchParameterQueries The _typeFilter search parameter queries for the given resource type
  * @param {Object} valueSetQueries list of ValueSet-related queries for the given resource type
  * @param {Array} patientIds Array of patient ids for which the returned documents should have references
+ * @param {Array} elements Array of elements queries for the given resource type
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
-const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds) => {
+const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds, elements) => {
   let docs = [];
   let patQuery = {};
   let vsQuery = {};
@@ -193,6 +227,15 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     vsQuery = await processVSTypeFilter(valueSetQueries);
   }
 
+  // create elements projection
+  // TODO: add mandatory elements based on the resource type to the projection
+  const projection = { _id: 0 };
+  if (elements) {
+    elements.forEach(elem => {
+      projection[elem] = 1;
+    });
+  }
+
   if (searchParameterQueries) {
     docs = searchParameterQueries.map(async q => {
       let query = q;
@@ -204,7 +247,7 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
       // grab the results from aggregation - has metadata about counts and data with resources in the first array position
-      const results = await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } });
+      const results = await findResourcesWithAggregation(query, collectionName, projection);
       return results || [];
     });
     // use flatMap to flatten the output from aggregation
@@ -213,9 +256,9 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     const query = {
       $and: [vsQuery, patQuery]
     };
-    docs = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
+    docs = await findResourcesWithQuery(query, collectionName, { projection: projection });
   } else {
-    docs = await findResourcesWithQuery({}, collectionName, { projection: { _id: 0 } });
+    docs = await findResourcesWithQuery({}, collectionName, { projection: projection });
   }
   return { document: docs, collectionName: collectionName };
 };
