@@ -50,6 +50,12 @@ describe('check export logic', () => {
       const results = buildSearchParamList('Encounter');
       expect(results).toBeDefined();
     });
+
+    test('returns empty record of valid search params for invalid resource type', () => {
+      const results = buildSearchParamList('BiologicallyDerivedProduct');
+      console.log(results);
+      expect(results).toBeDefined();
+    });
   });
 
   describe('exportToNDJson', () => {
@@ -178,6 +184,24 @@ describe('check export logic', () => {
       test('Expect getDocuments to return empty results for 0 patient association (empty Group)', async () => {
         const docObj = await getDocuments('Encounter', undefined, undefined, []);
         expect(docObj.document.length).toEqual(0);
+      });
+    });
+
+    describe('_elements tests', () => {
+      test('returns Condition document with only the resourceType and the SUBSETTED tag when _elements=Condition.resourceType', async () => {
+        const docObj = await getDocuments('Condition', undefined, undefined, undefined, ['resourceType']);
+        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document[0]).toEqual({
+          resourceType: 'Condition',
+          meta: {
+            tag: [
+              {
+                code: 'SUBSETTED',
+                system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue'
+              }
+            ]
+          }
+        });
       });
     });
   });

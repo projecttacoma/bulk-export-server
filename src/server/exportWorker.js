@@ -15,12 +15,12 @@ const exportQueue = new Queue('export', {
 // This handler pulls down the jobs on Redis to handle
 exportQueue.process(async job => {
   // Payload of createJob exists on job.data
-  const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds } = job.data;
+  const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements } = job.data;
   console.log(`export-worker-${process.pid}: Processing Request: ${clientEntry}`);
   await client.connect();
   // Call the existing export ndjson function that writes the files
 
-  const result = await exportToNDJson(clientEntry, types, typeFilter, patient, systemLevelExport, patientIds);
+  const result = await exportToNDJson(clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements);
   if (result) {
     console.log(`export-worker-${process.pid}: Completed Export Request: ${clientEntry}`);
   } else {
