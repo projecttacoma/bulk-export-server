@@ -260,6 +260,24 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
   } else {
     docs = await findResourcesWithQuery({}, collectionName, { projection: projection });
   }
+
+  // add the SUBSETTED tag to the resources returned when the _elements parameter is used
+  if (elements) {
+    docs.map(doc => {
+      if (doc.meta) {
+        if (doc.meta.tag) {
+          doc.meta.tag.push({ code: 'SUBSETTED', system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue' });
+        } else {
+          doc.meta.tag = [{ code: 'SUBSETTED', system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue' }];
+        }
+      } else {
+        doc.meta = {
+          tag: [{ code: 'SUBSETTED', system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue' }]
+        };
+      }
+    });
+  }
+
   return { document: docs, collectionName: collectionName };
 };
 

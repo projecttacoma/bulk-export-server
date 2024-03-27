@@ -188,10 +188,20 @@ describe('check export logic', () => {
     });
 
     describe('_elements tests', () => {
-      test('returns Condition document with only the resourceType when _elements=Condition.resourceType', async () => {
+      test('returns Condition document with only the resourceType and the SUBSETTED tag when _elements=Condition.resourceType', async () => {
         const docObj = await getDocuments('Condition', undefined, undefined, undefined, ['resourceType']);
         expect(docObj.document.length).toEqual(1);
-        expect(docObj.document[0]).toEqual({ resourceType: 'Condition' });
+        expect(docObj.document[0]).toEqual({
+          resourceType: 'Condition',
+          meta: {
+            tag: [
+              {
+                code: 'SUBSETTED',
+                system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue'
+              }
+            ]
+          }
+        });
       });
     });
   });
