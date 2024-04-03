@@ -188,11 +188,14 @@ describe('check export logic', () => {
     });
 
     describe('_elements tests', () => {
-      test('returns Condition document with only the resourceType and the SUBSETTED tag when _elements=Condition.resourceType', async () => {
+      test('returns Condition document with only the resourceType, subject (mandatory element for Condition), and the SUBSETTED tag when _elements=Condition.resourceType', async () => {
         const docObj = await getDocuments('Condition', undefined, undefined, undefined, ['resourceType']);
         expect(docObj.document.length).toEqual(1);
         expect(docObj.document[0]).toEqual({
           resourceType: 'Condition',
+          subject: {
+            reference: 'Patient/testPatient'
+          },
           meta: {
             tag: [
               {
