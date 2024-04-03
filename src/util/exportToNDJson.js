@@ -12,6 +12,7 @@ const {
   findResourcesWithAggregation
 } = require('./mongo.controller');
 const patientRefs = require('../compartment-definition/patient-references');
+const mandatoryElements = require('../compartment-definition/mandatory-elements');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 
@@ -228,10 +229,15 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
   }
 
   // create elements projection
-  // TODO: add mandatory elements based on the resource type to the projection
   const projection = { _id: 0 };
   if (elements) {
     elements.forEach(elem => {
+      projection[elem] = 1;
+    });
+
+    // add a projection of 1 for mandatory elements for the resourceType as defined by the StructureDefinition of the resourceType
+    // mandatory elements are elements that have min cardinality of 1
+    mandatoryElements[collectionName].forEach(elem => {
       projection[elem] = 1;
     });
   }
