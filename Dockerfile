@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:16
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -21,4 +21,6 @@ RUN npm install
 
 # Start app
 EXPOSE 3000
+ENV PORT 3000
+ENV HOST "0.0.0.0"
 CMD [ "npm", "start" ]

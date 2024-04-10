@@ -5,10 +5,9 @@ services:
     depends_on:
       - mongo
       - redis
-    build:
-      context: .
-      dockerfile: Dockerfile
     environment:
+      # Change this for public location of bulk-export-server this should be the FQDN and location of where the
+      # bulk-export container is made public to users. ex. https://abacus.example.com/bulk-export
       PUBLIC_BULK_SERVER: http://localhost:3000
       DB_HOST: mongo
       DB_PORT: 27017
