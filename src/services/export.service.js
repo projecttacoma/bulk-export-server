@@ -34,7 +34,7 @@ const bulkExport = async (request, reply) => {
       systemLevelExport: true
     };
     await exportQueue.createJob(job).save();
-    reply.code(202).header('Content-location', `${process.env.PUBLIC_BULK_SERVER}/bulkstatus/${clientEntry}`).send();
+    reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
   }
 };
 
@@ -79,7 +79,7 @@ const patientBulkExport = async (request, reply) => {
       systemLevelExport: false
     };
     await exportQueue.createJob(job).save();
-    reply.code(202).header('Content-location', `${process.env.PUBLIC_BULK_SERVER}/bulkstatus/${clientEntry}`).send();
+    reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
   }
 };
 
@@ -133,7 +133,7 @@ const groupBulkExport = async (request, reply) => {
       patientIds: patientIds
     };
     await exportQueue.createJob(job).save();
-    reply.code(202).header('Content-location', `${process.env.PUBLIC_BULK_SERVER}/bulkstatus/${clientEntry}`).send();
+    reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
   }
 };
 

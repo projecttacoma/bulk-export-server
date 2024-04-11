@@ -9,7 +9,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      PUBLIC_BULK_SERVER: http://localhost:3000
+      BULK_BASE_URL: http://localhost:3000
       DB_HOST: mongo
       DB_PORT: 27017
       DB_NAME: bulk-export-server

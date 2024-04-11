@@ -41,7 +41,7 @@ async function main() {
       .filter(file => file.startsWith('practitioner') || file.startsWith('hospital'))
       .forEach(async file => {
         await axios.post(
-          `${process.env.PUBLIC_BULK_SERVER}/`,
+          `${process.env.BULK_BASE_URL}/`,
           JSON.parse(fs.readFileSync(path.join(directoryPath, file), 'utf8')),
           { headers: { 'Content-Type': 'application/json+fhir' } }
         );
@@ -55,7 +55,7 @@ async function main() {
     const promises = [];
     for (const file of patientFiles) {
       const fileContents = JSON.parse(fs.readFileSync(path.join(directoryPath, file), 'utf8'));
-      const results = axios.post(`${process.env.PUBLIC_BULK_SERVER}/`, fileContents, {
+      const results = axios.post(`${process.env.BULK_BASE_URL}/`, fileContents, {
         headers: { 'Content-Type': 'application/json+fhir' }
       });
       promises.push(results);
