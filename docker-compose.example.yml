@@ -6,7 +6,7 @@ services:
       - mongo
       - redis
     environment:
-      # Change this for public location of bulk-export-server this should be the FQDN and location of where the
+      # Change this to the public location of bulk-export-server. This should be the FQDN and location of where the
       # bulk-export container is made public to users. ex. https://abacus.example.com/bulk-export
       PUBLIC_BULK_SERVER: http://localhost:3000
       DB_HOST: mongo
