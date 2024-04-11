@@ -231,18 +231,12 @@ function validateExportParams(parameters, reply) {
     elementsArray.forEach(line => {
       // split each of the elements up by a '.' if it has one. If it does, the first part is the resourceType and the second is the element name
       // if there is no '.', we assume that the element is just the element name
-      // TODO: add some sort of check for unsupported elements
       let resourceType = 'all';
       if (line.includes('.')) {
         resourceType = line.split('.')[0];
         if (!supportedResources.includes(resourceType)) {
           unsupportedResourceTypes.push(resourceType);
-        } else {
-          // TODO: do we need to check if an element name exists on the given resourceType ?
         }
-      } else {
-        // TODO: go through all the supported resources and make sure that the element name exists on the resource ?
-        // do we need to do this ? I don't think it's done for other parts of this server
       }
     });
     if (unsupportedResourceTypes.length > 0) {

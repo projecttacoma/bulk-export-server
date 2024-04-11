@@ -23,11 +23,10 @@ async function main() {
 
     // read the contents of the file
     const structureDef = JSON.parse(fs.readFileSync(f.fullPath, 'utf8'));
-    // QUESTION: should I be using snapshot or differential ?
     structureDef.snapshot.element.forEach(e => {
       const elem = e.id.split('.');
       if (elem.length === 2) {
-        if (e.min === 1) {
+        if (e.min >= 1) {
           mandatoryElements.push(elem[1]);
         }
       }
