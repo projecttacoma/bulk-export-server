@@ -8,6 +8,8 @@ const mandatoryElemsOutputPath = path.resolve(
 
 /**
  * Parse the StructureDefinition of resource types supported by this server for mandatory elements
+ * The StructureDefinitions of each resource type is found in the FHIR R4 spec
+ * For example, the StructureDefinition for Encounter was found here: https://hl7.org/fhir/R4/encounter.profile.json.html
  * @returns {Object} object whose keys are resourceTypes and values are arrays of strings that are mandatory elements
  */
 async function main() {
