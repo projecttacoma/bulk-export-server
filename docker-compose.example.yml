@@ -17,9 +17,6 @@ services:
       EXPORT_WORKERS: 2
     ports:
       - '3000:3000'
-    volumes:
-      - ./src:/usr/src/app/src
-    command: npm start
 
   mongo:
     image: mongo:6.0
