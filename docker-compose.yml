@@ -11,10 +11,8 @@ services:
     environment:
       BULK_BASE_URL: http://localhost:3000
       DB_HOST: mongo
-      DB_PORT: 27017
       DB_NAME: bulk-export-server
       REDIS_HOST: redis
-      REDIS_PORT: 6379
       EXPORT_WORKERS: 2
     ports:
       - '3000:3000'

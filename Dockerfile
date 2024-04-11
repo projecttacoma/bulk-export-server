@@ -22,5 +22,7 @@ RUN npm install
 # Start app
 EXPOSE 3000
 ENV PORT 3000
+ENV REDIS_PORT 6379
+ENV DB_PORT 27017
 ENV HOST "0.0.0.0"
 CMD [ "npm", "start" ]
