@@ -80,6 +80,10 @@ You should receive the output `PONG`.
 This test server can be run with Docker by calling `docker compose up --build`.
 Debugging with terminal input can be facilitated with `stdin_open: true` and `tty: true` added to the service specification for the service you want to debug. You can then attach to the image of interest using `docker attach <imagename>`. If you're unsure of the image name, use `docker ps` to find the image of interest.
 
+#### Building new Docker Images
+
+If you have permission to push to the tacoma organization on Docker Hub, simply run `docker-build.sh` to build a multi-platform image and push to docker hub tagged as `latest`.
+
 ## Usage
 
 Once MongoDB is running on your machine, run the `npm start` command to start up the FHIR server at `localhost:3001`. The server can also be run in "watch" mode with `npm run start:watch`.
