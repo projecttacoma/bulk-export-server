@@ -80,6 +80,9 @@ const uploadTransactionOrBatchBundle = async (request, reply) => {
  * @returns array of request results
  */
 const uploadResourcesFromBundle = async (type, entries, reply) => {
+  // If there are no entries
+  if (!entries) return Promise.all([]);
+
   const scrubbedEntries = replaceReferences(entries);
   const requestsArray = scrubbedEntries.map(async entry => {
     const { method } = entry.request;
