@@ -96,6 +96,20 @@ The following `npm` commands can be used to set up the database:
 - To upload all the ecqm-content-r4-2021 measure bundles, `git clone` the [ecqm-content-r4-2021 repo](https://github.com/cqframework/ecqm-content-r4-2021) into the root directory of the `bulk-export-server` repository. Run `npm run upload-bundles`. This runs a script that uploads all the measure bundle resources to the appropriate Mongo collections.
 - The full CLI function signature of `upload-bundles` script is `npm run upload-bundles [dirPath] [searchPattern]`. The command can be run more dynamically by specifying a `dirPath` string which represents the path to a repository that contains the desired bundles for upload. `searchPattern` is a string which is used as a regex to filter bundle files for upload by file name. Example: `npm run upload-bundles connectathon/fhir401/bundles/measure "^EXM124.*-bundle.json"`
 
+### Transaction Bundle Upload
+
+The server supports transaction bundle uploads.
+
+- The request method must be `POST`.
+- The request body must be a FHIR bundle of type `transaction`.
+
+For ease of use, the `directory-upload.sh` script can be used to run the transaction bundle upload on an input directory. Details are as follows:
+
+- The `-h` option can be used ot view usage.
+- A server URL must be supplied via the `-s` option.
+- A directory path must be supplied via the `-d` option.
+- The script can support nested directories (one level deep).
+
 ## Server Endpoints
 
 The server supports the following endpoints:
