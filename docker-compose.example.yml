@@ -2,6 +2,7 @@ version: '3'
 
 services:
   fhir:
+    image: tacoma/bulk-export-server
     depends_on:
       - mongo
       - redis
