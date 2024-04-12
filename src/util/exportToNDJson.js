@@ -240,6 +240,10 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     mandatoryElements[collectionName].forEach(elem => {
       projection[elem] = 1;
     });
+
+    // add a projection of 1 for resourceType which we have determined to be a mandatory element for each FHIR resource even though
+    // it is not included in the StructureDefinition
+    projection['resourceType'] = 1;
   }
 
   if (searchParameterQueries) {
