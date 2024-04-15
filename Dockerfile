@@ -1,6 +1,4 @@
-FROM node:18 as base
-
-FROM base as deps
+FROM node:18 as deps
 
 # Create app directory
 WORKDIR /usr/src/app
