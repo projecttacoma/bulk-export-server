@@ -59,11 +59,19 @@ const uploadTransactionOrBatchBundle = async (request, reply) => {
     reply
       .code(400)
       .send(createOperationOutcome(`Expected 'resourceType: Bundle', but received 'resourceType: ${resourceType}'.`));
+    return;
+  }
+  if (!type) {
+    reply
+      .code(400)
+      .send(createOperationOutcome(`Expected Bundle with 'type' defined. Received Bundle with 'type' undefined.`));
+    return;
   }
   if (!['transaction', 'batch'].includes(type.toLowerCase())) {
     reply
       .code(400)
       .send(createOperationOutcome(`Expected 'type: transaction' or 'type: batch'. Received 'type: ${type}'.`));
+    return;
   }
 
   const requestResults = await uploadResourcesFromBundle(type.toLowerCase(), entries, reply);
@@ -80,6 +88,9 @@ const uploadTransactionOrBatchBundle = async (request, reply) => {
  * @returns array of request results
  */
 const uploadResourcesFromBundle = async (type, entries, reply) => {
+  // If there are no entries
+  if (!entries) return Promise.all([]);
+
   const scrubbedEntries = replaceReferences(entries);
   const requestsArray = scrubbedEntries.map(async entry => {
     const { method } = entry.request;

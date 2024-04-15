@@ -83,7 +83,7 @@ describe('checkBulkStatus logic', () => {
         expect(response.body.error).toEqual([
           {
             type: 'OperationOutcome',
-            url: `http://${process.env.HOST}:${process.env.PORT}/REQUEST_WITH_WARNINGS/OperationOutcome.ndjson`
+            url: `${process.env.BULK_BASE_URL}/REQUEST_WITH_WARNINGS/OperationOutcome.ndjson`
           }
         ]);
       });

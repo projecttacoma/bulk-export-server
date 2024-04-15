@@ -2,13 +2,13 @@ version: '3'
 
 services:
   fhir:
+    image: tacoma/bulk-export-server
     depends_on:
       - mongo
       - redis
-    build:
-      context: .
-      dockerfile: Dockerfile
     environment:
+      # Change this to the public location of bulk-export-server. This should be the FQDN and location of where the
+      # bulk-export container is made public to users. ex. https://abacus.example.com/bulk-export
       BULK_BASE_URL: http://localhost:3000
       DB_HOST: mongo
       DB_NAME: bulk-export-server
@@ -16,7 +16,6 @@ services:
       EXPORT_WORKERS: 2
     ports:
       - '3000:3000'
-    command: npm start
 
   mongo:
     image: mongo:6.0

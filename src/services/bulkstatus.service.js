@@ -53,7 +53,7 @@ async function checkBulkStatus(request, reply) {
             error: [
               {
                 type: 'OperationOutcome',
-                url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/OperationOutcome.ndjson`
+                url: `${process.env.BULK_BASE_URL}/${clientId}/OperationOutcome.ndjson`
               }
             ]
           })
@@ -107,7 +107,7 @@ async function getNDJsonURLs(reply, clientId) {
     if (file !== 'OperationOutcome.ndjson') {
       const entry = {
         type: path.basename(file, '.ndjson'),
-        url: `http://${process.env.HOST}:${process.env.PORT}/${clientId}/${file}`
+        url: `${process.env.BULK_BASE_URL}/${clientId}/${file}`
       };
       output.push(entry);
     }
