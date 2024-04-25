@@ -158,7 +158,7 @@ The server supports the following query parameters:
 
 #### `_elements` Query Parameter
 
-The server supports the optional and experimental query parameter `_elements` as defined by the Bulk Data Access IG (here)[https://build.fhir.org/ig/HL7/bulk-data/export.html#query-parameters]. The `_elements` parameter is a string of comma-delimited HL7® FHIR® Elements filter the returned resources to only include listed elements and mandatory elements. Mandatory elements are defined as elements in the StructureDefinition of a resource type have a minimum cardinality of 1. Because this server provides json-formatted data, `resourceType` is also an implied mandatory element for all Resources.
+The server supports the optional and experimental query parameter `_elements` as defined by the Bulk Data Access IG (here)[https://build.fhir.org/ig/HL7/bulk-data/export.html#query-parameters]. The `_elements` parameter is a string of comma-delimited HL7® FHIR® Elements used to filter the returned resources to only include listed elements and mandatory elements. Mandatory elements are defined as elements in the StructureDefinition of a resource type which have a minimum cardinality of 1. Because this server provides json-formatted data, `resourceType` is also an implied mandatory element for all Resources.
 
 The returned resources are only filtered by elements that are applicable to them. For example, if a request looks like the following:
 
