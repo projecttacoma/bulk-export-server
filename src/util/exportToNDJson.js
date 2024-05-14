@@ -13,6 +13,7 @@ const {
 } = require('./mongo.controller');
 const patientRefs = require('../compartment-definition/patient-references');
 const mandatoryElements = require('../compartment-definition/mandatory-elements');
+const choiceTypeElements = require('../compartment-definition/choice-types.json');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 
@@ -129,7 +130,20 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
         if (e.includes('.')) {
           resourceType = e.split('.')[0];
           elementName = e.split('.')[1];
-          if (elementsQueries[resourceType]) {
+          if (Object.keys(choiceTypeElements[resourceType]).length !== 0) {
+            console.log('hello');
+            if (Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)) {
+              console.log('hi hi hi');
+              choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
+                const rootElem = elementName.split('[x]')[0];
+                if (elementsQueries[resourceType]) {
+                  elementsQueries[resourceType].push(`${rootElem}${e}`);
+                } else {
+                  elementsQueries[resourceType] = [`${rootElem}${e}`];
+                }
+              });
+            }
+          } else if (elementsQueries[resourceType]) {
             elementsQueries[resourceType].push(elementName);
           } else {
             elementsQueries[resourceType] = [elementName];
@@ -137,7 +151,18 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
         } else {
           elementName = e;
           supportedResources.forEach(resourceType => {
-            if (elementsQueries[resourceType]) {
+            if (Object.keys(choiceTypeElements[resourceType]).length !== 0) {
+              if (Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)) {
+                choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
+                  const rootElem = elementName.split('[x]')[0];
+                  if (elementsQueries[resourceType]) {
+                    elementsQueries[resourceType].push(`${rootElem}${e}`);
+                  } else {
+                    elementsQueries[resourceType] = [`${rootElem}${e}`];
+                  }
+                });
+              }
+            } else if (elementsQueries[resourceType]) {
               elementsQueries[resourceType].push(elementName);
             } else {
               elementsQueries[resourceType] = [elementName];
