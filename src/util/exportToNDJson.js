@@ -131,15 +131,15 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
           resourceType = e.split('.')[0];
           elementName = e.split('.')[1];
           if (Object.keys(choiceTypeElements[resourceType]).length !== 0) {
-            console.log('hello');
             if (Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)) {
-              console.log('hi hi hi');
               choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
                 const rootElem = elementName.split('[x]')[0];
+                const type = e.charAt(0).toUpperCase() + e.slice(1);
+                console.log(type);
                 if (elementsQueries[resourceType]) {
-                  elementsQueries[resourceType].push(`${rootElem}${e}`);
+                  elementsQueries[resourceType].push(`${rootElem}${type}`);
                 } else {
-                  elementsQueries[resourceType] = [`${rootElem}${e}`];
+                  elementsQueries[resourceType] = [`${rootElem}${type}`];
                 }
               });
             }
@@ -155,10 +155,11 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
               if (Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)) {
                 choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
                   const rootElem = elementName.split('[x]')[0];
+                  const type = e.charAt(0).toUpperCase() + e.slice(1);
                   if (elementsQueries[resourceType]) {
-                    elementsQueries[resourceType].push(`${rootElem}${e}`);
+                    elementsQueries[resourceType].push(`${rootElem}${type}`);
                   } else {
-                    elementsQueries[resourceType] = [`${rootElem}${e}`];
+                    elementsQueries[resourceType] = [`${rootElem}${type}`];
                   }
                 });
               }

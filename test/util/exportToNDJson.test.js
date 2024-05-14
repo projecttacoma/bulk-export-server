@@ -188,7 +188,7 @@ describe('check export logic', () => {
     });
 
     describe('_elements tests', () => {
-      test('returns Condition document with only the id, resourceType and subject (mandatory elements for Condition), and the SUBSETTED tag when _elements=Condition.resourceType', async () => {
+      test('returns Condition document with only the id, resourceType and subject (mandatory elements for Condition), and the SUBSETTED tag when _elements=Condition.id', async () => {
         const docObj = await getDocuments('Condition', undefined, undefined, undefined, ['id']);
         expect(docObj.document.length).toEqual(1);
         expect(docObj.document[0]).toEqual({
