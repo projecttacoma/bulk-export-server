@@ -125,49 +125,52 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
     // create lookup object for _elements parameter
     if (elements) {
       elements.forEach(e => {
-        let resourceType = 'all';
-        let elementName;
+        let elementNames = [];
         if (e.includes('.')) {
-          resourceType = e.split('.')[0];
-          elementName = e.split('.')[1];
-          if (Object.keys(choiceTypeElements[resourceType]).length !== 0) {
-            if (Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)) {
-              choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
-                const rootElem = elementName.split('[x]')[0];
-                const type = e.charAt(0).toUpperCase() + e.slice(1);
-                console.log(type);
-                if (elementsQueries[resourceType]) {
-                  elementsQueries[resourceType].push(`${rootElem}${type}`);
-                } else {
-                  elementsQueries[resourceType] = [`${rootElem}${type}`];
-                }
-              });
-            }
-          } else if (elementsQueries[resourceType]) {
-            elementsQueries[resourceType].push(elementName);
+          const resourceType = e.split('.')[0];
+          const elementName = e.split('.')[1];
+          if (
+            Object.keys(choiceTypeElements[resourceType]).length !== 0 &&
+            Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)
+          ) {
+            const rootElem = elementName.split('[x]')[0];
+            choiceTypeElements[resourceType][rootElem].forEach(e => {
+              const type = e.charAt(0).toUpperCase() + e.slice(1);
+              elementNames.push(`${rootElem}${type}`);
+            });
           } else {
-            elementsQueries[resourceType] = [elementName];
+            elementNames.push(elementName);
           }
-        } else {
-          elementName = e;
-          supportedResources.forEach(resourceType => {
-            if (Object.keys(choiceTypeElements[resourceType]).length !== 0) {
-              if (Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)) {
-                choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
-                  const rootElem = elementName.split('[x]')[0];
-                  const type = e.charAt(0).toUpperCase() + e.slice(1);
-                  if (elementsQueries[resourceType]) {
-                    elementsQueries[resourceType].push(`${rootElem}${type}`);
-                  } else {
-                    elementsQueries[resourceType] = [`${rootElem}${type}`];
-                  }
-                });
-              }
-            } else if (elementsQueries[resourceType]) {
-              elementsQueries[resourceType].push(elementName);
+
+          elementNames.forEach(e => {
+            if (elementsQueries[resourceType]) {
+              elementsQueries[resourceType].push(e);
             } else {
-              elementsQueries[resourceType] = [elementName];
+              elementsQueries[resourceType] = [e];
             }
+          });
+        } else {
+          supportedResources.forEach(resourceType => {
+            if (
+              Object.keys(choiceTypeElements[resourceType]).length !== 0 &&
+              Object.keys(choiceTypeElements[resourceType]).includes(`${e}[x]`)
+            ) {
+              const rootElem = e.split('[x]')[0];
+              choiceTypeElements[resourceType][`${e}[x]`].forEach(e => {
+                const type = e.charAt(0).toUpperCase() + e.slice(1);
+                elementNames.push(`${rootElem}${type}`);
+              });
+            } else {
+              elementNames.push(e);
+            }
+
+            elementNames.forEach(e => {
+              if (elementsQueries[resourceType]) {
+                elementsQueries[resourceType].push(e);
+              } else {
+                elementsQueries[resourceType] = [e];
+              }
+            });
           });
         }
       });
