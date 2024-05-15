@@ -134,7 +134,7 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
             Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)
           ) {
             const rootElem = elementName.split('[x]')[0];
-            choiceTypeElements[resourceType][rootElem].forEach(e => {
+            choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
               const type = e.charAt(0).toUpperCase() + e.slice(1);
               elementNames.push(`${rootElem}${type}`);
             });
