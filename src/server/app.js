@@ -5,10 +5,12 @@ const { checkBulkStatus } = require('../services/bulkstatus.service');
 const { returnNDJsonContent } = require('../services/ndjson.service');
 const { groupSearchById, groupSearch, groupCreate, groupUpdate } = require('../services/group.service');
 const { uploadTransactionOrBatchBundle } = require('../services/bundle.service');
+const { generateCapabilityStatement } = require('../services/metadata.service');
 
 // set bodyLimit to 50mb
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
+  app.get('/metadata', generateCapabilityStatement);
   app.get('/$export', bulkExport);
   app.post('/$export', bulkExport);
   app.get('/Patient/$export', patientBulkExport);
