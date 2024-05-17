@@ -1,4 +1,3 @@
-const fs = require('fs');
 const capabilityStatementResource = require('../config/capabilityStatementResource.json');
 
 const generateCapabilityStatement = async (request, reply) => {
