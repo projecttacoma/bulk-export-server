@@ -26,12 +26,15 @@ const bulkExport = async (request, reply) => {
 
     const types = request.query._type?.split(',') || parameters._type?.split(',');
 
+    const elements = request.query._elements?.split(',') || parameters._elements?.split(',');
+
     // Enqueue a new job into Redis for handling
     const job = {
       clientEntry: clientEntry,
       types: types,
       typeFilter: request.query._typeFilter,
-      systemLevelExport: true
+      systemLevelExport: true,
+      elements: elements
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -70,13 +73,16 @@ const patientBulkExport = async (request, reply) => {
       types = patientResourceTypes;
     }
 
+    const elements = request.query._elements?.split(',') || parameters._elements?.split(',');
+
     // Enqueue a new job into Redis for handling
     const job = {
       clientEntry: clientEntry,
       types: types,
       typeFilter: parameters._typeFilter,
       patient: parameters.patient,
-      systemLevelExport: false
+      systemLevelExport: false,
+      elements: elements
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -123,6 +129,8 @@ const groupBulkExport = async (request, reply) => {
       types = patientResourceTypes;
     }
 
+    const elements = request.query._elements?.split(',') || parameters._elements?.split(',');
+
     // Enqueue a new job into Redis for handling
     const job = {
       clientEntry: clientEntry,
@@ -130,7 +138,8 @@ const groupBulkExport = async (request, reply) => {
       typeFilter: parameters._typeFilter,
       patient: parameters.patient,
       systemLevelExport: false,
-      patientIds: patientIds
+      patientIds: patientIds,
+      elements: elements
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -214,6 +223,49 @@ function validateExportParams(parameters, reply) {
     }
   }
 
+  // add validation for the _elements query param
+  if (parameters._elements) {
+    const elementsArray = parameters._elements.split(',');
+    const unsupportedResourceTypes = [];
+    const unsupportedElementTypes = [];
+    elementsArray.forEach(line => {
+      // split each of the elements up by a '.' if it has one. If it does, the first part is the resourceType and the second is the element name
+      // if there is no '.', we assume that the element is just the element name
+      let resourceType = 'all';
+      if (line.includes('.')) {
+        resourceType = line.split('.')[0];
+        if (!supportedResources.includes(resourceType)) {
+          unsupportedResourceTypes.push(resourceType);
+        }
+      }
+    });
+    if (unsupportedResourceTypes.length > 0) {
+      reply
+        .code(400)
+        .send(
+          createOperationOutcome(
+            `The following resourceTypes are not supported for _element param for $export: ${unsupportedResourceTypes.join(
+              ', '
+            )}.`,
+            { issueCode: 400, severity: 'error' }
+          )
+        );
+      return false;
+    } else if (unsupportedElementTypes.length > 0) {
+      reply
+        .code(400)
+        .send(
+          createOperationOutcome(
+            `The following resourceType and element names are not supported for _element param for $export: ${unsupportedResourceTypes.join(
+              ', '
+            )}.`,
+            { issueCode: 400, severity: 'error' }
+          )
+        );
+      return false;
+    }
+  }
+
   if (parameters.patient) {
     const referenceFormat = /^Patient\/[\w-]+$/;
     const errorMessage = 'All patient references must be of the format "Patient/{id}" for the "patient" parameter.';
@@ -227,7 +279,7 @@ function validateExportParams(parameters, reply) {
 
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
-    if (!['_outputFormat', '_type', '_typeFilter', 'patient'].includes(param)) {
+    if (!['_outputFormat', '_type', '_typeFilter', 'patient', '_elements'].includes(param)) {
       unrecognizedParams.push(param);
     }
   });

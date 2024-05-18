@@ -154,6 +154,27 @@ The server supports the following query parameters:
 - `_outputFormat`: The server supports the following formats: `application/fhir+ndjson`, `application/ndjson+fhir`, `application/ndjson`, `ndjson`
 - `_typeFilter`: Filters the response to only include resources that meet the criteria of the specified comma-delimited FHIR REST queries. Returns an error for queries specified by the client that are unsupported by the server. Supports queries on the ValueSets (`type:in`, `code:in`, etc.) of a given resource type.
 - `patient`: Only applicable to POST requests for group-level and patient-level requests. When provided, the server SHALL NOT return resources in the patient compartment definition belonging to patients outside the list. Can support multiple patient references in a single request.
+- `_elements`: Filters the content of the responses to omit unlisted, non-mandatory elements from the resources returned. These elements should be provided in the form `[resource type].[element name]` (e.g., `Patient.id`) which only filters the contents of those specified resources or in the form `[element name]` (e.g., `id`) which filters the contents of all of the returned resources.
+
+#### `_elements` Query Parameter
+
+The server supports the optional and experimental query parameter `_elements` as defined by the Bulk Data Access IG (here)[https://build.fhir.org/ig/HL7/bulk-data/export.html#query-parameters]. The `_elements` parameter is a string of comma-delimited HL7® FHIR® Elements used to filter the returned resources to only include listed elements and mandatory elements. Mandatory elements are defined as elements in the StructureDefinition of a resource type which have a minimum cardinality of 1. Because this server provides json-formatted data, `resourceType` is also an implied mandatory element for all Resources.
+
+The returned resources are only filtered by elements that are applicable to them. For example, if a request looks like the following:
+
+```
+GET http://localhost:3000/$export?_elements=Condition.id
+```
+
+Then the returned resources should contain everything on them except the returned Conditions should only contain an `id` (if applicable) and any mandatory elements.
+
+If a request does not specify a resource type, such as the following:
+
+```
+GET http://localhost:3000/$export?_elements=id
+```
+
+Then all returned resources should only contain an `id` (if applicable) and any mandatory elements.
 
 ## License
 

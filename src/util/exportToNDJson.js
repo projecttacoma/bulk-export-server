@@ -12,6 +12,8 @@ const {
   findResourcesWithAggregation
 } = require('./mongo.controller');
 const patientRefs = require('../compartment-definition/patient-references');
+const mandatoryElements = require('../compartment-definition/mandatory-elements');
+const choiceTypeElements = require('../compartment-definition/choice-types.json');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 
@@ -27,14 +29,18 @@ const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_i
 const buildSearchParamList = resourceType => {
   const searchParams = {};
   // get search parameters for FHIR Version 4.0.1
-  const searchParameterList = getSearchParameters(resourceType, '4_0_1');
-  searchParameterList.forEach(paramDef => {
-    // map xpath to parameter description
-    {
-      searchParams[paramDef.xpath.substring(paramDef.xpath.indexOf('.') + 1)] = paramDef;
-    }
-  });
-  return searchParams;
+  try {
+    const searchParameterList = getSearchParameters(resourceType, '4_0_1');
+    searchParameterList.forEach(paramDef => {
+      // map xpath to parameter description
+      {
+        searchParams[paramDef.xpath.substring(paramDef.xpath.indexOf('.') + 1)] = paramDef;
+      }
+    });
+    return searchParams;
+  } catch (e) {
+    return {};
+  }
 };
 
 /**
@@ -50,7 +56,7 @@ const buildSearchParamList = resourceType => {
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
  */
-const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds) => {
+const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds, elements) => {
   try {
     const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
@@ -114,6 +120,62 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
         }
       });
     }
+
+    const elementsQueries = {};
+    // create lookup object for _elements parameter
+    if (elements) {
+      elements.forEach(e => {
+        let elementNames = [];
+        if (e.includes('.')) {
+          const resourceType = e.split('.')[0];
+          const elementName = e.split('.')[1];
+          if (
+            Object.keys(choiceTypeElements[resourceType]).length !== 0 &&
+            Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)
+          ) {
+            const rootElem = elementName.split('[x]')[0];
+            choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
+              const type = e.charAt(0).toUpperCase() + e.slice(1);
+              elementNames.push(`${rootElem}${type}`);
+            });
+          } else {
+            elementNames.push(elementName);
+          }
+
+          elementNames.forEach(e => {
+            if (elementsQueries[resourceType]) {
+              elementsQueries[resourceType].push(e);
+            } else {
+              elementsQueries[resourceType] = [e];
+            }
+          });
+        } else {
+          supportedResources.forEach(resourceType => {
+            if (
+              Object.keys(choiceTypeElements[resourceType]).length !== 0 &&
+              Object.keys(choiceTypeElements[resourceType]).includes(`${e}[x]`)
+            ) {
+              const rootElem = e.split('[x]')[0];
+              choiceTypeElements[resourceType][`${e}[x]`].forEach(e => {
+                const type = e.charAt(0).toUpperCase() + e.slice(1);
+                elementNames.push(`${rootElem}${type}`);
+              });
+            } else {
+              elementNames.push(e);
+            }
+
+            elementNames.forEach(e => {
+              if (elementsQueries[resourceType]) {
+                elementsQueries[resourceType].push(e);
+              } else {
+                elementsQueries[resourceType] = [e];
+              }
+            });
+          });
+        }
+      });
+    }
+
     const exportTypes = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
 
     // if 'patient' parameter is present, apply additional filtering on the resources related to these patients
@@ -128,7 +190,8 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
         collectionName,
         searchParameterQueries[collectionName],
         valueSetQueries[collectionName],
-        patientParamIds || patientIds
+        patientParamIds || patientIds,
+        elementsQueries[collectionName]
       );
     });
     docs = await Promise.all(docs);
@@ -168,9 +231,10 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
  * @param {Object} searchParameterQueries The _typeFilter search parameter queries for the given resource type
  * @param {Object} valueSetQueries list of ValueSet-related queries for the given resource type
  * @param {Array} patientIds Array of patient ids for which the returned documents should have references
+ * @param {Array} elements Array of elements queries for the given resource type
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
-const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds) => {
+const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds, elements) => {
   let docs = [];
   let patQuery = {};
   let vsQuery = {};
@@ -193,6 +257,24 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     vsQuery = await processVSTypeFilter(valueSetQueries);
   }
 
+  // create elements projection
+  const projection = { _id: 0 };
+  if (elements) {
+    elements.forEach(elem => {
+      projection[elem] = 1;
+    });
+
+    // add a projection of 1 for mandatory elements for the resourceType as defined by the StructureDefinition of the resourceType
+    // mandatory elements are elements that have min cardinality of 1
+    mandatoryElements[collectionName].forEach(elem => {
+      projection[elem] = 1;
+    });
+
+    // add a projection of 1 for resourceType which we have determined to be a mandatory element for each FHIR resource even though
+    // it is not included in the StructureDefinition
+    projection['resourceType'] = 1;
+  }
+
   if (searchParameterQueries) {
     docs = searchParameterQueries.map(async q => {
       let query = q;
@@ -204,7 +286,7 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
         query.filter(q => '$match' in q).forEach(q => (q['$match'] = { $and: [q['$match'], patQuery] }));
       }
       // grab the results from aggregation - has metadata about counts and data with resources in the first array position
-      const results = await findResourcesWithAggregation(query, collectionName, { projection: { _id: 0 } });
+      const results = await findResourcesWithAggregation(query, collectionName, projection);
       return results || [];
     });
     // use flatMap to flatten the output from aggregation
@@ -213,10 +295,28 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     const query = {
       $and: [vsQuery, patQuery]
     };
-    docs = await findResourcesWithQuery(query, collectionName, { projection: { _id: 0 } });
+    docs = await findResourcesWithQuery(query, collectionName, { projection: projection });
   } else {
-    docs = await findResourcesWithQuery({}, collectionName, { projection: { _id: 0 } });
+    docs = await findResourcesWithQuery({}, collectionName, { projection: projection });
   }
+
+  // add the SUBSETTED tag to the resources returned when the _elements parameter is used
+  if (elements) {
+    docs.map(doc => {
+      if (doc.meta) {
+        if (doc.meta.tag) {
+          doc.meta.tag.push({ code: 'SUBSETTED', system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue' });
+        } else {
+          doc.meta.tag = [{ code: 'SUBSETTED', system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue' }];
+        }
+      } else {
+        doc.meta = {
+          tag: [{ code: 'SUBSETTED', system: 'http://terminology.hl7.org/CodeSystem/v3-ObservationValue' }]
+        };
+      }
+    });
+  }
+
   return { document: docs, collectionName: collectionName };
 };
 
