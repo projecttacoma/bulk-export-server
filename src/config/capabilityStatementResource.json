@@ -36,15 +36,16 @@
   ],
   "kind": "requirements",
   "fhirVersion": "4.0.1",
-  "format": ["json"],
-  "implementationGuide": ["http://hl7.org/fhir/uv/bulkdata/ImplementationGuide/hl7.fhir.uv.bulkdata"],
+  "format": [
+    "json"
+  ],
+  "implementationGuide": [
+    "http://hl7.org/fhir/uv/bulkdata/ImplementationGuide/hl7.fhir.uv.bulkdata"
+  ],
   "rest": [
     {
       "mode": "server",
       "documentation": "These FHIR Operations initiate the generation of data to which the client is authorized -- whether that be all patients, a subset (defined group) of patients, or all available data contained in a FHIR server.\n\nThe FHIR server SHALL limit the data returned to only those FHIR resources for which the client is authorized.\n\nThe FHIR server SHALL support invocation of this operation using the [FHIR Asynchronous Request Pattern](http://hl7.org/fhir/R4/async.html). Servers SHALL support GET requests and MAY support POST requests that supply parameters using the FHIR [Parameters Resource](https://www.hl7.org/fhir/parameters.html).",
-      "security": {
-        "description": "Servers are encouraged to implement OAuth 2.0 access management in accordance with the [SMART Backend Services: Authorization Guide](authorization.html).  Implementations MAY include non-RESTful services that use authorization schemes other than OAuth 2.0, such as mutual-TLS or signed URLs."
-      },
       "resource": [
         {
           "type": "Group",
