@@ -1,4 +1,5 @@
 const fastify = require('fastify');
+const cors = require('@fastify/cors');
 
 const { bulkExport, patientBulkExport, groupBulkExport } = require('../services/export.service');
 const { checkBulkStatus } = require('../services/bulkstatus.service');
@@ -10,6 +11,7 @@ const { generateCapabilityStatement } = require('../services/metadata.service');
 // set bodyLimit to 50mb
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
+  app.register(cors, {});
   app.get('/metadata', generateCapabilityStatement);
   app.get('/$export', bulkExport);
   app.post('/$export', bulkExport);

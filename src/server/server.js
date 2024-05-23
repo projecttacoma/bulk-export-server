@@ -2,11 +2,11 @@ const mongoUtil = require('../util/mongo');
 const childProcess = require('child_process');
 const os = require('os');
 
-const server = require('./app')({ logger: { prettyPrint: true } });
+const server = require('./app')({ logger: true });
 
 const start = async () => {
   try {
-    await server.listen(process.env.PORT, process.env.HOST);
+    await server.listen({ port: process.env.PORT, host: process.env.HOST });
     await mongoUtil.client.connect();
     server.log.info('Connected to the server!');
 
