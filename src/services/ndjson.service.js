@@ -13,7 +13,8 @@ const returnNDJsonContent = async (request, reply) => {
   const filePath = `tmp/${clientId}/${url}`;
   if (fs.existsSync(filePath)) {
     const readStream = fs.createReadStream(`tmp/${clientId}/${url}`);
-    reply.header('Content-type', 'application/ndjson+fhir').send(readStream);
+    reply.header('Content-type', 'application/ndjson+fhir');
+    return reply.send(readStream);
   } else {
     reply.code(404).send(new Error(`The following file path was not found: ${filePath}`));
   }

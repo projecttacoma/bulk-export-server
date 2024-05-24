@@ -11,7 +11,7 @@ const { generateCapabilityStatement } = require('../services/metadata.service');
 // set bodyLimit to 50mb
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
-  app.register(cors, { exposedHeaders: 'content-location' });
+  app.register(cors, { exposedHeaders: ['content-location', 'expires', 'x-progress', 'retry-after'] });
   app.get('/metadata', generateCapabilityStatement);
   app.get('/$export', bulkExport);
   app.post('/$export', bulkExport);
