@@ -7,7 +7,7 @@ const { returnNDJsonContent } = require('../services/ndjson.service');
 const { groupSearchById, groupSearch, groupCreate, groupUpdate } = require('../services/group.service');
 const { uploadTransactionOrBatchBundle } = require('../services/bundle.service');
 const { generateCapabilityStatement } = require('../services/metadata.service');
-
+const { patientSearch, patientSearchById, patientCreate, patientUpdate } = require('../services/patient.service');
 // set bodyLimit to 50mb
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
@@ -26,6 +26,11 @@ function build(opts) {
   app.post('/Group', groupCreate);
   app.put('/Group/:groupId', groupUpdate);
   app.post('/', uploadTransactionOrBatchBundle);
+  app.get('/Patient/:patientId', patientSearchById);
+  app.get('/Patient', patientSearch);
+  app.post('/Patient', patientCreate);
+  app.put('/Patient/:patientId', patientUpdate);
+
   return app;
 }
 
