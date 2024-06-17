@@ -5,14 +5,12 @@ const supertest = require('supertest');
 const { cleanUpDb, createTestResource } = require('../populateTestData');
 const testPatient = require('../fixtures/testPatient.json');
 const updatedTestPatient = require('../fixtures/updatedTestPatient.json');
-// import queue to close open handles after tests pass
-// TODO: investigate why queues are leaving open handles in this file
 const queue = require('../../src/resources/exportQueue');
 
 const TEST_PATIENT_ID = 'testPatient';
 const INVALID_PATIENT_ID = 'INVALID';
 
-describe('CRUD operations for Group resource', () => {
+describe('CRUD operations for Patient resource', () => {
   beforeEach(async () => {
     await client.connect();
     await app.ready();
@@ -55,16 +53,16 @@ describe('CRUD operations for Group resource', () => {
       .get(`/Patient`)
       .expect(404)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual('No patient resources were found on the server');
+        expect(JSON.parse(response.text).message).toEqual('No Patient resources were found on the server');
       });
   });
 
-  test('test update returns 200 when Patient is in db', async () => {
+  test('test update returns 200 when patient is in db', async () => {
     await createTestResource(testPatient, 'Patient');
     await supertest(app.server).put(`/Patient/${TEST_PATIENT_ID}`).send(updatedTestPatient).expect(200);
   });
 
-  test('test update returns 201 when Patient is not in db', async () => {
+  test('test update returns 201 when patient is not in db', async () => {
     await supertest(app.server).put(`/Patient/${TEST_PATIENT_ID}`).send(updatedTestPatient).expect(200);
   });
 

@@ -22,7 +22,6 @@ const groupSearchById = async (request, reply) => {
 
 /**
  * Result of sending a GET request to [base]/Group to find all available Groups.
- * Searches for a Group resource with the passed in id
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
@@ -35,7 +34,7 @@ const groupSearch = async (request, reply) => {
 };
 
 /**
- * Creates an object and generates an id for it regardless of the id passed in
+ * Creates a Group object and generates an id for it regardless of the id passed in.
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
@@ -48,7 +47,7 @@ const groupCreate = async (request, reply) => {
 
 /**
  * Updates the Group resource with the passed in id or creates a new document if
- * no document with passed id is found
+ * no document with passed id is found.
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */

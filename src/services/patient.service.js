@@ -22,20 +22,19 @@ const patientSearchById = async (request, reply) => {
 
 /**
  * Result of sending a GET request to [base]/Patient to find all available Patients.
- * Searches for a Patient resource with the passed in id
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
 const patientSearch = async (request, reply) => {
   const result = await findResourcesWithQuery({}, 'Patient');
   if (!result.length > 0) {
-    reply.code(404).send(new Error('No patient resources were found on the server'));
+    reply.code(404).send(new Error('No Patient resources were found on the server'));
   }
   return result;
 };
 
 /**
- * Creates an object and generates an id for it regardless of the id passed in
+ * Creates a Patient object and generates an id for it regardless of the id passed in.
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
@@ -47,8 +46,8 @@ const patientCreate = async (request, reply) => {
 };
 
 /**
- * Updates the patient resource with the passed in id or creates a new document if
- * no document with passed id is found
+ * Updates the Patient resource with the passed in id or creates a new document if
+ * no document with passed id is found.
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
