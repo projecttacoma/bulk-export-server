@@ -50,4 +50,15 @@ const replaceReferences = entries => {
   return newEntries;
 };
 
-module.exports = { replaceReferences };
+function createSearchsetBundle(entries) {
+  return {
+    resourceType: 'Bundle',
+    meta: { lastUpdated: new Date().toISOString() },
+    id: uuidv4(),
+    type: 'searchset',
+    total: entries.length,
+    entry: entries.map(e => ({ resource: e }))
+  };
+}
+
+module.exports = { replaceReferences, createSearchsetBundle };

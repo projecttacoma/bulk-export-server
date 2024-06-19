@@ -44,7 +44,7 @@ describe('CRUD operations for Patient resource', () => {
       .get(`/Patient`)
       .expect(200)
       .then(response => {
-        expect(JSON.parse(response.text).length).toEqual(1);
+        expect(response.body.total).toEqual(1);
       });
   });
 
@@ -64,6 +64,20 @@ describe('CRUD operations for Patient resource', () => {
 
   test('test update returns 201 when patient is not in db', async () => {
     await supertest(app.server).put(`/Patient/${TEST_PATIENT_ID}`).send(updatedTestPatient).expect(200);
+  });
+
+  test('test delete returns 200 when patient in db', async () => {
+    await createTestResource(testPatient, 'Patient');
+    await supertest(app.server).delete(`/Patient/${TEST_PATIENT_ID}`).expect(200);
+  });
+
+  test('test delete returns 404 when patient is not in db', async () => {
+    await supertest(app.server)
+      .delete(`/Patient/${TEST_PATIENT_ID}`)
+      .expect(404)
+      .then(res => {
+        expect(JSON.parse(res.text).message).toEqual(`The requested patient ${TEST_PATIENT_ID} was not found.`);
+      });
   });
 
   afterEach(async () => {

@@ -1,8 +1,10 @@
+const { createSearchsetBundle } = require('../util/bundleUtils');
 const {
   findResourceById,
   findResourcesWithQuery,
   createResource,
-  updateResource
+  updateResource,
+  removeResource
 } = require('../util/mongo.controller');
 const { v4: uuidv4 } = require('uuid');
 
@@ -30,7 +32,7 @@ const patientSearch = async (request, reply) => {
   if (!result.length > 0) {
     reply.code(404).send(new Error('No Patient resources were found on the server'));
   }
-  return result;
+  return createSearchsetBundle(result);
 };
 
 /**
@@ -59,9 +61,23 @@ const patientUpdate = async (request, reply) => {
   return updateResource(request.params.patientId, data, 'Patient');
 };
 
+/**
+ * Deletes the Patient resource with the passed in id. Sends 404 if Patient with id passed in not found.
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
+ */
+const patientRemove = async (request, reply) => {
+  const found = await findResourceById(request.params.patientId, 'Patient');
+  if (!found) {
+    reply.code(404).send(new Error(`The requested patient ${request.params.patientId} was not found.`));
+  }
+  return removeResource(request.params.patientId, 'Patient');
+};
+
 module.exports = {
   patientSearchById,
   patientSearch,
   patientCreate,
-  patientUpdate
+  patientUpdate,
+  patientRemove
 };
