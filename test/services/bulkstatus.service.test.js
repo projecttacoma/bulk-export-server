@@ -7,8 +7,53 @@ const fs = require('fs');
 // import queue to close open handles after tests pass
 // TODO: investigate why queues are leaving open handles in this file
 const queue = require('../../src/resources/exportQueue');
+const clientId = 'testClient';
+
+// describe('kickoffImport logic', () => {
+//   beforeAll(async () => {
+//     await bulkStatusSetup();
+//     fs.mkdirSync(`tmp/${clientId}`, { recursive: true });
+//     fs.closeSync(fs.openSync(`tmp/${clientId}/Patient.ndjson`, 'w'));
+//   });
+
+//   beforeEach(async () => {
+//     await app.ready();
+//   });
+
+//   test('check 200 returned for successful kickoff', async () => {
+//     // TODO: mock data receiver response
+//     await createTestResource(testPatient, 'Patient');
+//     await supertest(app.server)
+//       .post(`/bulkstatus/${clientId}/kickoff-import`)
+//       .send({
+//         resourceType: 'Parameters',
+//         parameter: [
+//           {
+//             name: 'receiver',
+//             valueString: 'http://localhost:3001/4_0_1'
+//           }
+//         ]
+//       })
+//       .expect(200)
+//       .then(response => {
+//         expect(response.headers.expires).toBeDefined();
+//         expect(response.headers['content-type']).toEqual('application/json; charset=utf-8');
+//         expect(response.body.output).toEqual([
+//           { type: 'Patient', url: `http://localhost:3000/${clientId}/Patient.ndjson` }
+//         ]);
+//       });
+//   });
+
+//   afterAll(async () => {
+//     await cleanUpDb();
+//     fs.rmSync(`tmp/${clientId}`, { recursive: true, force: true });
+//   });
+
+//   afterEach(async () => {
+//     await queue.close();
+//   });
+// });
 describe('checkBulkStatus logic', () => {
-  const clientId = 'testClient';
 
   beforeAll(async () => {
     await bulkStatusSetup();

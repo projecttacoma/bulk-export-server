@@ -8,10 +8,81 @@ const {
 const fs = require('fs');
 const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
+const { gatherParams } = require('../util/serviceUtils');
+const axios = require('axios');
 /** The time a client is expected to wait between bulkstatus requests in seconds*/
 const RETRY_AFTER = 1;
 /** The number of requests we allow inside the retry after window before throwing a 429 error */
 const REQUEST_TOLERANCE = 10;
+
+/**
+ * Kicks off an $import request to the data receiver specified in the passed parameters.
+ * @param {*} request the request object passed in by the user
+ * @param {*} reply the response object
+ */
+async function kickoffImport(request, reply) {
+  const clientId = request.params.clientId;
+  const bulkStatus = await getBulkExportStatus(clientId);
+  if (!bulkStatus) {
+    reply.code(404).send(new Error(`Could not find bulk export request with id: ${clientId}`));
+  }
+  if (bulkStatus.status === BULKSTATUS_COMPLETED){
+    const parameters = gatherParams(request.method, request.query, request.body, reply);
+    if(parameters.receiver){
+
+      const responseData = await getNDJsonURLs(reply, clientId);
+      const importManifest = {
+        "resourceType": "Parameters"
+      };
+      importManifest.parameter = responseData.map(exportFile =>{
+        return {
+          "name": "input",
+          "part": [
+            {
+              "name": "url",
+              "valueUrl": exportFile.url
+            }
+          ]
+        };
+      });
+
+
+      // TODO: add provenance?
+      const headers = {
+        'Accept': 'application/fhir+json',
+        'Content-Type': 'application/fhir+json'
+      };
+      try {
+        // on success, pass through the response
+        const results = await axios.post(parameters.receiver, importManifest, { headers });
+        reply.code(results.status).send(results.body);
+      } catch (e) {
+        // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
+        const receiverOutcome = JSON.parse(e.message);
+        const outcome = createOperationOutcome(`Import request for id ${clientId} to receiver ${parameters.receiver} failed with the contained error.`, {
+          issueCode: 400,
+          severity: 'error'
+        });
+        outcome.contained = [receiverOutcome];
+        reply.code(400).send(outcome);
+      }
+    }else{
+      reply.code(400).send(
+        createOperationOutcome('The kickoff-import endpoint requires a receiver location be specified in the request Parameters.', {
+          issueCode: 400,
+          severity: 'error'
+        })
+      );
+    }
+  }else{
+    reply.code(400).send(
+      createOperationOutcome(`Export request with id ${clientId} is not yet complete`, {
+        issueCode: 400,
+        severity: 'error'
+      })
+    );
+  }
+}
 
 /**
  * Checks the status of the bulk export request.
@@ -115,4 +186,4 @@ async function getNDJsonURLs(reply, clientId) {
   return output;
 }
 
-module.exports = { checkBulkStatus };
+module.exports = { checkBulkStatus, kickoffImport };
