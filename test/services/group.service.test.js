@@ -46,7 +46,7 @@ describe('CRUD operations for Group resource', () => {
       .get(`/Group`)
       .expect(200)
       .then(response => {
-        expect(JSON.parse(response.text).length).toEqual(1);
+        expect(response.body.total).toEqual(1);
       });
   });
 
@@ -66,6 +66,20 @@ describe('CRUD operations for Group resource', () => {
 
   test('test update returns 201 when group is not in db', async () => {
     await supertest(app.server).put(`/Group/${TEST_GROUP_ID}`).send(updatedTestGroup).expect(200);
+  });
+
+  test('test delete returns 200 when group in db', async () => {
+    await createTestResource(testGroup, 'Group');
+    await supertest(app.server).delete(`/Group/${TEST_GROUP_ID}`).expect(200);
+  });
+
+  test('test delete returns 404 when group is not in db', async () => {
+    await supertest(app.server)
+      .delete(`/Group/${TEST_GROUP_ID}`)
+      .expect(404)
+      .then(res => {
+        expect(JSON.parse(res.text).message).toEqual(`The requested group ${TEST_GROUP_ID} was not found.`);
+      });
   });
 
   afterEach(async () => {

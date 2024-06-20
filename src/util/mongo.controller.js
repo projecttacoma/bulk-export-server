@@ -26,7 +26,7 @@ const createResource = async (data, resourceType) => {
  */
 const findResourceById = async (id, resourceType) => {
   const collection = db.collection(resourceType);
-  return collection.findOne({ id: id });
+  return collection.findOne({ id: id }, { projection: { _id: 0 } });
 };
 
 /**
@@ -37,10 +37,16 @@ const findResourceById = async (id, resourceType) => {
  */
 const findOneResourceWithQuery = async (query, resourceType) => {
   const collection = db.collection(resourceType);
-  return collection.findOne(query);
+  return collection.findOne(query, { projection: { _id: 0 } });
 };
 
-const findResourcesWithQuery = async (query, resourceType, options = {}) => {
+/**
+ * Searches the database for the one or more resources based on a mongo query and returns the data.
+ * @param {Object} query the mongo query to use
+ * @param {string} resourceType type of desired resource, signifies collection resource is stored in
+ * @return {Array} the data of the found documents
+ */
+const findResourcesWithQuery = async (query, resourceType, options = { projection: { _id: 0 } }) => {
   const collection = db.collection(resourceType);
   const results = collection.find(query, options);
   return results.toArray();
