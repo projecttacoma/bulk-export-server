@@ -19,7 +19,7 @@ function build(opts) {
   app.post('/Patient/$export', patientBulkExport);
   app.get('/Group/:groupId/$export', groupBulkExport);
   app.post('/Group/:groupId/$export', groupBulkExport);
-  app.get('/bulkstatus/:clientId/kickoff-import', kickoffImport);
+  app.post('/bulkstatus/:clientId/kickoff-import', kickoffImport);
   app.get('/bulkstatus/:clientId', checkBulkStatus);
   app.get('/:clientId/:fileName', returnNDJsonContent);
   app.get('/Group/:groupId', groupSearchById);

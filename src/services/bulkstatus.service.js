@@ -49,16 +49,21 @@ async function kickoffImport(request, reply) {
 
       // TODO: add provenance?
       const headers = {
-        'Accept': 'application/fhir+json',
-        'Content-Type': 'application/fhir+json'
+        'accept': 'application/fhir+json',
+        'content-type': 'application/fhir+json'
       };
       try {
         // on success, pass through the response
         const results = await axios.post(parameters.receiver, importManifest, { headers });
-        reply.code(results.status).send(results.body);
+        reply.code(results.status).header('content-location',results.headers['content-location']).send(results.body);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
-        const receiverOutcome = JSON.parse(e.message);
+        let receiverOutcome;
+        if(e.response.data.resourceType === 'OperationOutcome'){
+          receiverOutcome = e.response.data;
+        }else{
+          receiverOutcome = createOperationOutcome(e.message, {issueCode: e.status, severity: 'error'});
+        }
         const outcome = createOperationOutcome(`Import request for id ${clientId} to receiver ${parameters.receiver} failed with the contained error.`, {
           issueCode: 400,
           severity: 'error'
