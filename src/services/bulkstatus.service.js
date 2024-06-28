@@ -26,60 +26,64 @@ async function kickoffImport(request, reply) {
   if (!bulkStatus) {
     reply.code(404).send(new Error(`Could not find bulk export request with id: ${clientId}`));
   }
-  if (bulkStatus.status === BULKSTATUS_COMPLETED){
+  if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     const parameters = gatherParams(request.method, request.query, request.body, reply);
-    if(parameters.receiver){
-
+    if (parameters.receiver) {
       const responseData = await getNDJsonURLs(reply, clientId);
       const importManifest = {
-        "resourceType": "Parameters"
+        resourceType: 'Parameters'
       };
-      importManifest.parameter = responseData.map(exportFile =>{
+      importManifest.parameter = responseData.map(exportFile => {
         return {
-          "name": "input",
-          "part": [
+          name: 'input',
+          part: [
             {
-              "name": "url",
-              "valueUrl": exportFile.url
+              name: 'url',
+              valueUrl: exportFile.url
             }
           ]
         };
       });
 
-
       // TODO: add provenance?
       const headers = {
-        'accept': 'application/fhir+json',
+        accept: 'application/fhir+json',
         'content-type': 'application/fhir+json'
       };
       try {
         // on success, pass through the response
         const results = await axios.post(parameters.receiver, importManifest, { headers });
-        reply.code(results.status).header('content-location',results.headers['content-location']).send(results.body);
+        reply.code(results.status).header('content-location', results.headers['content-location']).send(results.body);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
         let receiverOutcome;
-        if(e.response.data.resourceType === 'OperationOutcome'){
+        if (e.response.data.resourceType === 'OperationOutcome') {
           receiverOutcome = e.response.data;
-        }else{
-          receiverOutcome = createOperationOutcome(e.message, {issueCode: e.status, severity: 'error'});
+        } else {
+          receiverOutcome = createOperationOutcome(e.message, { issueCode: e.status, severity: 'error' });
         }
-        const outcome = createOperationOutcome(`Import request for id ${clientId} to receiver ${parameters.receiver} failed with the contained error.`, {
-          issueCode: 400,
-          severity: 'error'
-        });
+        const outcome = createOperationOutcome(
+          `Import request for id ${clientId} to receiver ${parameters.receiver} failed with the contained error.`,
+          {
+            issueCode: 400,
+            severity: 'error'
+          }
+        );
         outcome.contained = [receiverOutcome];
         reply.code(400).send(outcome);
       }
-    }else{
+    } else {
       reply.code(400).send(
-        createOperationOutcome('The kickoff-import endpoint requires a receiver location be specified in the request Parameters.', {
-          issueCode: 400,
-          severity: 'error'
-        })
+        createOperationOutcome(
+          'The kickoff-import endpoint requires a receiver location be specified in the request Parameters.',
+          {
+            issueCode: 400,
+            severity: 'error'
+          }
+        )
       );
     }
-  }else{
+  } else {
     reply.code(400).send(
       createOperationOutcome(`Export request with id ${clientId} is not yet complete`, {
         issueCode: 400,

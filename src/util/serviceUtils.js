@@ -1,4 +1,3 @@
-
 const { createOperationOutcome } = require('../util/errorUtils');
 
 /**
@@ -9,7 +8,7 @@ const { createOperationOutcome } = require('../util/errorUtils');
  * @param {Object} reply the response object
  * @returns {Object} an object containing a combination of request parameters from both sources
  */
-function gatherParams (method, query, body, reply){
+function gatherParams(method, query, body, reply) {
   if (method === 'POST' && Object.keys(query).length > 0) {
     reply.code(400).send(
       createOperationOutcome('Parameters must be specified in a request body for POST requests.', {
