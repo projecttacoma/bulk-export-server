@@ -142,7 +142,17 @@ Endpoint: `GET [fhir base]/$export`
 
 Alternatively, a POST request (`POST [fhir base]/$export`) can be sent. The export parameters must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) in the request body.
 
-For more information on the export endpoints, read this documentation on the [Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export/index.html#request-flow).
+For more information on the export endpoints, read this documentation on the [Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export.html#bulk-data-export-operation-request-flow).
+
+#### Bulk Status
+
+This server supports the bulk status endpoint in support of the [Export Request Flow](https://hl7.org/fhir/uv/bulkdata/export.html#bulk-data-export-operation-request-flow).
+
+Endpoint: `GET [fhir base]/bulkstatus/[client id]`
+
+The server additionally supports a related convenience endpoint which kicks off an `$import` operation for an existing export request. The exported data is selected for import to a data receiver server. This import server location should be specifed with parameters using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) with name `receiver` in the request body. The server will respond with the same bulk status information according to the progress of the existing export workflow.
+
+Endpoint: `POST [fhir base]/bulkstatus/[client id]/kickoff-import`
 
 ## Supported Query Parameters
 

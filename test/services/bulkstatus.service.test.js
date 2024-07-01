@@ -9,7 +9,6 @@ const fs = require('fs');
 const queue = require('../../src/resources/exportQueue');
 describe('checkBulkStatus logic', () => {
   const clientId = 'testClient';
-
   beforeAll(async () => {
     await bulkStatusSetup();
     fs.mkdirSync(`tmp/${clientId}`, { recursive: true });
