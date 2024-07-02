@@ -2,7 +2,7 @@ const fastify = require('fastify');
 const cors = require('@fastify/cors');
 
 const { bulkExport, patientBulkExport, groupBulkExport } = require('../services/export.service');
-const { checkBulkStatus } = require('../services/bulkstatus.service');
+const { checkBulkStatus, kickoffImport } = require('../services/bulkstatus.service');
 const { returnNDJsonContent } = require('../services/ndjson.service');
 const { groupSearchById, groupSearch, groupCreate, groupUpdate, groupRemove } = require('../services/group.service');
 const { uploadTransactionOrBatchBundle } = require('../services/bundle.service');
@@ -25,6 +25,7 @@ function build(opts) {
   app.post('/Patient/$export', patientBulkExport);
   app.get('/Group/:groupId/$export', groupBulkExport);
   app.post('/Group/:groupId/$export', groupBulkExport);
+  app.post('/bulkstatus/:clientId/kickoff-import', kickoffImport);
   app.get('/bulkstatus/:clientId', checkBulkStatus);
   app.get('/:clientId/:fileName', returnNDJsonContent);
   app.get('/Group/:groupId', groupSearchById);
