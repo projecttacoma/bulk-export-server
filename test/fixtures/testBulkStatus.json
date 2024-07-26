@@ -34,5 +34,12 @@
     "status": "Completed",
     "error": {},
     "warnings": []
+  },
+  {
+    "id": "BY_PATIENT",
+    "status": "Completed",
+    "error": {},
+    "warnings": [],
+    "byPatient": true
   }
 ]

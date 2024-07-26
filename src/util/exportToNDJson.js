@@ -56,7 +56,8 @@ const buildSearchParamList = resourceType => {
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
  */
-const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds, elements) => {
+const exportToNDJson = async jobOptions => {
+  const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements, byPatient } = jobOptions;
   try {
     const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
@@ -185,19 +186,73 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
       return splitRef[splitRef.length - 1];
     });
 
-    let docs = exportTypes.map(async collectionName => {
-      return getDocuments(
-        collectionName,
-        searchParameterQueries[collectionName],
-        valueSetQueries[collectionName],
-        patientParamIds || patientIds,
-        elementsQueries[collectionName]
-      );
-    });
+    let docs;
+    if (byPatient) {
+      // use parameter patient or group patient ids or pull all patient ids from database
+      const ids =
+        patientParamIds ||
+        patientIds ||
+        (
+          await getDocuments(
+            'Patient',
+            searchParameterQueries['Patient'],
+            valueSetQueries['Patient'],
+            patientParamIds || patientIds,
+            elementsQueries['Patient']
+          )
+        ).document.map(p => p.id);
+
+      docs = ids.map(async patientId => {
+        // create patient-based subject header
+        const subjectHeader = {
+          resourceType: 'Parameters',
+          parameter: [
+            {
+              name: 'subject',
+              valueReference: {
+                reference: `Patient/${patientId}`
+              }
+            }
+          ]
+        };
+        // for each patient, collect resource documents from each export type collection
+        const typeDocs = exportTypes.map(async collectionName => {
+          return (
+            await getDocuments(
+              collectionName,
+              searchParameterQueries[collectionName],
+              valueSetQueries[collectionName],
+              [patientId],
+              elementsQueries[collectionName]
+            )
+          ).document;
+        });
+
+        //flatten all exportType arrays into a single array
+        const patientDocuments = (await Promise.all(typeDocs)).flat();
+        // append subject header as the first resource
+        patientDocuments.unshift(subjectHeader);
+        return {
+          // use the patient id as the document name (will be "{patientId}.ndjson")
+          name: patientId,
+          document: patientDocuments
+        };
+      });
+    } else {
+      docs = exportTypes.map(async collectionName => {
+        return getDocuments(
+          collectionName,
+          searchParameterQueries[collectionName],
+          valueSetQueries[collectionName],
+          patientParamIds || patientIds,
+          elementsQueries[collectionName]
+        );
+      });
+    }
     docs = await Promise.all(docs);
     docs.forEach(doc => {
       if (doc.document) {
-        writeToFile(doc.document, doc.collectionName, clientId);
+        writeToFile(doc.document, doc.name, clientEntry);
       }
     });
 
@@ -217,10 +272,10 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
     */
 
     // mark bulk status job as complete after all files have been written
-    await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
+    await updateBulkExportStatus(clientEntry, BULKSTATUS_COMPLETED);
     return true;
   } catch (e) {
-    await updateBulkExportStatus(clientId, BULKSTATUS_FAILED, { message: e.message, code: 500 });
+    await updateBulkExportStatus(clientEntry, BULKSTATUS_FAILED, { message: e.message, code: 500 });
     return false;
   }
 };
@@ -317,21 +372,21 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     });
   }
 
-  return { document: docs, collectionName: collectionName };
+  return { document: docs, name: collectionName };
 };
 
 /**
  * Writes the contents of a mongo document to an ndjson file with the appropriate resource
  * name, stored in a directory under the client's id
  * @param {Object} doc A mongodb document containing fhir resources
- * @param {string} type The fhir resourceType contained in the mongo document
+ * @param {string} filebase The base filename: either the fhir resourceType or patient id
  * @param {string} clientId The id of the client making the export request
  * @returns
  */
-const writeToFile = function (doc, type, clientId) {
+const writeToFile = function (doc, filebase, clientId) {
   let dirpath = './tmp/' + clientId;
   fs.mkdirSync(dirpath, { recursive: true });
-  const filename = path.join(dirpath, `${type}.ndjson`);
+  const filename = path.join(dirpath, `${filebase}.ndjson`);
 
   let lineCount = 0;
   if (Object.keys(doc).length > 0) {
