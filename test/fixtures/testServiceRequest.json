@@ -1,4 +1,12 @@
 {
     "resourceType": "ServiceRequest",
-    "id": "testServiceRequest"
+    "id": "testServiceRequest",
+    "code": {
+      "coding": [
+        {
+          "system": "http://example.com",
+          "code": "example-code-1"
+        }
+      ]
+    }
   }

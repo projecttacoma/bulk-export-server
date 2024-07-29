@@ -49,12 +49,15 @@ const buildSearchParamList = resourceType => {
  * If the _type parameter doesn't exist, the function will simply export all resource types included in the supportedResources list.
  * If the _typeFilter parameter is defined but the _type parameter is *not* defined, the function will export all resource types
  * included in the supportedResources list, but the resource types specified in the _typeFilter query will be filtered.
- * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
+ * @param {Object} jobOptions options object allowing for the following members:
+ * @param {string} clientEntry an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  * @param {string} typeFilter String of comma separated FHIR REST search queries
  * @param {string | Array} patient Patient references from the "patient" param, used to filter results
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
+ * @param {Array} elements Array of elements parameters that indicate how to omit any unlisted, non-mandatory elements
+ * @param {boolean} byPatient boolean flag from job that signals whether resulting files should be grouped by patient (versus by type)
  */
 const exportToNDJson = async jobOptions => {
   const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements, byPatient } = jobOptions;

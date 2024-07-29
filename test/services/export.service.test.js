@@ -690,6 +690,47 @@ describe('Check by subject export logic', () => {
     await app.ready();
   });
 
+  test('check 202 for Patient bySubject', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_bySubject',
+            valueString: 'Patient'
+          }
+        ]
+      })
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 for Group bySubject', async () => {
+    await createTestResource(testGroup, 'Group');
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Group/testGroup/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_bySubject',
+            valueString: 'Patient'
+          }
+        ]
+      })
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
   test('returns 400 for a _bySubject call that specifies a subject other than Patient', async () => {
     await supertest(app.server)
       .get('/Patient/$export?_bySubject=Other')

@@ -10,6 +10,7 @@ const { cleanUpDb, createTestResourceWithConnect } = require('../populateTestDat
 const testPatient = require('../fixtures/testPatient.json');
 const testEncounter = require('../fixtures/testEncounter.json');
 const testCondition = require('../fixtures/testCondition.json');
+const testValueSet = require('../fixtures/valuesets/example-vs-1.json');
 
 const testServiceRequest = require('../fixtures/testServiceRequest.json');
 const app = build();
@@ -22,14 +23,14 @@ const mockType = ['Patient'];
 
 const expectedFileName = './tmp/123456/Patient.ndjson';
 const clientId = '123456';
-const mockTypeFilter = 'Patient?type:in=http://example.com/fhir/ValueSet/test';
+const mockTypeFilter = 'Patient?maritalStatus:in=http://example.com/example-valueset-1';
 
 const complexMockTypeFilter =
-  'Patient?type:in=http://example.com/fhir/ValueSet/test,Encounter?type:in=http://example.com/fhir/ValueSet/test2,ServiceRequest?code:in=http://example.com/fhir/ValueSet/test';
+  'Patient?maritalStatus:in=http://example.com/example-valueset-1,Encounter?type:in=http://example.com/example-valueset-1,ServiceRequest?code:in=http://example.com/example-valueset-1';
 const expectedFileNameEncounter = './tmp/123456/Encounter.ndjson';
 const expectedFileNameServiceRequest = './tmp/123456/ServiceRequest.ndjson';
 const typeFilterWOValueSet = 'Procedure?type:in=http';
-const typeFilterWithInvalidType = 'Dog?type:in=http://example.com/fhir/ValueSet/test';
+const typeFilterWithInvalidType = 'Dog?type:in=http://example.com/example-valueset-1';
 const expectedFileNameInvalidType = './tmp/123456/Dog.ndjson';
 const expectedFileNameWOValueSet = './tmp/123456/Procedure.ndjson';
 describe('check export logic', () => {
@@ -38,6 +39,7 @@ describe('check export logic', () => {
     await createTestResourceWithConnect(testEncounter, 'Encounter');
     await createTestResourceWithConnect(testCondition, 'Condition');
     await createTestResourceWithConnect(testServiceRequest, 'ServiceRequest');
+    await createTestResourceWithConnect(testValueSet, 'ValueSet');
     console.log('created test resource');
   });
 
@@ -59,32 +61,41 @@ describe('check export logic', () => {
   });
 
   describe('exportToNDJson', () => {
+    beforeEach(async () => {
+      fs.rmSync('./tmp/123456', { recursive: true, force: true });
+    });
     test('Expect folder created and export successful when _type parameter is retrieved from request', async () => {
-      await exportToNDJson(clientId, mockType);
+      await exportToNDJson({ clientEntry: clientId, types: mockType });
       expect(fs.existsSync(expectedFileName)).toBe(true);
     });
     test('Expect folder created and export successful when _type parameter is not present in request', async () => {
-      await exportToNDJson(clientId);
+      await exportToNDJson({ clientEntry: clientId });
       expect(fs.existsSync(expectedFileName)).toBe(true);
     });
 
-    test('Expect folder created and export successful when _typeFilter  parameter is retrieved from request', async () => {
-      await exportToNDJson(clientId, mockType, mockTypeFilter);
+    test('Expect folder created and export successful when _typeFilter parameter is retrieved from request', async () => {
+      await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: mockTypeFilter });
       expect(fs.existsSync(expectedFileName)).toBe(true);
     });
-    test('Expect folder created and export successful when _typeFilter  parameter is retrieved from request', async () => {
-      await exportToNDJson(clientId, mockType, complexMockTypeFilter);
+    test('Expect folder created and export successful when complex _typeFilter parameter is retrieved from request', async () => {
+      await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: complexMockTypeFilter });
       expect(fs.existsSync(expectedFileName)).toBe(true);
       expect(fs.existsSync(expectedFileNameEncounter)).toBe(true);
       expect(fs.existsSync(expectedFileNameServiceRequest)).toBe(true);
     });
     test('Expect folder created and export to fail when _typeFilter parameter is retrieved from request and contains an invalid param', async () => {
-      await exportToNDJson(clientId, mockType, typeFilterWithInvalidType);
+      await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: typeFilterWithInvalidType });
+      expect(fs.existsSync('./tmp/123456')).toBe(true);
       expect(fs.existsSync(expectedFileNameInvalidType)).toBe(false);
     });
-    test('Expect folder created and export to fail when _typeFilter  parameter is retrieved from request but the value set is invalid', async () => {
-      await exportToNDJson(clientId, mockType, typeFilterWOValueSet);
+    test('Expect export to fail when _typeFilter parameter is retrieved from request but the value set is invalid', async () => {
+      await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: typeFilterWOValueSet });
+      // TODO: this currently fails and does not create a folder (throws error instead). Do we want a more graceful response?
       expect(fs.existsSync(expectedFileNameWOValueSet)).toBe(false);
+    });
+    test('Expect folder created and export successful when _bySubject parameter is retrieved from request', async () => {
+      await exportToNDJson({ clientEntry: clientId, types: mockType, typeFilter: mockTypeFilter, byPatient: true });
+      expect(fs.existsSync('./tmp/123456/testPatient.ndjson')).toBe(true);
     });
   });
 

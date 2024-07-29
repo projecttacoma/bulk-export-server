@@ -1,4 +1,12 @@
 {
     "resourceType": "Patient",
-    "id": "testPatient"
+    "id": "testPatient",
+    "maritalStatus": {
+      "coding": [
+        {
+          "system": "http://example.com",
+          "code": "example-code-1"
+        }
+      ]
+    }
   }
