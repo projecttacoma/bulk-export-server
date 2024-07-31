@@ -31,7 +31,7 @@ const bulkExport = async (request, reply) => {
   }
   if (validateExportParams(parameters, reply)) {
     request.log.info('Base >>> $export');
-    const clientEntry = await addPendingBulkExportRequest(parameters._bySubject === 'Patient');
+    const clientEntry = await addPendingBulkExportRequest();
 
     const types = request.query._type?.split(',') || parameters._type?.split(','); //TODO, does gatherParams not pull from the query as well? Why is this OR required?
 
