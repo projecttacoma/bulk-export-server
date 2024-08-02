@@ -44,6 +44,18 @@ async function kickoffImport(request, reply) {
           ]
         };
       });
+      // check if bulk status is byPatient, if so, add inputdetails
+      if (bulkStatus.byPatient) {
+        importManifest.parameter.push({
+          name: 'inputDetails',
+          part: [
+            {
+              name: 'subjectType',
+              valueCode: 'Patient'
+            }
+          ]
+        });
+      }
 
       // TODO: add provenance?
       const headers = {
