@@ -33,9 +33,9 @@ const bulkExport = async (request, reply) => {
     request.log.info('Base >>> $export');
     const clientEntry = await addPendingBulkExportRequest();
 
-    const types = request.query._type?.split(',') || parameters._type?.split(','); //TODO, does gatherParams not pull from the query as well? Why is this OR required?
+    const types = parameters._type?.split(',');
 
-    const elements = request.query._elements?.split(',') || parameters._elements?.split(',');
+    const elements = parameters._elements?.split(',');
 
     // Enqueue a new job into Redis for handling
     const job = {
