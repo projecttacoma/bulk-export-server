@@ -84,13 +84,13 @@ describe('check export logic', () => {
       expect(fs.existsSync(expectedFileNameServiceRequest)).toBe(true);
     });
     test('Expect folder created and export to fail when _typeFilter parameter is retrieved from request and contains an invalid param', async () => {
+      // Note: invalid types are checked in the export service
       await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: typeFilterWithInvalidType });
       expect(fs.existsSync('./tmp/123456')).toBe(true);
       expect(fs.existsSync(expectedFileNameInvalidType)).toBe(false);
     });
     test('Expect export to fail when _typeFilter parameter is retrieved from request but the value set is invalid', async () => {
       await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: typeFilterWOValueSet });
-      // TODO: this currently fails and does not create a folder (throws error instead). Do we want a more graceful response?
       expect(fs.existsSync(expectedFileNameWOValueSet)).toBe(false);
     });
     test('Expect folder created and export successful when _bySubject parameter is retrieved from request', async () => {
