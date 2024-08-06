@@ -293,6 +293,28 @@ describe('Check barebones bulk export logic (failure)', () => {
       });
   });
 
+  test('throws 400 error when "_bySubject" parameter used in system-level export', async () => {
+    await supertest(app.server)
+      .post('/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_bySubject',
+            valueString: 'test'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'The "_bySubject" parameter cannot be used in a system-level export request.'
+        );
+      });
+  });
+
   test('throws 400 error when POST request body is not of resourceType "Parameters"', async () => {
     await supertest(app.server)
       .post('/$export')
@@ -653,6 +675,84 @@ describe('Check group-level export logic (failure)', () => {
         expect(response.body.issue[0].code).toEqual(400);
         expect(response.body.issue[0].details.text).toEqual(
           'Parameters must be specified in a request body for POST requests.'
+        );
+      });
+  });
+
+  afterEach(async () => {
+    await cleanUpDb();
+  });
+});
+
+describe('Check by subject export logic', () => {
+  beforeEach(async () => {
+    await bulkStatusSetup();
+    await app.ready();
+  });
+
+  test('check 202 for Patient bySubject', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_bySubject',
+            valueString: 'Patient'
+          }
+        ]
+      })
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 for Group bySubject', async () => {
+    await createTestResource(testGroup, 'Group');
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Group/testGroup/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: '_bySubject',
+            valueString: 'Patient'
+          }
+        ]
+      })
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('returns 400 for a _bySubject call that specifies a subject other than Patient', async () => {
+    await supertest(app.server)
+      .get('/Patient/$export?_bySubject=Other')
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'Server does not support the _bySubject parameter for values other than Patient.'
+        );
+      });
+  });
+
+  test('returns 400 for a _bySubject call where _type does not include Patient', async () => {
+    await supertest(app.server)
+      .get('/Patient/$export?_bySubject=Patient&_type=Condition')
+      .expect(400)
+      .then(response => {
+        expect(response.body.resourceType).toEqual('OperationOutcome');
+        expect(response.body.issue[0].code).toEqual(400);
+        expect(response.body.issue[0].details.text).toEqual(
+          'When _type is specified with _bySubject Patient, the Patient type must be included in the _type parameter.'
         );
       });
   });

@@ -49,14 +49,18 @@ const buildSearchParamList = resourceType => {
  * If the _type parameter doesn't exist, the function will simply export all resource types included in the supportedResources list.
  * If the _typeFilter parameter is defined but the _type parameter is *not* defined, the function will export all resource types
  * included in the supportedResources list, but the resource types specified in the _typeFilter query will be filtered.
- * @param {string} clientId  an id to add to the file name so the client making the request can be tracked
+ * @param {Object} jobOptions options object allowing for the following members:
+ * @param {string} clientEntry an id to add to the file name so the client making the request can be tracked
  * @param {Array} types Array of types to be queried for, retrieved from request params
  * @param {string} typeFilter String of comma separated FHIR REST search queries
  * @param {string | Array} patient Patient references from the "patient" param, used to filter results
  * @param {boolean} systemLevelExport boolean flag from job that signals whether request is for system-level export (determines filtering)
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
+ * @param {Array} elements Array of elements parameters that indicate how to omit any unlisted, non-mandatory elements
+ * @param {boolean} byPatient boolean flag from job that signals whether resulting files should be grouped by patient (versus by type)
  */
-const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelExport, patientIds, elements) => {
+const exportToNDJson = async jobOptions => {
+  const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements, byPatient } = jobOptions;
   try {
     const dirpath = './tmp/';
     fs.mkdirSync(dirpath, { recursive: true });
@@ -185,19 +189,73 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
       return splitRef[splitRef.length - 1];
     });
 
-    let docs = exportTypes.map(async collectionName => {
-      return getDocuments(
-        collectionName,
-        searchParameterQueries[collectionName],
-        valueSetQueries[collectionName],
-        patientParamIds || patientIds,
-        elementsQueries[collectionName]
-      );
-    });
+    let docs;
+    if (byPatient) {
+      // use parameter patient or group patient ids or pull all patient ids from database
+      const ids =
+        patientParamIds ||
+        patientIds ||
+        (
+          await getDocuments(
+            'Patient',
+            searchParameterQueries['Patient'],
+            valueSetQueries['Patient'],
+            patientParamIds || patientIds,
+            elementsQueries['Patient']
+          )
+        ).document.map(p => p.id);
+
+      docs = ids.map(async patientId => {
+        // create patient-based subject header
+        const subjectHeader = {
+          resourceType: 'Parameters',
+          parameter: [
+            {
+              name: 'subject',
+              valueReference: {
+                reference: `Patient/${patientId}`
+              }
+            }
+          ]
+        };
+        // for each patient, collect resource documents from each export type collection
+        const typeDocs = exportTypes.map(async collectionName => {
+          return (
+            await getDocuments(
+              collectionName,
+              searchParameterQueries[collectionName],
+              valueSetQueries[collectionName],
+              [patientId],
+              elementsQueries[collectionName]
+            )
+          ).document;
+        });
+
+        //flatten all exportType arrays into a single array
+        const patientDocuments = (await Promise.all(typeDocs)).flat();
+        // append subject header as the first resource
+        patientDocuments.unshift(subjectHeader);
+        return {
+          // use the patient id as the document name (will be "{patientId}.ndjson")
+          name: patientId,
+          document: patientDocuments
+        };
+      });
+    } else {
+      docs = exportTypes.map(async collectionName => {
+        return getDocuments(
+          collectionName,
+          searchParameterQueries[collectionName],
+          valueSetQueries[collectionName],
+          patientParamIds || patientIds,
+          elementsQueries[collectionName]
+        );
+      });
+    }
     docs = await Promise.all(docs);
     docs.forEach(doc => {
       if (doc.document) {
-        writeToFile(doc.document, doc.collectionName, clientId);
+        writeToFile(doc.document, doc.name, clientEntry);
       }
     });
 
@@ -217,10 +275,10 @@ const exportToNDJson = async (clientId, types, typeFilter, patient, systemLevelE
     */
 
     // mark bulk status job as complete after all files have been written
-    await updateBulkExportStatus(clientId, BULKSTATUS_COMPLETED);
+    await updateBulkExportStatus(clientEntry, BULKSTATUS_COMPLETED);
     return true;
   } catch (e) {
-    await updateBulkExportStatus(clientId, BULKSTATUS_FAILED, { message: e.message, code: 500 });
+    await updateBulkExportStatus(clientEntry, BULKSTATUS_FAILED, { message: e.message, code: 500 });
     return false;
   }
 };
@@ -317,21 +375,21 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
     });
   }
 
-  return { document: docs, collectionName: collectionName };
+  return { document: docs, name: collectionName };
 };
 
 /**
  * Writes the contents of a mongo document to an ndjson file with the appropriate resource
  * name, stored in a directory under the client's id
  * @param {Object} doc A mongodb document containing fhir resources
- * @param {string} type The fhir resourceType contained in the mongo document
+ * @param {string} filebase The base filename: either the fhir resourceType or patient id
  * @param {string} clientId The id of the client making the export request
  * @returns
  */
-const writeToFile = function (doc, type, clientId) {
+const writeToFile = function (doc, filebase, clientId) {
   let dirpath = './tmp/' + clientId;
   fs.mkdirSync(dirpath, { recursive: true });
-  const filename = path.join(dirpath, `${type}.ndjson`);
+  const filename = path.join(dirpath, `${filebase}.ndjson`);
 
   let lineCount = 0;
   if (Object.keys(doc).length > 0) {

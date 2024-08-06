@@ -109,9 +109,10 @@ const findResourcesWithAggregation = async (query, resourceType, options = {}) =
 /**
  * Called as a result of export request. Adds a new clientId to db
  * which can be queried to get updates on the status of the bulk export
+ * @param {boolean} byPatient indicates whether this export request groups data by patient (versus by type)
  * @returns the id of the inserted client
  */
-const addPendingBulkExportRequest = async () => {
+const addPendingBulkExportRequest = async (byPatient = false) => {
   const collection = db.collection('bulkExportStatuses');
   const clientId = uuidv4();
   const bulkExportClient = {
@@ -120,7 +121,8 @@ const addPendingBulkExportRequest = async () => {
     numberOfRequestsInWindow: 0,
     timeOfFirstValidRequest: null,
     error: {},
-    warnings: []
+    warnings: [],
+    byPatient: byPatient
   };
   await collection.insertOne(bulkExportClient);
   return clientId;

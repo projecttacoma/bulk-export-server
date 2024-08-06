@@ -3,5 +3,13 @@
     "id": "testEncounter",
     "subject": {
       "reference": "Patient/testPatient"
+    },
+    "type": {
+      "coding": [
+        {
+          "system": "http://example.com",
+          "code": "example-code-1"
+        }
+      ]
     }
   }

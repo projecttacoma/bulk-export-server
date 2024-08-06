@@ -32,7 +32,7 @@ describe('Test ndjson retrieval from specified url', () => {
 
   test('Retrieve ndjson content for valid url', async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
-    await exportToNDJson(clientId, mockType);
+    await exportToNDJson({ clientEntry: clientId, types: [mockType] });
     await supertest(app.server)
       .get(`/${clientId}/Patient.ndjson`)
       .expect(200)
