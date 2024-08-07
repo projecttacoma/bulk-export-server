@@ -62,7 +62,7 @@ const buildSearchParamList = resourceType => {
 const exportToNDJson = async jobOptions => {
   const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements, byPatient } = jobOptions;
   try {
-    const dirpath = './tmp/';
+    const dirpath = `./tmp/${clientEntry}`;
     fs.mkdirSync(dirpath, { recursive: true });
     let requestTypes = [];
     if (types) {
