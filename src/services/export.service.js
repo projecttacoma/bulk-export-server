@@ -1,5 +1,5 @@
 const { addPendingBulkExportRequest, findResourceById } = require('../util/mongo.controller');
-const supportedResources = require('../util/supportedResources');
+const supportedResources = require('../util/supportedResources').filter(r => r !== 'ValueSet'); //exclude ValueSet (may be stored but not exported)
 const exportQueue = require('../resources/exportQueue');
 const patientResourceTypes = require('../compartment-definition/patientExportResourceTypes.json');
 const { createOperationOutcome } = require('../util/errorUtils');
