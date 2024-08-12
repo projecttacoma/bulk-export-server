@@ -254,10 +254,30 @@ const exportToNDJson = async jobOptions => {
     }
     docs = await Promise.all(docs);
     docs.forEach(doc => {
-      if (doc.document) {
+      if (doc.document && doc.name !== 'Condition') {
         writeToFile(doc.document, doc.name, clientEntry);
       }
     });
+
+    const ndjsonBadResourceType = [
+      `{"resourceType":"Condition","id":"Condition-26-94","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429009003"}],"subject.reference":"Patient/Patient-25","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
+      `{"resourceType":"Condition","id":"Condition-26-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429242008"}],"subject.reference":"Patient/Patient-26","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
+      `{"resourceType":"Condition","id":"Condition-43-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"217082002"}],"subject.reference":"Patient/Patient-43","onsetDateTime":"2018-12-31T00:00:00.000Z"}`
+    ];
+
+    const malformedNDJSON = [
+      `{"resourceType":"Condition","id":"Condition-26-94","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429009003"}],"subject.reference":"Patient/Patient-25","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
+      `{"resourceType":"Condition","id":"Condition-26-93","clinicalStatus.coding":["system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429242008"}],"subject.reference":"Patient/Patient-26","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
+      `{"resourceType":"Condition","id":"Condition-43-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"217082002"}],"subject.reference":"Patient/Patient-43","onsetDateTime":"2018-12-31T00:00:00.000Z"}`
+    ];
+
+    const goodNdjson = [
+      `{"resourceType":"Condition","id":"Condition-26-94","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429009003"}],"subject.reference":"Patient/Patient-25","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
+      `{"resourceType":"Condition","id":"Condition-26-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429242008"}],"subject.reference":"Patient/Patient-26","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
+      `{"resourceType":"Condition","id":"Condition-43-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"217082002"}],"subject.reference":"Patient/Patient-43","onsetDateTime":"2018-12-31T00:00:00.000Z"}`
+    ];
+
+    writeStringToFile(malformedNDJSON, 'Condition', clientEntry);
 
     /* 
      TODO: if we want to catch and report any warnings, push them to the
@@ -376,6 +396,20 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
   }
 
   return { document: docs, name: collectionName };
+};
+
+const writeStringToFile = function (string, filebase, clientId) {
+  let dirpath = './tmp/' + clientId;
+  fs.mkdirSync(dirpath, { recursive: true });
+  const filename = path.join(dirpath, `${filebase}.ndjson`);
+
+  const stream = fs.createWriteStream(filename, { flags: 'a' });
+  string.forEach(d => {
+    console.log(typeof d);
+    const s = '\r\n' + d;
+    stream.write(s);
+  });
+  stream.end();
 };
 
 /**
