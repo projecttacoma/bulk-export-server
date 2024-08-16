@@ -55,7 +55,6 @@ describe('check export logic', () => {
 
     test('returns empty record of valid search params for invalid resource type', () => {
       const results = buildSearchParamList('BiologicallyDerivedProduct');
-      console.log(results);
       expect(results).toBeDefined();
     });
   });
@@ -108,9 +107,9 @@ describe('check export logic', () => {
 
   describe('getDocuments', () => {
     describe('_typeFilter tests', () => {
-      test('returns Condition document when _typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z', async () => {
+      test('returns Condition document when _typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z', async () => {
         const property = {
-          recordedDate: 'gt2019-01-03T00:00:00Z'
+          'recorded-date': 'gt2019-01-03T00:00:00Z'
         };
         const searchParams = buildSearchParamList('Condition');
         const filter = qb.buildSearchQuery({
@@ -122,11 +121,11 @@ describe('check export logic', () => {
         expect(docObj.document.length).toEqual(1);
       });
 
-      test('returns Condition document when _typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z&onsetDateTime=gt2019-01-03T00:00:00Z', async () => {
+      test('returns Condition document when _typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z&onset-date=gt2019-01-03T00:00:00Z', async () => {
         // test for the "&" operator within the query
         const properties = {
-          recordedDate: 'gt2019-01-03T00:00:00Z',
-          onsetDateTime: 'gt2019-01-03T00:00:00Z'
+          'recorded-date': 'gt2019-01-03T00:00:00Z',
+          'onset-date': 'gt2019-01-03T00:00:00Z'
         };
         const searchParams = buildSearchParamList('Condition');
         const filter = qb.buildSearchQuery({
@@ -138,10 +137,10 @@ describe('check export logic', () => {
         expect(docObj.document.length).toEqual(1);
       });
 
-      test('returns no documents when _typeFilter filters out all documents (_typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z&onsetDateTime=lt2019-01-03T00:00:00Z', async () => {
+      test('returns no documents when _typeFilter filters out all documents (_typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z&onset-date=lt2019-01-03T00:00:00Z', async () => {
         const properties = {
-          recordedDate: 'gt2019-01-03T00:00:00Z',
-          onsetDateTime: 'lt2019-01-03T00:00:00Z'
+          'recorded-date': 'gt2019-01-03T00:00:00Z',
+          'onset-date': 'lt2019-01-03T00:00:00Z'
         };
         const searchParams = buildSearchParamList('Condition');
         const filter = qb.buildSearchQuery({
@@ -153,12 +152,12 @@ describe('check export logic', () => {
         expect(docObj.document.length).toEqual(0);
       });
 
-      test('returns Condition document when _typeFilter has "or" condition (_typeFilter=Condition?recordedDate=gt2019-01-03T00:00:00Z,onsetDateTime=lt2019-01-03T00:00:00Z', async () => {
+      test('returns Condition document when _typeFilter has "or" condition (_typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z,onset-date=lt2019-01-03T00:00:00Z', async () => {
         const recordedDateProperty = {
-          recordedDate: 'gt2019-01-03T00:00:00Z'
+          'recorded-date': 'gt2019-01-03T00:00:00Z'
         };
         const onsetDateTimeProperty = {
-          onsetDateTime: 'lt2019-01-03T00:00:00Z'
+          'onset-date': 'lt2019-01-03T00:00:00Z'
         };
         const searchParams = buildSearchParamList('Condition');
         const recordedDateFilter = qb.buildSearchQuery({
