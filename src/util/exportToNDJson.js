@@ -32,7 +32,7 @@ const buildSearchParamList = resourceType => {
   try {
     const searchParameterList = getSearchParameters(resourceType, '4_0_1');
     searchParameterList.forEach(paramDef => {
-      // map xpath to parameter description
+      // map name to parameter description
       {
         searchParams[paramDef.name] = paramDef;
       }
