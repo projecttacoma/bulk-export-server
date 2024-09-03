@@ -262,7 +262,7 @@ const exportToNDJson = async jobOptions => {
     const ndjsonBadResourceType = [
       `{"resourceType":"Condition","id":"Condition-26-94","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429009003"}],"subject.reference":"Patient/Patient-25","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
       `{"resourceType":"Condition","id":"Condition-26-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"429242008"}],"subject.reference":"Patient/Patient-26","onsetDateTime":"2017-10-01T00:00:00.000Z"}`,
-      `{"resourceType":"Condition","id":"Condition-43-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"217082002"}],"subject.reference":"Patient/Patient-43","onsetDateTime":"2018-12-31T00:00:00.000Z"}`
+      `{"resourceType":"Dog","id":"Condition-43-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"217082002"}],"subject.reference":"Patient/Patient-43","onsetDateTime":"2018-12-31T00:00:00.000Z"}`
     ];
 
     const malformedNDJSON = [
@@ -277,7 +277,7 @@ const exportToNDJson = async jobOptions => {
       `{"resourceType":"Condition","id":"Condition-43-93","clinicalStatus.coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"active"}],"code.coding":[{"system":"http://snomed.info/sct","version":"2017.09.20AA","code":"217082002"}],"subject.reference":"Patient/Patient-43","onsetDateTime":"2018-12-31T00:00:00.000Z"}`
     ];
 
-    writeStringToFile(malformedNDJSON, 'Condition', clientEntry);
+    writeStringToFile(goodNdjson, 'Condition', clientEntry);
 
     /* 
      TODO: if we want to catch and report any warnings, push them to the
