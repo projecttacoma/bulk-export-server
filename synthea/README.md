@@ -4,7 +4,7 @@ The [Synthea](https://github.com/synthetichealth/synthea) project can be used to
 
 ## Usage
 
-- Download the Synthea codebase from https://github.com/synthetichealth/synthea
+- Download the [Synthea](https://github.com/synthetichealth/synthea) codebase: If [synthetichealth/synthea#1501](https://github.com/synthetichealth/synthea/pull/1501) has been merged, you can use the `master` branch, otherwise use the branch listed in that PR.
 - In the Synthea project, use `./run_synthea -fm {mapping file location}` to run synthea with the flexporter
 - You may also use the flexporter standalone to map an existing exported file `./run_flexporter -fm {mapping file location} -s {source fhir file}`
 - See the [flexporter documentation](https://github.com/synthetichealth/synthea/wiki/Flexporter) for additional information on the flexporter, mapping file, and limitations.
@@ -14,8 +14,7 @@ Quality Measurement calculation requires data conformant with qicore, an expansi
 
 1. Use [elm-parser-for-ecqms fhir_review branch](https://github.com/projecttacoma/elm-parser-for-ecqms/tree/fhir_review) and get data requirements to build a combined list of mustSupports for all resources across the set of measures.
 2. Use [fqm-execution](https://github.com/projecttacoma/fqm-execution) and get data requirements to build a full list of profiles used.
-3. For all resource types, ensure resource is exported as a top level resource by Synthea or already supported by the flexporter mapping. If not, use the flexporter `create_resource` action to export the resource based on a logical existing exported resource or based on a logical Synthea module state. Resources that are only used for SDEs may be initially ignored.
-4. Make sure all profiles are applied to the correct exported resource.
+3. For all resource types, ensure resource is exported as a top level resource by Synthea or already supported by the flexporter mapping. If not, use the flexporter `create_resource` action to export the resource based on a logical existing exported resource or based on a logical Synthea module state. Resources that are only used for SDEs may be initially ignored. Make sure all profiles are applied to the correct exported resource.
 4. For each must support:
     - Check the resource's [qicore 4.1.1](https://hl7.org/fhir/us/qicore/STU4.1.1/) profile Snapshot Table to check if the mustSupport is also required by the profile (minimum cardinality 1). If not, it may be initially ignored.
     - If required, check if synthea already exports it by looking in the [FhirR4.java](https://github.com/synthetichealth/synthea/blob/master/src/main/java/org/mitre/synthea/export/FhirR4.java) file. You can look for a string like `Condition()` for an example of how the Fhir object is created and what fields are set on it.
