@@ -4,9 +4,9 @@ The [Synthea](https://github.com/synthetichealth/synthea) project can be used to
 
 ## Usage
 
-- Download the [Synthea](https://github.com/synthetichealth/synthea) codebase: If [synthetichealth/synthea#1501](https://github.com/synthetichealth/synthea/pull/1501) has been merged, you can use the `master` branch, otherwise use the branch listed in that PR.
-- In the Synthea project, use `./run_synthea -fm {mapping file location}` to run synthea with the flexporter
-- You may also use the flexporter standalone to map an existing exported file `./run_flexporter -fm {mapping file location} -s {source fhir file}`
+- Download the [Synthea](https://github.com/synthetichealth/synthea) codebase.
+- In the Synthea project, use `./run_synthea -fm {mapping file location}` to run synthea with the flexporter.
+- You may also use the flexporter standalone to map an existing exported file: `./run_flexporter -fm {mapping file location} -s {source fhir file}`.
 - See the [flexporter documentation](https://github.com/synthetichealth/synthea/wiki/Flexporter) for additional information on the flexporter, mapping file, and limitations.
 
 ## Building the Mapping File
