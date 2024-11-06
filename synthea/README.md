@@ -10,17 +10,18 @@ The [Synthea](https://github.com/synthetichealth/synthea) project can be used to
 - See the [flexporter documentation](https://github.com/synthetichealth/synthea/wiki/Flexporter) for additional information on the flexporter, mapping file, and limitations.
 
 ## Building the Mapping File
+
 Quality Measurement calculation requires data conformant with qicore, an expansive IG, which would require expansive effort to fully map. As such, we can piecemeal address the IG requirements by supporting requirements for individual measures. The recommended process for creating a mapping that addresses a set of measures is:
 
 1. Use [elm-parser-for-ecqms fhir_review branch](https://github.com/projecttacoma/elm-parser-for-ecqms/tree/fhir_review) and get data requirements to build a combined list of mustSupports for all resources across the set of measures.
 2. Use [fqm-execution](https://github.com/projecttacoma/fqm-execution) and get data requirements to build a full list of profiles used.
 3. For all resource types, ensure resource is exported as a top level resource by Synthea or already supported by the flexporter mapping. If not, use the flexporter `create_resource` action to export the resource based on a logical existing exported resource or based on a logical Synthea module state. Resources that are only used for SDEs may be initially ignored. Make sure all profiles are applied to the correct exported resource.
 4. For each must support:
-    - Check the resource's [qicore 4.1.1](https://hl7.org/fhir/us/qicore/STU4.1.1/) profile Snapshot Table to check if the mustSupport is also required by the profile (minimum cardinality 1). If not, it may be initially ignored.
-    - If required, check if synthea already exports it by looking in the [FhirR4.java](https://github.com/synthetichealth/synthea/blob/master/src/main/java/org/mitre/synthea/export/FhirR4.java) file. You can look for a string like `Condition()` for an example of how the Fhir object is created and what fields are set on it.
-    - If Synthea doesn't export it, check if the existing mapping file already adds it through a mapping.
-    - If not, fill from something logical that synthea does export (if something logical exists). Understanding what values are logical may involve looking at the FHIR specification and/or the measure's CQL for how the must support field is used in the measure logic.
-    - If a logical field doesn't exist, fill from a chosen pre-set value or choose randomly from a limited set of values. 
+   - Check the resource's [qicore 4.1.1](https://hl7.org/fhir/us/qicore/STU4.1.1/) profile Snapshot Table to check if the mustSupport is also required by the profile (minimum cardinality 1). If not, it may be initially ignored.
+   - If required, check if synthea already exports it by looking in the [FhirR4.java](https://github.com/synthetichealth/synthea/blob/master/src/main/java/org/mitre/synthea/export/FhirR4.java) file. You can look for a string like `Condition()` for an example of how the Fhir object is created and what fields are set on it.
+   - If Synthea doesn't export it, check if the existing mapping file already adds it through a mapping.
+   - If not, fill from something logical that synthea does export (if something logical exists). Understanding what values are logical may involve looking at the FHIR specification and/or the measure's CQL for how the must support field is used in the measure logic.
+   - If a logical field doesn't exist, fill from a chosen pre-set value or choose randomly from a limited set of values.
 
 ## CMS130 Mapping Example
 
@@ -31,31 +32,31 @@ Below is the example list of resources and must support elements collated from e
   - "clinicalStatus",
   - "onset",
   - "abatement"
-- Coverage: * exported as a contained resource only -> ignored since Coverage is only used for SDEs
+- Coverage: \* exported as a contained resource only -> ignored since Coverage is only used for SDEs
   - "type",
   - "period"
-- DeviceRequest: * not exported -> created based on existing exported Device resources
+- DeviceRequest: \* not exported -> created based on existing exported Device resources
   - "code",
   - "authoredOn",
   - "status",
   - "intent",
-  - "modifierExtension", * not exported -> ignored since modifierExtension is only used for doNotPerform
+  - "modifierExtension", \* not exported -> ignored since modifierExtension is only used for doNotPerform
   - "modifierExtension.url",
   - "modifierExtension.value"
 - Encounter:
   - "status",
   - "type",
   - "period",
-  - "diagnosis",*
-   - "diagnosis.condition", * not exported -> set using a js function that finds conditions that reference this encounter and creates a reference to that condition
+  - "diagnosis",\*
+  - "diagnosis.condition", \* not exported -> set using a js function that finds conditions that reference this encounter and creates a reference to that condition
   - "hospitalization"
 - MedicationRequest:
   - "medication",
-  - "doNotPerform", * not exported -> set to false because all resources exported from Synthea are logically performed
+  - "doNotPerform", \* not exported -> set to false because all resources exported from Synthea are logically performed
   - "status",
   - "intent",
   - "dosageInstruction",
-  - "dispenseRequest", * not exported -> set from the `authoredOn` field because the measure logic coalesces `dispenseRequest.validityPeriod.start` with `authoredOn`
+  - "dispenseRequest", \* not exported -> set from the `authoredOn` field because the measure logic coalesces `dispenseRequest.validityPeriod.start` with `authoredOn` --ignore for now
   - "authoredOn"
 - Observation:
   - "code",
@@ -67,8 +68,56 @@ Below is the example list of resources and must support elements collated from e
   - "code",
   - "performed",
   - "status"
-- ServiceRequest: * exported as a contained resource only -> created based on existing exported Procedure resources
+- ServiceRequest: \* exported as a contained resource only -> created based on existing exported Procedure resources
   - "code",
   - "authoredOn",
   - "status",
   - "intent"
+
+Below are the additional resources and must support elements added after referencing the reference CMS Quality Payment Program (QPP) Implementation Guide.
+
+- AdverseEvent: \* not exported -> created for each Patient resource created
+  - "event" \* not exported -> set to a random code from the http://hl7.org/fhir/ValueSet/adverse-event-type ValueSet
+- Communication: \* not exported -> created for each Patient resource created
+  - "status" \* not exported -> set to `completed`
+- CommunicationNotDone: \* not exported -> ignoring for now
+  - "statusReason"
+- ConditionProblemsHealthConcerns: \* not exported -> ignoring for now
+  - "category",
+  - "code"
+- MedicationAdministration: \* not exported -> created for each Procedure resource created
+  - "status", \* not exported -> set to `completed`
+  - "medication", \* not exported -> set to a random code from the `http://hl7.org/fhir/ValueSet/medication-codes` ValueSet
+  - "effective" \* not exported -> set to the `Procedure.performed` Period
+- MedicationAdministrationNotDone: \* not exported -> ignoring for now
+  - "statusReason",
+  - "medication"
+- MedicationDispense: \* not exported -> created for each Procedure resource created
+  - "status", \* not exported -> set to `completed`
+  - "medication" \* not exported -> set to a random code from the `http://hl7.org/fhir/ValueSet/medication-codes` ValueSet
+- MedicationNotRequested: \* not exported, ignoring for now
+  - "status",
+  - "intent",
+  - "medication",
+  - "authoredOn",
+  - "reasonCode"
+- ObservationCanceled: \* not exported -> ignoring for now
+  - "extension",
+  - "status",
+  - "code",
+  - "issued"
+- ProcedureNotDone: \* not exported -> ignoring for now
+  - "status",
+  - "code"
+- ServiceNotRequested: \* not exported -> ignoring for now
+  - "status",
+  - "code",
+  - "authoredOn"
+- SimpleObservation: \* not exported -> ignoring for now
+  - "status",
+  - "category",
+  - "code"
+- Task: \* not exported, created for each Procedure resource created where Procedure.performed is of type Period
+  - "status", \* not exported -> set to `accepted`
+  - "code", \* not exported -> set to a random code from the `http://hl7.org/fhir/ValueSet/task-code` ValueSet
+  - "executionPeriod" \* not exported, set to the `Procedure.performed` Period
