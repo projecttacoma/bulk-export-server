@@ -64,7 +64,7 @@ actions:
     create_resource:
       - resourceType: ServiceRequest
         based_on:
-          resource: Procedure.performed.ofType(Period) # handle value setting for period choice type
+          resource: Procedure
         fields:
           - location: ServiceRequest.intent
             value: order
@@ -74,27 +74,12 @@ actions:
             value: $findRef([Patient])
           - location: ServiceRequest.status
             value: completed # all procedures are exported as completed
-          - location: ServiceRequest.authoredOn
+          - if: Procedure.performed.ofType(Period) # handle value setting for period choice type
+            location: ServiceRequest.authoredOn
             value: $getField([Procedure.performed.start]) # period choice type
-          - location: ServiceRequest.code
-            value: $getField([Procedure.code])
-        writeback:
-          - location: Procedure.basedOn.reference
-            value: $setRef([ServiceRequest])
-      - resourceType: ServiceRequest
-        based_on:
-          resource: Procedure.performed.ofType(dateTime) # handle value setting for datetime choice type
-        fields:
-          - location: ServiceRequest.intent
-            value: order
-          - location: ServiceRequest.encounter.reference
-            value: $getField([Procedure.encounter.reference])
-          - location: ServiceRequest.subject.reference
-            value: $findRef([Patient])
-          - location: ServiceRequest.status
-            value: completed # all procedures are exported as completed
-          - location: ServiceRequest.authoredOn
-            value: $getField([Procedure.performed]) # datetime choice type
+          - if: Procedure.performed.ofType(dateTime) # handle value setting for datetime choice type
+            location: ServiceRequest.authoredOn
+            value: $getField([Procedure.performed]) #datetime
           - location: ServiceRequest.code
             value: $getField([Procedure.code])
         writeback:
