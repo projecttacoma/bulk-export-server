@@ -82,7 +82,7 @@ Below are the additional resources and must support elements likely required for
   - "status" \* not exported -> set to `completed`
 - CommunicationNotDone: \* not exported -> ignoring for now
   - "statusReason"
-- ConditionProblemsHealthConcerns: \* not exported -> ignoring for now
+- ConditionProblemsHealthConcerns: \* not exported -> using qicore 4.1.1 version's Condition instead
   - "category",
   - "code"
 - MedicationAdministration: \* not exported -> created for each Procedure resource created
