@@ -74,7 +74,7 @@ Below is the example list of resources and must support elements collated from e
   - "status",
   - "intent"
 
-Below are the additional resources and must support elements added after referencing the reference CMS Quality Payment Program (QPP) Implementation Guide.
+Below are the additional resources and must support elements likely required for measures based on the Quality Payment Program (QPP).
 
 - AdverseEvent: \* not exported -> created for each Patient resource created
   - "event" \* not exported -> set to a random code from the http://hl7.org/fhir/ValueSet/adverse-event-type ValueSet
