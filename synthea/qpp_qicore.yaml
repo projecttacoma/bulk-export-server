@@ -99,7 +99,7 @@ actions:
             value: completed
           - location: DeviceRequest.intent
             value: order
-            # Not sure what AdverseEvent would be close to, creating one per patient
+      # Creating one AdverseEvent per patient
       - resourceType: AdverseEvent
         based_on:
           resource: Patient
@@ -107,8 +107,8 @@ actions:
             - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-adverseevent
         fields:
           - location: AdverseEvent.event.coding
-            value: $randomCode([http://hl7.org/fhir/ValueSet/adverse-event-type])
-      # Not sure what Communication would be close to, creating one per patient
+            value: $randomCode([http://hl7.org/fhir/ValueSet/adverse-event-type]) # may change in future to use a smaller subset of the ValueSet
+      # Creating one Communication per patient
       - resourceType: Communication
         based_on:
           resource: Patient
@@ -116,11 +116,11 @@ actions:
             - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-communication
         fields:
           - location: Communication.status
-            value: completed
-      # Adding a MedicationAdministration for each Procedure resource
+            value: $randomCode([http://hl7.org/fhir/ValueSet/event-status,code])
+      # Creating one MedicationAdministration for each MedicationRequest
       - resourceType: MedicationAdministration
         based_on:
-          resource: Procedure
+          resource: MedicationRequest
           profiles:
             - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-medicationadministration
         fields:
@@ -129,19 +129,19 @@ actions:
           - location: MedicationAdministration.medication.coding
             value: $randomCode([http://hl7.org/fhir/ValueSet/medication-codes])
           - location: MedicationAdministration.effective
-            value: $getField([Procedure.performed])
-      # Adding a MedicationDispense for each Procedure resource
+            value: $getField([MedicationRequest.dispenseRequest.validityPeriod])
+      # Creating one MedicationDispense for each MedicationRequest resource
       - resourceType: MedicationDispense
         based_on:
-          resource: Procedure
+          resource: MedicationRequest
           profiles:
             - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-medicationdispense
         fields:
           - location: MedicationDispense.status
-            value: completed
+            value: $randomCode([http://hl7.org/fhir/ValueSet/medicationdispense-status,code])
           - location: MedicationDispense.medication.coding
             value: $randomCode([http://hl7.org/fhir/ValueSet/medication-codes])
-      # Not sure what Task would be close to, creating one per procedure where performed is of type period
+      # Creating one Task per Procedure where performed is of type period
       - resourceType: Task
         based_on:
           resource: Procedure.performed.ofType(Period) # handle value setting for period choice type
@@ -149,7 +149,7 @@ actions:
             - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-task
         fields:
           - location: Task.status
-            value: accepted
+            value: $randomCode([http://hl7.org/fhir/ValueSet/task-status,code])
           - location: Task.code.coding
             value: $randomCode([http://hl7.org/fhir/ValueSet/task-code]) # randomize based on values available
           - location: Task.executionPeriod
