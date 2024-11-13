@@ -126,8 +126,8 @@ actions:
         fields:
           - location: MedicationAdministration.status
             value: completed
-          - location: MedicationAdministration.medication.coding
-            value: $randomCode([http://hl7.org/fhir/ValueSet/medication-codes])
+          - location: MedicationAdministration.medication
+            value: $getField([MedicationRequest.medication])
           - location: MedicationAdministration.effective
             value: $getField([MedicationRequest.dispenseRequest.validityPeriod])
       # Creating one MedicationDispense for each MedicationRequest resource
@@ -139,8 +139,8 @@ actions:
         fields:
           - location: MedicationDispense.status
             value: $randomCode([http://hl7.org/fhir/ValueSet/medicationdispense-status,code])
-          - location: MedicationDispense.medication.coding
-            value: $randomCode([http://hl7.org/fhir/ValueSet/medication-codes])
+          - location: MedicationDispense.medication
+            value: $getField([MedicationRequest.medication])
       # Creating one Task per Procedure where performed is of type period
       - resourceType: Task
         based_on:
