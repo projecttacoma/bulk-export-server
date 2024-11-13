@@ -117,19 +117,6 @@ actions:
         fields:
           - location: Communication.status
             value: $randomCode([http://hl7.org/fhir/ValueSet/event-status,code])
-      # Creating one MedicationAdministration for each MedicationRequest
-      - resourceType: MedicationAdministration
-        based_on:
-          resource: MedicationRequest
-          profiles:
-            - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-medicationadministration
-        fields:
-          - location: MedicationAdministration.status
-            value: completed
-          - location: MedicationAdministration.medication
-            value: $getField([MedicationRequest.medication])
-          - location: MedicationAdministration.effective
-            value: $getField([MedicationRequest.dispenseRequest.validityPeriod])
       # Creating one MedicationDispense for each MedicationRequest resource
       - resourceType: MedicationDispense
         based_on:
@@ -139,8 +126,12 @@ actions:
         fields:
           - location: MedicationDispense.status
             value: $randomCode([http://hl7.org/fhir/ValueSet/medicationdispense-status,code])
-          - location: MedicationDispense.medication
-            value: $getField([MedicationRequest.medication])
+          - if: MedicationRequest.medication.ofType(CodeableConcept)
+            location: MedicationDispense.medicationCodeableConcept.coding
+            value: $getField([MedicationRequest.medication.coding])
+          - if: MedicationRequest.medication.ofType(reference)
+            location: MedicationDispense.medicationReference.reference
+            value: $getField([MedicationRequest.medication.reference])
       # Creating one Task per Procedure where performed is of type period
       - resourceType: Task
         based_on:
