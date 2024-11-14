@@ -1,0 +1,179 @@
+---
+name: QI Core - 130 minimal and QPP
+applicability: true
+
+customValueSets:
+  - url: http://example.com/medicationdispense-status-positive
+    compose:
+      include:
+        system: http://hl7.org/fhir/ValueSet/medicationdispense-status
+        concept:
+          - code: in-progress
+            display: In Progress
+          - code: completed
+            display: Completed
+          - code: preparation
+            display: Preparation
+          - code: on-hold
+            display: On Hold
+  - url: http://example.com/medicationdispense-status-negative
+    compose:
+      include:
+        system: http://hl7.org/fhir/ValueSet/medicationdispense-status
+        concept:
+          - code: cancelled
+            display: Cancelled
+          - code: entered-in-error
+            display: Entered in Error
+          - code: stopped
+            display: Stopped
+          - code: declined
+            display: Declined
+
+actions:
+  - name: Apply Profiles
+    profiles:
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-patient
+        applicability: Patient
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-encounter
+        applicability: Encounter
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-condition
+        applicability: Condition
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-observation
+        applicability: Observation
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-procedure
+        applicability: Procedure
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-medicationrequest
+        applicability: MedicationRequest
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-immunization
+        applicability: Immunization
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-careplan
+        applicability: CarePlan
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-imagingstudy
+        applicability: ImagingStudy
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-device
+        applicability: Device
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-practitioner
+        applicability: Practitioner
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-allergyintolerance
+        applicability: AllergyIntolerance
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-claim
+        applicability: Claim
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-coverage
+        applicability: Coverage
+      - profile: http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-servicerequest
+        applicability: ServiceRequest
+
+  - name: Set Missing Values
+    set_values:
+      - applicability: MedicationRequest
+        fields:
+          - location: MedicationRequest.doNotPerform
+            value: 'false'
+          - location: MedicationRequest.dispenseRequest.validityPeriod.start
+            value: $getField([MedicationRequest.authoredOn])
+  - name: Apply Script​
+    execute_script:
+      - apply_to: resource
+        function_name: addDiagnosis
+        resource_type: Encounter
+        function: |
+          function addDiagnosis(resource, bundle) {
+            const conditionEntry = bundle.entry.find(e => e.resource?.resourceType === 'Condition' && e.resource?.encounter?.reference === `urn:uuid:${resource.id}`);
+            if (conditionEntry){
+              resource.diagnosis = [{
+                condition:{
+                  reference: `Condition/${conditionEntry.resource.id}`
+                }
+              }];
+            }
+          }
+  - name: Create Resources
+    create_resource:
+      - resourceType: ServiceRequest
+        based_on:
+          resource: Procedure
+        fields:
+          - location: ServiceRequest.intent
+            value: order
+          - location: ServiceRequest.encounter.reference
+            value: $getField([Procedure.encounter.reference])
+          - location: ServiceRequest.subject.reference
+            value: $findRef([Patient])
+          - location: ServiceRequest.status
+            value: completed # all procedures are exported as completed
+          - if: Procedure.performed.ofType(Period) # handle value setting for period choice type
+            location: ServiceRequest.authoredOn
+            value: $getField([Procedure.performed.start]) # period choice type
+          - if: Procedure.performed.ofType(dateTime) # handle value setting for datetime choice type
+            location: ServiceRequest.authoredOn
+            value: $getField([Procedure.performed]) #datetime
+          - location: ServiceRequest.code
+            value: $getField([Procedure.code])
+        writeback:
+          - location: Procedure.basedOn.reference
+            value: $setRef([ServiceRequest])
+      - resourceType: DeviceRequest
+        based_on:
+          resource: Device
+          profiles:
+            - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-devicerequest
+        fields:
+          - location: DeviceRequest.code.reference
+            value: $findRef([Device])
+          - location: DeviceRequest.authoredOn
+            value: $getField([Device.manufactureDate]) # manufacture time is set 3 weeks before device model's start, so this is close enough
+          - location: DeviceRequest.status
+            value: completed
+          - location: DeviceRequest.intent
+            value: order
+      # Creating one AdverseEvent per patient
+      - resourceType: AdverseEvent
+        based_on:
+          resource: Patient
+          profiles:
+            - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-adverseevent
+        fields:
+          - location: AdverseEvent.event.coding
+            value: $randomCode([http://hl7.org/fhir/ValueSet/adverse-event-type]) # may change in future to use a smaller subset of the ValueSet
+      # Creating one Communication per patient
+      - resourceType: Communication
+        based_on:
+          resource: Patient
+          profiles:
+            - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-communication
+        fields:
+          - location: Communication.status
+            value: $randomCode([http://hl7.org/fhir/ValueSet/event-status,code])
+      # Creating one MedicationDispense for each MedicationRequest resource
+      - resourceType: MedicationDispense
+        based_on:
+          resource: MedicationRequest
+          profiles:
+            - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-medicationdispense
+        fields:
+          - if: MedicationRequest.status = 'stopped'
+            location: MedicationDispense.status
+            value: $randomCode([http://example.com/medicationdispense-status-negative,code])
+          - if: MedicationRequest.status = 'active'
+            location: MedicationDispense.status
+            value: $randomCode([http://example.com/medicationdispense-status-positive,code])
+          - if: MedicationRequest.medication.ofType(CodeableConcept)
+            location: MedicationDispense.medicationCodeableConcept.coding
+            value: $getField([MedicationRequest.medication.coding])
+          - if: MedicationRequest.medication.ofType(reference)
+            location: MedicationDispense.medicationReference.reference
+            value: $getField([MedicationRequest.medication.reference])
+      # Creating one Task per Procedure where performed is of type period
+      - resourceType: Task
+        based_on:
+          resource: Procedure.performed.ofType(Period) # handle value setting for period choice type
+          profiles:
+            - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-task
+        fields:
+          - location: Task.status
+            value: $randomCode([http://hl7.org/fhir/ValueSet/task-status,code])
+          - location: Task.code.coding
+            value: $randomCode([http://hl7.org/fhir/ValueSet/task-code]) # randomize based on values available
+          - location: Task.executionPeriod
+            value: $getField([Procedure.performed])
