@@ -27,6 +27,10 @@ const mockTypeFilter = 'Patient?maritalStatus:in=http://example.com/example-valu
 
 const complexMockTypeFilter =
   'Patient?maritalStatus:in=http://example.com/example-valueset-1,Encounter?type:in=http://example.com/example-valueset-1,ServiceRequest?code:in=http://example.com/example-valueset-1';
+const mockOrTypeFilter = [
+  'Patient?maritalStatus:in=http://example.com/example-valueset-1',
+  'Encounter?type:in=http://example.com/example-valueset-1'
+];
 const expectedFileNameEncounter = './tmp/123456/Encounter.ndjson';
 const expectedFileNameServiceRequest = './tmp/123456/ServiceRequest.ndjson';
 const typeFilterWOValueSet = 'Procedure?type:in=http';
@@ -81,6 +85,11 @@ describe('check export logic', () => {
       expect(fs.existsSync(expectedFileName)).toBe(true);
       expect(fs.existsSync(expectedFileNameEncounter)).toBe(true);
       expect(fs.existsSync(expectedFileNameServiceRequest)).toBe(true);
+    });
+    test('Expect folder created and export successful when Array _typeFilter parameter is retrieved from request', async () => {
+      await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: mockOrTypeFilter });
+      expect(fs.existsSync(expectedFileName)).toBe(true);
+      expect(fs.existsSync(expectedFileNameEncounter)).toBe(true);
     });
     test('Expect folder created and export to fail when _typeFilter parameter is retrieved from request and contains an invalid param', async () => {
       // Note: invalid types are checked in the export service
