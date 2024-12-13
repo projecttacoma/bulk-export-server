@@ -9,6 +9,21 @@ The [Synthea](https://github.com/synthetichealth/synthea) project can be used to
 - You may also use the flexporter standalone to map an existing exported file: `./run_flexporter -fm {mapping file location} -s {source fhir file}`.
 - See the [flexporter documentation](https://github.com/synthetichealth/synthea/wiki/Flexporter) for additional information on the flexporter, mapping file, and limitations.
 
+## Validation and Testing
+1. Set up updated Synthea functionality
+- Functionality from https://github.com/synthetichealth/synthea/pull/1527 is required to run the flexporter, and functionality from https://github.com/synthetichealth/synthea/pull/1540 is required for more diversity in calculations while testing. If not merged, recommend pulling one PR and cherry picking the other.
+-  On your local instance of synthea: in src/main/resources/synthea.properties, uncomment line 301 in order to use the terminology server, and set `exporter.fhir.us_core_version = 3.1.1`.
+- Run synthea with the flexporter to generate patient files. Use -p to specify the number of patients, i.e. `./run_synthea -fm ../../bulk-export-server/synthea/qpp_qicore.yaml -p 10`
+
+2. Use HAPI FHIR validator to validate the patients.
+- Use https://github.com/hapifhir/org.hl7.fhir.validator-wrapper/releases/latest/download/validator_cli.jar
+- Run with the following options `java -jar validator_cli.jar synthea/output/fhir/ -version 4.0.1 -html-output validation.html -ig http://hl7.org/fhir/us/qicore/ImplementationGuide/hl7.fhir.us.qicore%7C4.1.1 -extension any -display-issues-are-warnings -sct us -clear-tx-cache`
+- Most issues are solved by these settings, but some remaining issues that don’t effect calculation may include: "Unknown code 'X9999-"* from the loinc code set
+
+3. Use fqm-execution (or testify) to calculate output patients against measures
+- Example run: `run cli -- reports -m CMS130-bundle.json --patients-directory ../synthea/output/fhir/ --trust-meta-profile true -o -s 2024-01-01 -e 2024-12-31 --report-type summary`
+- This will give a summary of how many patients fall into each population. For CMS130, there is the expectation of some level of diversity in which populations synthea patients fall into. Other measures may have less diversity in calculated populations until we do further investigation into aligning synthea codes with measure codes.
+
 ## Building the Mapping File
 
 Quality Measurement calculation requires data conformant with qicore, an expansive IG, which would require expansive effort to fully map. As such, we can piecemeal address the IG requirements by supporting requirements for individual measures. The recommended process for creating a mapping that addresses a set of measures is:

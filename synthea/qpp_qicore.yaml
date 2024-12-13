@@ -1,5 +1,5 @@
 ---
-name: QI Core - 130 minimal and QPP
+name: QI Core - QPP
 applicability: true
 
 customValueSets:
@@ -119,7 +119,7 @@ actions:
           profiles:
             - http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-devicerequest
         fields:
-          - location: DeviceRequest.code.reference
+          - location: DeviceRequest.codeReference.reference
             value: $findRef([Device])
           - location: DeviceRequest.authoredOn
             value: $getField([Device.manufactureDate]) # manufacture time is set 3 weeks before device model's start, so this is close enough
@@ -127,6 +127,8 @@ actions:
             value: completed
           - location: DeviceRequest.intent
             value: order
+          - location: DeviceRequest.subject.reference
+            value: $findRef([Patient])
       # Creating one AdverseEvent per patient
       - resourceType: AdverseEvent
         based_on:
@@ -136,6 +138,10 @@ actions:
         fields:
           - location: AdverseEvent.event.coding
             value: $randomCode([http://hl7.org/fhir/ValueSet/adverse-event-type]) # may change in future to use a smaller subset of the ValueSet
+          - location: AdverseEvent.subject.reference
+            value: $findRef([Patient])
+          - location: AdverseEvent.actuality
+            value: $randomCode([http://hl7.org/fhir/ValueSet/adverse-event-actuality,code])
       # Creating one Communication per patient
       - resourceType: Communication
         based_on:
@@ -177,3 +183,6 @@ actions:
             value: $randomCode([http://hl7.org/fhir/ValueSet/task-code]) # randomize based on values available
           - location: Task.executionPeriod
             value: $getField([Procedure.performed])
+          - location: Task.intent
+            value: $randomCode([http://hl7.org/fhir/ValueSet/task-intent,code])
+            
