@@ -229,7 +229,9 @@ function validateExportParams(parameters, reply) {
   }
 
   if (parameters._typeFilter) {
-    const typeFilterArray = parameters._typeFilter.split(',');
+    const typeFilterArray = Array.isArray(parameters._typeFilter)
+      ? parameters._typeFilter
+      : parameters._typeFilter.split(',');
     const unsupportedTypeFilterTypes = [];
     typeFilterArray.forEach(line => {
       const resourceType = line.substring(0, line.indexOf('?'));

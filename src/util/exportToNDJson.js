@@ -77,8 +77,8 @@ const exportToNDJson = async jobOptions => {
     const searchParameterQueries = {};
     const valueSetQueries = {};
     if (typeFilter) {
-      // subqueries may be joined together with a comma for a logical "or"
-      const tyq = typeFilter.split(',');
+      // subqueries may be joined together with a comma or as an array for a logical "or"
+      const tyq = Array.isArray(typeFilter) ? typeFilter : typeFilter.split(',');
       // loop over each subquery and extract all search params, which are joined via the "&" operator
       // each subquery is of the format <resource type>?<query>
       tyq.forEach(query => {
@@ -104,6 +104,7 @@ const exportToNDJson = async jobOptions => {
               valueSetQueries[resourceType] = { [property]: [propertyValue] };
             }
           } else {
+            // TODO: this gets overwritten for subqueries with "&" operators
             subqueries[property] = propertyValue;
           }
         });
