@@ -158,14 +158,19 @@ Endpoint: `POST [fhir base]/bulkstatus/[client id]/kickoff-import`
 
 The server supports the following query parameters:
 
+From the [2.0.0 ci-build version of the Bulk Data Access IG](https://build.fhir.org/ig/HL7/bulk-data/export.html#query-parameters):
+
 - `_type`: Filters the response to only include resources of the specified resource type(s)
   - If omitted, system-level requests will return all resources supported by the server within the scope of the client authorization
   - For Patient- and Group-level requests, the [Patient Compartment](https://www.hl7.org/fhir/compartmentdefinition-patient.html) is used as a point of reference for filtering the resource types that are returned.
 - `_outputFormat`: The server supports the following formats: `application/fhir+ndjson`, `application/ndjson+fhir`, `application/ndjson`, `ndjson`
 - `_typeFilter`: Filters the response to only include resources that meet the criteria of the specified comma-delimited FHIR REST queries. Returns an error for queries specified by the client that are unsupported by the server. Supports queries on the ValueSets (`type:in`, `code:in`, etc.) of a given resource type.
 - `patient`: Only applicable to POST requests for group-level and patient-level requests. When provided, the server SHALL NOT return resources in the patient compartment definition belonging to patients outside the list. Can support multiple patient references in a single request.
-- `_bySubject`: Only applicable for group-level and patient-level requests. Creates export results, separating resources into files based on what subject they are associated with (rather than based on type). The only `_bySubject` value supported is `Patient`. This will result in an ndjson file for each patient in the returned data. If the `_type` parameter is used in conjunction with this parameter, `Patient` must be one of the types included in the passed value list.
 - `_elements`: Filters the content of the responses to omit unlisted, non-mandatory elements from the resources returned. These elements should be provided in the form `[resource type].[element name]` (e.g., `Patient.id`) which only filters the contents of those specified resources or in the form `[element name]` (e.g., `id`) which filters the contents of all of the returned resources.
+
+From the [2.0.0 ci-build version of the argo24 branch of the Bulk Data Access IG](https://build.fhir.org/ig/HL7/bulk-data/branches/argo24/export.html#query-parameters):
+
+- `organizeOutputBy`: Applicable for all types of export requests. Creates export results, separating resources into files based on what resourceType they are to be organized by. The only `organizeOutputBy` value supported currently is `Patient`. This will result in an ndjson file for each patient in the returned data. If the `_type` parameter is used in conjunction with this parameter, `Patient` must be one of the types included in the passed value lists.
 
 #### `_elements` Query Parameter
 
