@@ -101,6 +101,10 @@ describe('check export logic', () => {
       await exportToNDJson({ clientEntry: clientId, type: mockType, typeFilter: typeFilterWOValueSet });
       expect(fs.existsSync(expectedFileNameWOValueSet)).toBe(false);
     });
+    test('Expect folder created and export successful when organizeOutputBy=Patient parameter is retrieved from request', async () => {
+      await exportToNDJson({ clientEntry: clientId, types: mockType, typeFilter: mockTypeFilter, byPatient: true });
+      expect(fs.existsSync('./tmp/123456/testPatient.ndjson')).toBe(true);
+    });
   });
 
   describe('patientsQueryForType', () => {
