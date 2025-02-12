@@ -170,7 +170,7 @@ From the [2.0.0 ci-build version of the Bulk Data Access IG](https://build.fhir.
 
 From the [2.0.0 ci-build version of the argo24 branch of the Bulk Data Access IG](https://build.fhir.org/ig/HL7/bulk-data/branches/argo24/export.html#query-parameters):
 
-- `organizeOutputBy`: Applicable for all types of export requests. Creates export results, separating resources into files based on what resourceType they are to be organized by. The only `organizeOutputBy` value supported currently is `Patient`. This will result in an ndjson file for each patient in the returned data. If the `_type` parameter is used in conjunction with this parameter, `Patient` must be one of the types included in the passed value lists.
+- `organizeOutputBy`: Applicable for all types of export requests. Creates export results, separating resources into files based on what resourceType they are to be organized by. The only `organizeOutputBy` value supported currently is `Patient`. This will result in an ndjson file for each patient in the returned data. If the `_type` parameter is used in conjunction with this parameter, `Patient` must be one of the types included in the passed value lists. Note: in this server's implementation, resources that would otherwise be included in the export, but do not have references to resource type `Patient` are omitted from the export, following guidance from the IG's [Bulk Data Output File Organization](https://build.fhir.org/ig/HL7/bulk-data/branches/argo24/export.html#bulk-data-output-file-organization).
 
 #### `_elements` Query Parameter
 

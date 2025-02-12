@@ -299,7 +299,7 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
   let vsQuery = {};
   // Create patient id query (for Group export only)
   if (patientIds) {
-    if (patientIds.length == 0) {
+    if (patientIds.length === 0) {
       // if no patients in group, return no documents
       return { document: [], collectionName: collectionName };
     }

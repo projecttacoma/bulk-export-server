@@ -23,9 +23,18 @@ const bulkExport = async (request, reply) => {
   }
   if (validateExportParams(parameters, reply)) {
     request.log.info('Base >>> $export');
-    const clientEntry = await addPendingBulkExportRequest();
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
 
-    const types = parameters._type?.split(',');
+    let types = request.query._type?.split(',') || parameters._type?.split(',');
+    // if parameters.organizeOutputBy=Patient, then we want to pre filter the types that could
+    // have patient references like we do for Patient level export
+    if (parameters.organizeOutputBy === 'Patient') {
+      if (types) {
+        types = filterPatientResourceTypes(request, reply, types);
+      } else {
+        types = patientResourceTypes;
+      }
+    }
 
     const elements = parameters._elements?.split(',');
 
