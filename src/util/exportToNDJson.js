@@ -212,7 +212,7 @@ const exportToNDJson = async jobOptions => {
           resourceType: 'Parameters',
           parameter: [
             {
-              name: 'subject',
+              name: 'header',
               valueReference: {
                 reference: `Patient/${patientId}`
               }
