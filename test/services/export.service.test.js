@@ -293,28 +293,6 @@ describe('Check barebones bulk export logic (failure)', () => {
       });
   });
 
-  test('throws 400 error when "_bySubject" parameter used in system-level export', async () => {
-    await supertest(app.server)
-      .post('/$export')
-      .send({
-        resourceType: 'Parameters',
-        parameter: [
-          {
-            name: '_bySubject',
-            valueString: 'test'
-          }
-        ]
-      })
-      .expect(400)
-      .then(response => {
-        expect(response.body.resourceType).toEqual('OperationOutcome');
-        expect(response.body.issue[0].code).toEqual(400);
-        expect(response.body.issue[0].details.text).toEqual(
-          'The "_bySubject" parameter cannot be used in a system-level export request.'
-        );
-      });
-  });
-
   test('throws 400 error when POST request body is not of resourceType "Parameters"', async () => {
     await supertest(app.server)
       .post('/$export')
@@ -684,21 +662,21 @@ describe('Check group-level export logic (failure)', () => {
   });
 });
 
-describe('Check by subject export logic', () => {
+describe('Check organizeOutputBy=Patient export logic', () => {
   beforeEach(async () => {
     await bulkStatusSetup();
     await app.ready();
   });
 
-  test('check 202 for Patient bySubject', async () => {
+  test('check 202 for system-level organizeOutputBy=Patient', async () => {
     const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
-      .post('/Patient/$export')
+      .post('/$export')
       .send({
         resourceType: 'Parameters',
         parameter: [
           {
-            name: '_bySubject',
+            name: 'organizeOutputBy',
             valueString: 'Patient'
           }
         ]
@@ -710,7 +688,27 @@ describe('Check by subject export logic', () => {
       });
   });
 
-  test('check 202 for Group bySubject', async () => {
+  test('check 202 for Patient organizeOutputBy=Patient', async () => {
+    const createJobSpy = jest.spyOn(queue, 'createJob');
+    await supertest(app.server)
+      .post('/Patient/$export')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'organizeOutputBy',
+            valueString: 'Patient'
+          }
+        ]
+      })
+      .expect(202)
+      .then(response => {
+        expect(response.headers['content-location']).toBeDefined();
+        expect(createJobSpy).toHaveBeenCalled();
+      });
+  });
+
+  test('check 202 for Group organizeOutputBy=Patient', async () => {
     await createTestResource(testGroup, 'Group');
     const createJobSpy = jest.spyOn(queue, 'createJob');
     await supertest(app.server)
@@ -719,7 +717,7 @@ describe('Check by subject export logic', () => {
         resourceType: 'Parameters',
         parameter: [
           {
-            name: '_bySubject',
+            name: 'organizeOutputBy',
             valueString: 'Patient'
           }
         ]
@@ -731,28 +729,28 @@ describe('Check by subject export logic', () => {
       });
   });
 
-  test('returns 400 for a _bySubject call that specifies a subject other than Patient', async () => {
+  test('returns 400 for a organizeOutputBy call that specifies a resource type other than Patient', async () => {
     await supertest(app.server)
-      .get('/Patient/$export?_bySubject=Other')
+      .get('/Patient/$export?organizeOutputBy=Other')
       .expect(400)
       .then(response => {
         expect(response.body.resourceType).toEqual('OperationOutcome');
         expect(response.body.issue[0].code).toEqual(400);
         expect(response.body.issue[0].details.text).toEqual(
-          'Server does not support the _bySubject parameter for values other than Patient.'
+          'Server does not support the organizeOutputBy parameter for values other than Patient.'
         );
       });
   });
 
-  test('returns 400 for a _bySubject call where _type does not include Patient', async () => {
+  test('returns 400 for a organizeOutputBy call where _type does not include Patient', async () => {
     await supertest(app.server)
-      .get('/Patient/$export?_bySubject=Patient&_type=Condition')
+      .get('/Patient/$export?organizeOutputBy=Patient&_type=Condition')
       .expect(400)
       .then(response => {
         expect(response.body.resourceType).toEqual('OperationOutcome');
         expect(response.body.issue[0].code).toEqual(400);
         expect(response.body.issue[0].details.text).toEqual(
-          'When _type is specified with _bySubject Patient, the Patient type must be included in the _type parameter.'
+          'When _type is specified with organizeOutputBy Patient, the Patient type must be included in the _type parameter.'
         );
       });
   });

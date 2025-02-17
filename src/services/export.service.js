@@ -21,19 +21,20 @@ const bulkExport = async (request, reply) => {
       })
     );
   }
-  if (parameters._bySubject) {
-    reply.code(400).send(
-      createOperationOutcome('The "_bySubject" parameter cannot be used in a system-level export request.', {
-        issueCode: 400,
-        severity: 'error'
-      })
-    );
-  }
   if (validateExportParams(parameters, reply)) {
     request.log.info('Base >>> $export');
-    const clientEntry = await addPendingBulkExportRequest();
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
 
-    const types = parameters._type?.split(',');
+    let types = request.query._type?.split(',') || parameters._type?.split(',');
+    // if parameters.organizeOutputBy=Patient, then we want to pre filter the types that could
+    // have patient references like we do for Patient level export
+    if (parameters.organizeOutputBy === 'Patient') {
+      if (types) {
+        types = filterPatientResourceTypes(request, reply, types);
+      } else {
+        types = patientResourceTypes;
+      }
+    }
 
     const elements = parameters._elements?.split(',');
 
@@ -44,7 +45,7 @@ const bulkExport = async (request, reply) => {
       typeFilter: request.query._typeFilter,
       systemLevelExport: true,
       elements: elements,
-      byPatient: parameters._bySubject === 'Patient'
+      byPatient: parameters.organizeOutputBy === 'Patient'
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -74,7 +75,7 @@ const patientBulkExport = async (request, reply) => {
       await validatePatientReferences(parameters.patient, reply);
     }
     request.log.info('Patient >>> $export');
-    const clientEntry = await addPendingBulkExportRequest(parameters._bySubject === 'Patient');
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
 
     let types = request.query._type?.split(',') || parameters._type?.split(',');
     if (types) {
@@ -93,7 +94,7 @@ const patientBulkExport = async (request, reply) => {
       patient: parameters.patient,
       systemLevelExport: false,
       elements: elements,
-      byPatient: parameters._bySubject === 'Patient'
+      byPatient: parameters.organizeOutputBy === 'Patient'
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -132,7 +133,7 @@ const groupBulkExport = async (request, reply) => {
       return splitRef[splitRef.length - 1];
     });
 
-    const clientEntry = await addPendingBulkExportRequest(parameters._bySubject === 'Patient');
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
     let types = request.query._type?.split(',') || parameters._type?.split(',');
     if (types) {
       types = filterPatientResourceTypes(request, reply, types);
@@ -151,7 +152,7 @@ const groupBulkExport = async (request, reply) => {
       systemLevelExport: false,
       patientIds: patientIds,
       elements: elements,
-      byPatient: parameters._bySubject === 'Patient'
+      byPatient: parameters.organizeOutputBy === 'Patient'
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -183,9 +184,9 @@ function validateExportParams(parameters, reply) {
     }
   }
 
-  if (parameters._bySubject && parameters._bySubject !== 'Patient') {
+  if (parameters.organizeOutputBy && parameters.organizeOutputBy !== 'Patient') {
     reply.code(400).send(
-      createOperationOutcome(`Server does not support the _bySubject parameter for values other than Patient.`, {
+      createOperationOutcome(`Server does not support the organizeOutputBy parameter for values other than Patient.`, {
         issueCode: 400,
         severity: 'error'
       })
@@ -215,12 +216,12 @@ function validateExportParams(parameters, reply) {
         );
       return false;
     }
-    if (parameters._bySubject === 'Patient' && !requestTypes.includes('Patient')) {
+    if (parameters.organizeOutputBy === 'Patient' && !requestTypes.includes('Patient')) {
       reply
         .code(400)
         .send(
           createOperationOutcome(
-            `When _type is specified with _bySubject Patient, the Patient type must be included in the _type parameter.`,
+            `When _type is specified with organizeOutputBy Patient, the Patient type must be included in the _type parameter.`,
             { issueCode: 400, severity: 'error' }
           )
         );
@@ -314,7 +315,7 @@ function validateExportParams(parameters, reply) {
 
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
-    if (!['_outputFormat', '_type', '_typeFilter', 'patient', '_elements', '_bySubject'].includes(param)) {
+    if (!['_outputFormat', '_type', '_typeFilter', 'patient', '_elements', 'organizeOutputBy'].includes(param)) {
       unrecognizedParams.push(param);
     }
   });
