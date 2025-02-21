@@ -3,7 +3,7 @@ const supportedResources = require('../util/supportedResources').filter(r => r !
 const exportQueue = require('../resources/exportQueue');
 const patientResourceTypes = require('../compartment-definition/patientExportResourceTypes.json');
 const { createOperationOutcome } = require('../util/errorUtils');
-const { verifyPatientsInGroup } = require('../util/groupUtils');
+const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
 
 /**
@@ -125,8 +125,15 @@ const groupBulkExport = async (request, reply) => {
       reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
       return;
     }
+    let members;
+    if (!group.actual) {
+      members = actualizeGroup(group);
+    } else {
+      members = group.member.map(m => m.entity.reference);
+    }
+
     if (parameters.patient) {
-      verifyPatientsInGroup(parameters.patient, group, reply);
+      verifyPatientsInGroup(parameters.patient, group.id, members, reply);
     }
     const patientIds = group.member.map(m => {
       const splitRef = m.entity.reference.split('/');
