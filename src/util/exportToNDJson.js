@@ -77,53 +77,7 @@ const exportToNDJson = async jobOptions => {
     const searchParameterQueries = {};
     const valueSetQueries = {};
     if (typeFilter) {
-      // subqueries may be joined together with a comma or as an array for a logical "or"
-      const tyq = Array.isArray(typeFilter) ? typeFilter : typeFilter.split(',');
-      // loop over each subquery and extract all search params, which are joined via the "&" operator
-      // each subquery is of the format <resource type>?<query>
-      tyq.forEach(query => {
-        const resourceType = query.substring(0, query.indexOf('?'));
-        // build mapping of search parameters for the given resource type
-        const searchParams = buildSearchParamList(resourceType);
-        // extract all properties that may be part of the same subquery via the "&" operator
-        const properties = query.substring(query.indexOf('?') + 1).split('&');
-        // create mapping of properties to their values within the given subquery
-        const subqueries = {};
-        properties.forEach(p => {
-          const property = p.substring(0, p.indexOf('='));
-          const propertyValue = p.substring(p.indexOf('=') + 1);
-          // type:in, code:in, etc.
-          if (property.endsWith(':in')) {
-            if (valueSetQueries[resourceType]) {
-              if (valueSetQueries[resourceType][property]) {
-                valueSetQueries[resourceType][property].push(propertyValue);
-              } else {
-                valueSetQueries[resourceType][property] = [propertyValue];
-              }
-            } else {
-              valueSetQueries[resourceType] = { [property]: [propertyValue] };
-            }
-          } else {
-            // TODO: this gets overwritten for subqueries with "&" operators
-            subqueries[property] = propertyValue;
-          }
-        });
-        // pass all search parameter-related _typeFilter queries into the Asymmetrik query builder
-        if (Object.keys(subqueries).length > 0) {
-          const filter = qb.buildSearchQuery({
-            req: { method: 'GET', query: subqueries, params: {} },
-            parameterDefinitions: searchParams,
-            includeArchived: true
-          });
-          if (filter.query) {
-            if (searchParameterQueries[resourceType]) {
-              searchParameterQueries[resourceType].push(filter.query);
-            } else {
-              searchParameterQueries[resourceType] = [filter.query];
-            }
-          }
-        }
-      });
+      addTypeFilter(typeFilter, searchParameterQueries, valueSetQueries);
     }
 
     const elementsQueries = {};
@@ -294,6 +248,7 @@ const exportToNDJson = async jobOptions => {
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
 const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds, elements) => {
+  console.log(`?????? GetDocuments ${JSON.stringify(searchParameterQueries)}`);
   let docs = [];
   let patQuery = {};
   let vsQuery = {};
@@ -335,6 +290,7 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
   }
 
   if (searchParameterQueries) {
+    console.log(`!!! searchParameterQueries !!! ${JSON.stringify(searchParameterQueries)}`);
     docs = searchParameterQueries.map(async q => {
       let query = q;
       // wherever we have a $match, we need to add another "and" operator containing the ValueSet and/or patient query
@@ -459,4 +415,60 @@ const patientsQueryForType = async function (patientIds, type) {
   return { $or: results };
 };
 
-module.exports = { exportToNDJson, patientsQueryForType, getDocuments, buildSearchParamList };
+/**
+ * Adds valueSet ans searchParameter queries based on a query's typeFilter value
+ * @param {string} typeFilter the type filter query from the request
+ * @param {Object} valueSetQueries mongo queries for valuesets
+ * @param {string} searchParameterQueries mongo queries for search parameters
+ */
+const addTypeFilter = function (typeFilter, valueSetQueries, searchParameterQueries) {
+  // subqueries may be joined together with a comma or as an array for a logical "or"
+  const tyq = Array.isArray(typeFilter) ? typeFilter : typeFilter.split(',');
+  // loop over each subquery and extract all search params, which are joined via the "&" operator
+  // each subquery is of the format <resource type>?<query>
+  tyq.forEach(query => {
+    const resourceType = query.substring(0, query.indexOf('?'));
+    // build mapping of search parameters for the given resource type
+    const searchParams = buildSearchParamList(resourceType);
+    // extract all properties that may be part of the same subquery via the "&" operator
+    const properties = query.substring(query.indexOf('?') + 1).split('&');
+    // create mapping of properties to their values within the given subquery
+    const subqueries = {};
+    properties.forEach(p => {
+      const property = p.substring(0, p.indexOf('='));
+      const propertyValue = p.substring(p.indexOf('=') + 1);
+      // type:in, code:in, etc.
+      if (property.endsWith(':in')) {
+        if (valueSetQueries[resourceType]) {
+          if (valueSetQueries[resourceType][property]) {
+            valueSetQueries[resourceType][property].push(propertyValue);
+          } else {
+            valueSetQueries[resourceType][property] = [propertyValue];
+          }
+        } else {
+          valueSetQueries[resourceType] = { [property]: [propertyValue] };
+        }
+      } else {
+        // TODO: this gets overwritten for subqueries with "&" operators
+        subqueries[property] = propertyValue;
+      }
+    });
+    // pass all search parameter-related _typeFilter queries into the Asymmetrik query builder
+    if (Object.keys(subqueries).length > 0) {
+      const filter = qb.buildSearchQuery({
+        req: { method: 'GET', query: subqueries, params: {} },
+        parameterDefinitions: searchParams,
+        includeArchived: true
+      });
+      if (filter.query) {
+        if (searchParameterQueries[resourceType]) {
+          searchParameterQueries[resourceType].push(filter.query);
+        } else {
+          searchParameterQueries[resourceType] = [filter.query];
+        }
+      }
+    }
+  });
+};
+
+module.exports = { exportToNDJson, patientsQueryForType, getDocuments, buildSearchParamList, addTypeFilter };

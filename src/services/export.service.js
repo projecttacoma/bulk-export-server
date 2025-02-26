@@ -128,7 +128,7 @@ const groupBulkExport = async (request, reply) => {
     }
     let members;
     if (!group.actual) {
-      members = actualizeGroup(group);
+      members = await actualizeGroup(group);
     } else {
       members = group.member.map(m => m.entity.reference);
     }
@@ -136,8 +136,8 @@ const groupBulkExport = async (request, reply) => {
     if (parameters.patient) {
       verifyPatientsInGroup(parameters.patient, group.id, members, reply);
     }
-    const patientIds = group.member.map(m => {
-      const splitRef = m.entity.reference.split('/');
+    const patientIds = members.map(m => {
+      const splitRef = m.split('/');
       return splitRef[splitRef.length - 1];
     });
 
