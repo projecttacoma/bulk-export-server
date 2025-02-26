@@ -2,6 +2,7 @@ const { createResource } = require('./mongo.controller');
 const { createOperationOutcome } = require('./errorUtils');
 const PATIENT_REFERENCES = require('../compartment-definition/patient-references');
 const _ = require('lodash');
+const { addTypeFilter, getDocuments } = require('./exportToNDJson');
 
 /**
  * Creates a FHIR Group resource that represents the Patients associated with a given Measure
@@ -66,7 +67,7 @@ function verifyPatientsInGroup(patientParam, groupId, groupMembers, reply) {
  * @param {Object} reply the response object
  * @returns {string[]} array of group member references (i.e. `Patient/123`)
  */
-function actualizeGroup(group, reply) {
+async function actualizeGroup(group, reply) {
   // TODO: actualize group references i.e. ['Patient/123']
   const filters = group.modifierExtension.filter(
     me => me.url === 'http://hl7.org/fhir/uv/bulkdata/StructureDefinition/member-filter'
@@ -76,14 +77,12 @@ function actualizeGroup(group, reply) {
     .map(f => f.valueExpression.expression);
   if (expressions.length < filters.length) {
     // a client SHALL use a single language type for all of the member-filter expressions included in a single Group
-    reply
-      .code(404)
-      .send(
-        createOperationOutcome('Member filters must use value expression language: "application/x-fhir-query"', {
-          issueCode: 400,
-          severity: 'error'
-        })
-      );
+    reply.code(404).send(
+      createOperationOutcome('Member filters must use value expression language: "application/x-fhir-query"', {
+        issueCode: 400,
+        severity: 'error'
+      })
+    );
   }
   // populated with a FHIR REST API query for a resource type included in the Patient or Practitioner compartment
   //... find resources (ORd together if same resource type, ANDed if different resource type), then find all patients with references to those resources
@@ -110,18 +109,20 @@ function actualizeGroup(group, reply) {
     }
   });
 
-  const patientSets = resourceMap.keys().map(k => {
-    //2,3
-    const expResources = findExpressionResources(resourceMap[k]);
-    //4,5
-    const patientRefs = expResources.flatMap(expRes => {
-      // example: expRes is AllergyIntolerance instance A
-      // creates an array of defined values for [A.asserter,A.patient,A.recorder]
-      return PATIENT_REFERENCES[k].filter(path => expRes[path]).map(path => expRes[path].reference);
-    });
+  const patientSets = await Promise.all(
+    Object.keys(resourceMap).map(async k => {
+      //2,3
+      const expResources = await findExpressionResources(k, resourceMap[k]);
+      //4,5
+      const patientRefs = expResources.flatMap(expRes => {
+        // example: expRes is AllergyIntolerance instance A
+        // creates an array of defined values for [A.asserter,A.patient,A.recorder]
+        return PATIENT_REFERENCES[k].filter(path => expRes[path]).map(path => expRes[path].reference);
+      });
 
-    return _.uniq(patientRefs);
-  });
+      return _.uniq(patientRefs);
+    })
+  );
 
   //6
   return _.intersection(...patientSets);
@@ -132,10 +133,20 @@ function actualizeGroup(group, reply) {
  * @param {string[]} expArr list of expressions that should be OR'd together to find resources (of the same type)
  * @returns {Object[]} array of resources that match one of the expressions
  */
-function findExpressionResources(expArr) {
-  console.log(`${expArr}`);
-  // TODO: implement
-  return [];
+async function findExpressionResources(resourceType, expArr) {
+  const searchParameterQueries = {};
+  const valueSetQueries = {};
+  addTypeFilter(expArr, searchParameterQueries, valueSetQueries);
+
+  const docs = await getDocuments(
+    resourceType,
+    searchParameterQueries[resourceType],
+    valueSetQueries[resourceType],
+    null,
+    null
+  ).document;
+  console.log(`??? document ??? ${docs}`);
+  return docs;
 }
 
 module.exports = { createPatientGroupsPerMeasure, verifyPatientsInGroup, actualizeGroup };
