@@ -1,6 +1,6 @@
 const { createResource } = require('./mongo.controller');
 const { createOperationOutcome } = require('./errorUtils');
-const PATIENT_REFERENCES = require('../compartment-definition/patient-references');
+const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
 const _ = require('lodash');
 const { addTypeFilter, getDocuments } = require('./exportToNDJson');
 
@@ -117,7 +117,7 @@ async function actualizeGroup(group, reply) {
       const patientRefs = expResources.flatMap(expRes => {
         // example: expRes is AllergyIntolerance instance A
         // creates an array of defined values for [A.asserter,A.patient,A.recorder]
-        return PATIENT_REFERENCES[k].filter(path => expRes[path]).map(path => expRes[path].reference);
+        return patientAttributePaths[k].filter(path => expRes[path]).map(path => expRes[path].reference);
       });
 
       return _.uniq(patientRefs);

@@ -416,7 +416,7 @@ const patientsQueryForType = async function (patientIds, type) {
 };
 
 /**
- * Adds valueSet ans searchParameter queries based on a query's typeFilter value
+ * Adds valueSet and searchParameter queries based on a query's typeFilter value
  * @param {string} typeFilter the type filter query from the request
  * @param {Object} valueSetQueries mongo queries for valuesets
  * @param {string} searchParameterQueries mongo queries for search parameters
