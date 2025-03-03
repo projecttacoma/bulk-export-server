@@ -11,9 +11,9 @@ const {
   findResourceById,
   findResourcesWithAggregation
 } = require('./mongo.controller');
-const patientRefs = require('../compartment-definition/patient-references');
-const mandatoryElements = require('../compartment-definition/mandatory-elements');
-const choiceTypeElements = require('../compartment-definition/choice-types.json');
+const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
+const { mandatoryElements } = require('fhir-spec-tools/build/data/mandatoryElements');
+const { choiceTypes } = require('fhir-spec-tools/build/data/choiceTypes');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 
@@ -135,11 +135,11 @@ const exportToNDJson = async jobOptions => {
           const resourceType = e.split('.')[0];
           const elementName = e.split('.')[1];
           if (
-            Object.keys(choiceTypeElements[resourceType]).length !== 0 &&
-            Object.keys(choiceTypeElements[resourceType]).includes(`${elementName}[x]`)
+            Object.keys(choiceTypes[resourceType]).length !== 0 &&
+            Object.keys(choiceTypes[resourceType]).includes(`${elementName}[x]`)
           ) {
             const rootElem = elementName.split('[x]')[0];
-            choiceTypeElements[resourceType][`${elementName}[x]`].forEach(e => {
+            choiceTypes[resourceType][`${elementName}[x]`].forEach(e => {
               const type = e.charAt(0).toUpperCase() + e.slice(1);
               elementNames.push(`${rootElem}${type}`);
             });
@@ -157,11 +157,11 @@ const exportToNDJson = async jobOptions => {
         } else {
           supportedResources.forEach(resourceType => {
             if (
-              Object.keys(choiceTypeElements[resourceType]).length !== 0 &&
-              Object.keys(choiceTypeElements[resourceType]).includes(`${e}[x]`)
+              Object.keys(choiceTypes[resourceType]).length !== 0 &&
+              Object.keys(choiceTypes[resourceType]).includes(`${e}[x]`)
             ) {
               const rootElem = e.split('[x]')[0];
-              choiceTypeElements[resourceType][`${e}[x]`].forEach(e => {
+              choiceTypes[resourceType][`${e}[x]`].forEach(e => {
                 const type = e.charAt(0).toUpperCase() + e.slice(1);
                 elementNames.push(`${rootElem}${type}`);
               });
@@ -448,7 +448,7 @@ const patientsQueryForType = async function (patientIds, type) {
       throw new Error(`Patient with id ${patientId} does not exist in the server`);
     }
     // for this resource type, go through all keys that can reference patient
-    const allQueries = patientRefs[type].map(refKey => {
+    const allQueries = patientAttributePaths[type].map(refKey => {
       const query = {};
       query[`${refKey}.reference`] = `Patient/${patientId}`;
       return query;

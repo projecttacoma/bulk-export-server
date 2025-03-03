@@ -1,7 +1,8 @@
 const { addPendingBulkExportRequest, findResourceById } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources').filter(r => r !== 'ValueSet'); //exclude ValueSet (may be stored but not exported)
 const exportQueue = require('../resources/exportQueue');
-const patientResourceTypes = require('../compartment-definition/patientExportResourceTypes.json');
+const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
+const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
 const { verifyPatientsInGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
