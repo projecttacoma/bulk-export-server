@@ -248,7 +248,6 @@ const exportToNDJson = async jobOptions => {
  * @returns {Object} An object containing all data from the given collection name as well as the collection name
  */
 const getDocuments = async (collectionName, searchParameterQueries, valueSetQueries, patientIds, elements) => {
-  console.log(`?????? GetDocuments ${JSON.stringify(searchParameterQueries)}`);
   let docs = [];
   let patQuery = {};
   let vsQuery = {};
@@ -290,7 +289,6 @@ const getDocuments = async (collectionName, searchParameterQueries, valueSetQuer
   }
 
   if (searchParameterQueries) {
-    console.log(`!!! searchParameterQueries !!! ${JSON.stringify(searchParameterQueries)}`);
     docs = searchParameterQueries.map(async q => {
       let query = q;
       // wherever we have a $match, we need to add another "and" operator containing the ValueSet and/or patient query
@@ -418,10 +416,10 @@ const patientsQueryForType = async function (patientIds, type) {
 /**
  * Adds valueSet and searchParameter queries based on a query's typeFilter value
  * @param {string} typeFilter the type filter query from the request
+ * @param {Object} searchParameterQueries mongo queries for search parameters
  * @param {Object} valueSetQueries mongo queries for valuesets
- * @param {string} searchParameterQueries mongo queries for search parameters
  */
-const addTypeFilter = function (typeFilter, valueSetQueries, searchParameterQueries) {
+const addTypeFilter = function (typeFilter, searchParameterQueries, valueSetQueries) {
   // subqueries may be joined together with a comma or as an array for a logical "or"
   const tyq = Array.isArray(typeFilter) ? typeFilter : typeFilter.split(',');
   // loop over each subquery and extract all search params, which are joined via the "&" operator

@@ -68,7 +68,6 @@ function verifyPatientsInGroup(patientParam, groupId, groupMembers, reply) {
  * @returns {string[]} array of group member references (i.e. `Patient/123`)
  */
 async function actualizeGroup(group, reply) {
-  // TODO: actualize group references i.e. ['Patient/123']
   const filters = group.modifierExtension.filter(
     me => me.url === 'http://hl7.org/fhir/uv/bulkdata/StructureDefinition/member-filter'
   );
@@ -84,17 +83,13 @@ async function actualizeGroup(group, reply) {
       })
     );
   }
-  // populated with a FHIR REST API query for a resource type included in the Patient or Practitioner compartment
-  //... find resources (ORd together if same resource type, ANDed if different resource type), then find all patients with references to those resources
-
-  // how would FHIR queries do the OR'd part  - probably can't create one big long query - > do it by hand
-  // we have no current search implementation here - how do we handle :in's, typefilter logic?
-
-  // 1. collect query expressions by resource type
-  // 2. pretend they're ANDed type filters
-  // 3. collect all of the resources of that type according to typefilter logic
-  // structure... Encounter: [list of encounters that the patient could reference]
-  // 4. use the compartment definition resources to look up how this encounter could be referenced in patient ('subject')
+  // the member-filter is "populated with a FHIR REST API query for a resource type included in the Patient or Practitioner compartment"
+  // Essentially, find resources (ORd together if same resource type, ANDed if different resource type), then find all patients with references to those resources
+  // Detailed approach:
+  // 1. Collect query expressions by resource type
+  // 2. Pretend they're ANDed type filters
+  // 3. Collect all of the resources of that type according to type filter logic
+  // 4. Use the compartment definition resources to look up how this encounter could be referenced in patient ('subject')
   // 5. Map encounter set to referenced patient set: e => getId(e.subject).uniq
   // 6. Find the intersection of all patient sets
 
@@ -112,6 +107,7 @@ async function actualizeGroup(group, reply) {
   const patientSets = await Promise.all(
     Object.keys(resourceMap).map(async k => {
       //2,3
+      // list of resources of a single type (i.e encounters) that the patient could reference
       const expResources = await findExpressionResources(k, resourceMap[k]);
       //4,5
       const patientRefs = expResources.flatMap(expRes => {
@@ -138,14 +134,9 @@ async function findExpressionResources(resourceType, expArr) {
   const valueSetQueries = {};
   addTypeFilter(expArr, searchParameterQueries, valueSetQueries);
 
-  const docs = await getDocuments(
-    resourceType,
-    searchParameterQueries[resourceType],
-    valueSetQueries[resourceType],
-    null,
-    null
+  const docs = (
+    await getDocuments(resourceType, searchParameterQueries[resourceType], valueSetQueries[resourceType], null, null)
   ).document;
-  console.log(`??? document ??? ${docs}`);
   return docs;
 }
 
