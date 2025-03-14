@@ -128,7 +128,7 @@ Alternatively, a POST request (`POST [fhir base]/Patient/$export`) can be sent. 
 
 #### All Patients in a Group
 
-FHIR Operation to obtain a detailed set of FHIR resources of diverse resource types pertaining to all patients that belong to a defined Group resource.
+FHIR Operation to obtain a detailed set of FHIR resources of diverse resource types pertaining to all patients that belong to a defined Group resource. In addition to an actualized group with specifically defined membership, this can also be applied to a criteria based group (as defined in the [Bulk Data Access IG](https://build.fhir.org/ig/HL7/bulk-data/branches/argo24/group.html#bulk-cohort-api)), which uses expressions to define membership. For a criteria based group, the group membership will be actualized at the time of `$export`.
 
 Endpoint: `GET [fhir base]/Group/[id]/$export`
 
