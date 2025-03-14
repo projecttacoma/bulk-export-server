@@ -107,7 +107,7 @@ async function actualizeGroup(group, reply) {
   const patientSets = await Promise.all(
     Object.keys(resourceMap).map(async k => {
       //2,3
-      // list of resources of a single type (i.e encounters) that the patient could reference
+      // list of resources of a single type (i.e. encounters) that the patient could reference
       const expResources = await findExpressionResources(k, resourceMap[k]);
       //4,5
       const patientRefs = expResources.flatMap(expRes => {
@@ -126,7 +126,7 @@ async function actualizeGroup(group, reply) {
 
 /**
  * Applicable to a non-actual group to determine members
- * @param {string[]} expArr list of expressions that should be OR'd together to find resources (of the same type)
+ * @param {string[]} expArr list of expressions that should be ORd together to find resources (of the same type)
  * @returns {Object[]} array of resources that match one of the expressions
  */
 async function findExpressionResources(resourceType, expArr) {
