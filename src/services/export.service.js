@@ -4,7 +4,7 @@ const exportQueue = require('../resources/exportQueue');
 const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
 const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
-const { verifyPatientsInGroup } = require('../util/groupUtils');
+const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
 
 /**
@@ -126,11 +126,18 @@ const groupBulkExport = async (request, reply) => {
       reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
       return;
     }
-    if (parameters.patient) {
-      verifyPatientsInGroup(parameters.patient, group, reply);
+    let members;
+    if (!group.actual) {
+      members = await actualizeGroup(group);
+    } else {
+      members = group.member.map(m => m.entity.reference);
     }
-    const patientIds = group.member.map(m => {
-      const splitRef = m.entity.reference.split('/');
+
+    if (parameters.patient) {
+      verifyPatientsInGroup(parameters.patient, group.id, members, reply);
+    }
+    const patientIds = members.map(m => {
+      const splitRef = m.split('/');
       return splitRef[splitRef.length - 1];
     });
 
