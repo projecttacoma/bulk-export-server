@@ -1,15 +1,26 @@
 {
-  "name": "EXM506-r4",
+  "name": "CMS506-r6",
   "remarks": [
     "define \"Initial Population\":",
-    "\"Encounter with an Opioid or Benzodiazepine at Discharge\"",
+    "\"Inpatient Encounters With An Opioid Or Benzodiazepine At Discharge\"",
     "",
     "define \"Denominator\":",
     "\"Initial Population\"",
     "",
     "define \"Numerator\":",
-    " \"Encounter with Two or More Concurrent Opioids at Discharge\"",
-    " union \"Encounter with a Concurrent Opioid and Benzodiazepine at Discharge\""
+    "  /*Encounters of patients prescribed two or more opioids or an opioid and benzodiazepine at discharge.*/",
+    "  ",
+    "  \"Denominator\" InpatientEncounter       ",
+    "    where ( Count(\"Opioid At Discharge\" OpioidMedications",
+    "            where OpioidMedications.authoredOn during day of InpatientEncounter.period ",
+    "                return distinct OpioidMedications.medication ",
+    "                    ) >= 2",
+    "            )",
+    "        or exists ( \"Opioid At Discharge\" OpioidDischargeMedications",
+    "            where OpioidDischargeMedications.authoredOn during day of InpatientEncounter.period ",
+    "                and exists \"Benzodiazepine At Discharge\" BenzodiazepineDischargeMedication",
+    "                    where BenzodiazepineDischargeMedication.authoredOn during day of InpatientEncounter.period",
+    "                    )"
   ],
   "states": {
     "Initial": {
@@ -32,29 +43,29 @@
       ],
       "direct_transition": "Order_Med",
       "remarks": [
-        "define \"Inpatient Encounter with Age Greater than or Equal to 18\":",
-        "  Global.\"Inpatient Encounter\" EncounterInpatient",
-        "     with [\"Patient\"] BirthDate",
-        "       such that Global.CalendarAgeInYearsAt(FHIRHelpers.ToDate(Patient.birthDate), start of FHIRHelpers.ToInterval(EncounterInpatient.period)) >= 18"
+        "define \"Inpatient Encounter With Age Greater Than Or Equal To 18\":",
+        "  CQMCommon.\"Inpatient Encounter\" InpatientHospitalEncounter",
+        "                  where AgeInYearsAt(date from start of InpatientHospitalEncounter.period) >= 18"
       ]
     },
-    "Medication_Discharge_Opiod": {
+    "Medication_Discharge_Opioid": {
       "type": "MedicationOrder",
       "codes": [
         {
           "system": "RxNorm",
-          "code": 1010600,
-          "display": "Buprenorphine 2 MG / Naloxone 0.5 MG Oral Strip"
+          "code": 861467,
+          "display": "meperidine hydrochloride 50 MG Oral Tablet"
         }
       ],
       "direct_transition": "Med_Delay",
       "administration": false,
       "assign_to_attribute": "discharge_med",
       "remarks": [
-        "define \"Opioid at Discharge\":",
-        "  [\"MedicationRequest\": \"Schedule II and Schedule III Opioids\"] OpioidsDischarge",
-        "      where exists (OpioidsDischarge.category C where FHIRHelpers.ToConcept(C) ~ \"Discharge\")",
-        "          and OpioidsDischarge.intent = 'plan'"
+        "define \"Opioid At Discharge\":",
+        "  [\"MedicationRequest\": medication in \"Schedule II, III and IV Opioid Medications\"] OpioidMedications",
+        "    where (OpioidMedications.isCommunity() or OpioidMedications.isDischarge()) ",
+        "        and OpioidMedications.status in { 'active', 'completed' }",
+        "        and OpioidMedications.intent = 'order'"
       ]
     },
     "Hospital_Stay_End": {
@@ -102,17 +113,18 @@
       "direct_transition": "Med_Delay",
       "assign_to_attribute": "discharge_med",
       "remarks": [
-        "define \"Benzodiazepine at Discharge\":",
-        "  [\"MedicationRequest\": \"Schedule IV Benzodiazepines\"] BenzodiazepineDischarge",
-        "      where exists (BenzodiazepineDischarge.category C where FHIRHelpers.ToConcept(C) ~ \"Discharge\")",
-        "          and BenzodiazepineDischarge.intent = 'plan'"
+        "define \"Benzodiazepine At Discharge\":",
+        "  [\"MedicationRequest\": medication in \"Schedule IV Benzodiazepines\"] BenzoMedications",
+        "    where (BenzoMedications.isCommunity() or BenzoMedications.isDischarge()) ",
+        "        and BenzoMedications.status in { 'active', 'completed' }",
+        "        and BenzoMedications.intent = 'order'"
       ]
     },
     "Order_Med": {
       "type": "Simple",
       "distributed_transition": [
         {
-          "transition": "Medication_Discharge_Opiod",
+          "transition": "Medication_Discharge_Opioid",
           "distribution": 0.5
         },
         {
@@ -152,5 +164,6 @@
       ],
       "referenced_by_attribute": "discharge_med"
     }
-  }
+  },
+  "gmf_version": 2
 }
