@@ -20,7 +20,33 @@
     "            where OpioidDischargeMedications.authoredOn during day of InpatientEncounter.period ",
     "                and exists \"Benzodiazepine At Discharge\" BenzodiazepineDischargeMedication",
     "                    where BenzodiazepineDischargeMedication.authoredOn during day of InpatientEncounter.period",
-    "                    )"
+    "                    )",
+    "",
+    "define \"Denominator Exclusion\":",
+    "  /*Excludes encounters of patients with cancer pain or who are receiving palliative or hospice care at the time of the encounter or who receive treatment for opioid use disorder, have sickle cell disease, or who are discharged to another inpatient care facility or discharged against medical advice, or expire during the inpatient stay*/",
+    "  ",
+    "  \"Denominator\" InpatientEncounter",
+    "    where exists ( [ConditionProblemsHealthConcerns: \"Cancer Related Pain\"] CancerPain",
+    "                    where CancerPain.isActive()",
+    "                        and CancerPain.prevalenceInterval() overlaps day of InpatientEncounter.period ",
+    "                   )",
+    "        or exists (\"Inpatient Encounter With Encounter Diagnosis Of Cancer Pain\"",
+    "                   )",
+    "        or exists ( [ConditionProblemsHealthConcerns: \"Sickle Cell Disease with and without Crisis\"] SickleCellDisease",
+    "                where SickleCellDisease.isActive()",
+    "                    and SickleCellDisease.prevalenceInterval() overlaps day of InpatientEncounter.period",
+    "                   )",
+    "        or exists ( \"Treatment For Opioid Use Disorders\" OUDTreatment",
+    "                where OUDTreatment.authoredOn during day of InpatientEncounter.period",
+    "                   )  ",
+    "        or exists ( \"Intervention Palliative Or Hospice Care\" PalliativeOrHospiceCare",
+    "                where Coalesce(start of PalliativeOrHospiceCare.performed.toInterval(), PalliativeOrHospiceCare.authoredOn) during day of InpatientEncounter.\"hospitalizationWithObservation\"()",
+    "                   )",
+    "        or ( InpatientEncounter.hospitalization.dischargeDisposition in \"Discharge To Acute Care Facility\"",
+    "           or InpatientEncounter.hospitalization.dischargeDisposition in \"Hospice Care Referral or Admission\"",
+    "           or InpatientEncounter.hospitalization.dischargeDisposition in \"Patient Expired\"",
+    "           or InpatientEncounter.hospitalization.dischargeDisposition in \"Left Against Medical Advice\"",
+    "            )"
   ],
   "states": {
     "Initial": {
@@ -152,6 +178,20 @@
     },
     "End_Discharge_Med": {
       "type": "MedicationEnd",
+      "referenced_by_attribute": "discharge_med",
+      "distributed_transition": [
+        {
+          "transition": "Hospital_Stay",
+          "distribution": 0.95
+        },
+        {
+          "transition": "DENEX_Procedure",
+          "distribution": 0.05
+        }
+      ]
+    },
+    "Hospital_Stay": {
+      "type": "Simple",
       "distributed_transition": [
         {
           "transition": "Hospital_Stay_End",
@@ -161,8 +201,35 @@
           "transition": "Hospital_Stay_Delay",
           "distribution": 0.8
         }
+      ]
+    },
+    "DENEX_Procedure": {
+      "type": "Procedure",
+      "codes": [
+        {
+          "system": "SNOMED-CT",
+          "code": 385763009,
+          "display": "Hospice care (regime/therapy)"
+        }
       ],
-      "referenced_by_attribute": "discharge_med"
+      "distribution": {
+        "kind": "UNIFORM",
+        "parameters": {
+          "high": 60,
+          "low": 30
+        }
+      },
+      "unit": "minutes",
+      "direct_transition": "Hospital_Stay",
+      "remarks": [
+        "define \"Intervention Palliative Or Hospice Care\":",
+        " ( [\"ServiceRequest\": \"Palliative or Hospice Care\"] PalliativeOrHospiceCareOrder",
+        "    where PalliativeOrHospiceCareOrder.status in { 'active', 'completed', 'on-hold' } ",
+        "  )",
+        "    union ( [\"Procedure\": \"Palliative or Hospice Care\"] PalliativeOrHospiceCarePerformed",
+        "            where PalliativeOrHospiceCarePerformed.status in { 'completed', 'in-progress' } ",
+        "           )"
+      ]
     }
   },
   "gmf_version": 2
