@@ -24,7 +24,8 @@ const bulkExport = async (request, reply) => {
   }
   if (validateExportParams(parameters, reply)) {
     request.log.info('Base >>> $export');
-    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
+    const fullURL = `${request.protocol}://${request.hostname}${request.originalUrl}`;
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient', fullURL);
 
     let types = request.query._type?.split(',') || parameters._type?.split(',');
     // if parameters.organizeOutputBy=Patient, then we want to pre filter the types that could
@@ -76,7 +77,8 @@ const patientBulkExport = async (request, reply) => {
       await validatePatientReferences(parameters.patient, reply);
     }
     request.log.info('Patient >>> $export');
-    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
+    const fullURL = `${request.protocol}://${request.hostname}${request.originalUrl}`;
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient', fullURL);
 
     let types = request.query._type?.split(',') || parameters._type?.split(',');
     if (types) {
@@ -141,7 +143,8 @@ const groupBulkExport = async (request, reply) => {
       return splitRef[splitRef.length - 1];
     });
 
-    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient');
+    const fullURL = `${request.protocol}://${request.hostname}${request.originalUrl}`;
+    const clientEntry = await addPendingBulkExportRequest(parameters.organizeOutputBy === 'Patient', fullURL);
     let types = request.query._type?.split(',') || parameters._type?.split(',');
     if (types) {
       types = filterPatientResourceTypes(request, reply, types);
