@@ -16,7 +16,7 @@ const RETRY_AFTER = 1;
 const REQUEST_TOLERANCE = 10;
 
 /**
- * Kicks off an $import request to the data receiver specified in the passed parameters.
+ * Kicks off an $bulk-status request to the data receiver specified in the passed parameters.
  * @param {*} request the request object passed in by the user
  * @param {*} reply the response object
  */
@@ -28,7 +28,7 @@ async function kickoffImport(request, reply) {
   }
   if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     const parameters = gatherParams(request.method, request.query, request.body, reply);
-    if (parameters.receiver) {
+    if (parameters.bulkSubmitEndpoint) {
       const responseData = await getNDJsonURLs(reply, clientId);
       const importManifest = {
         resourceType: 'Parameters'
@@ -64,7 +64,7 @@ async function kickoffImport(request, reply) {
       };
       try {
         // on success, pass through the response
-        const results = await axios.post(parameters.receiver, importManifest, { headers });
+        const results = await axios.post(parameters.bulkSubmitEndpoint, importManifest, { headers });
         reply.code(results.status).header('content-location', results.headers['content-location']).send(results.body);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
@@ -75,7 +75,7 @@ async function kickoffImport(request, reply) {
           receiverOutcome = createOperationOutcome(e.message, { issueCode: e.status, severity: 'error' });
         }
         const outcome = createOperationOutcome(
-          `Import request for id ${clientId} to receiver ${parameters.receiver} failed with the contained error.`,
+          `Import request for id ${clientId} to receiver ${parameters.bulkSubmitEndpoint} failed with the contained error.`,
           {
             issueCode: 400,
             severity: 'error'

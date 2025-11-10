@@ -16,6 +16,7 @@ const { mandatoryElements } = require('fhir-spec-tools/build/data/mandatoryEleme
 const { choiceTypes } = require('fhir-spec-tools/build/data/choiceTypes');
 const QueryBuilder = require('@asymmetrik/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
+const axios = require('axios');
 
 const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
 
@@ -58,9 +59,20 @@ const buildSearchParamList = resourceType => {
  * @param {Array} patientIds Array of patient ids for patients relevant to this export (undefined if all patients)
  * @param {Array} elements Array of elements parameters that indicate how to omit any unlisted, non-mandatory elements
  * @param {boolean} byPatient boolean flag from job that signals whether resulting files should be grouped by patient (versus by type)
+ * @param {string} bulkSubmitEndpoint endpoint to which finished export files should be submitted
  */
 const exportToNDJson = async jobOptions => {
-  const { clientEntry, types, typeFilter, patient, systemLevelExport, patientIds, elements, byPatient } = jobOptions;
+  const {
+    clientEntry,
+    types,
+    typeFilter,
+    patient,
+    systemLevelExport,
+    patientIds,
+    elements,
+    byPatient,
+    bulkSubmitEndpoint
+  } = jobOptions;
   try {
     const dirpath = `./tmp/${clientEntry}`;
     fs.mkdirSync(dirpath, { recursive: true });
@@ -231,10 +243,49 @@ const exportToNDJson = async jobOptions => {
 
     // mark bulk status job as complete after all files have been written
     await updateBulkExportStatus(clientEntry, BULKSTATUS_COMPLETED);
+    if (bulkSubmitEndpoint) {
+      await kickoffSubmit(bulkSubmitEndpoint, clientEntry);
+    }
     return true;
   } catch (e) {
     await updateBulkExportStatus(clientEntry, BULKSTATUS_FAILED, { message: e.message, code: 500 });
     return false;
+  }
+};
+
+const kickoffSubmit = async (endpoint, clientId) => {
+  const headers = {
+    accept: 'application/fhir+json',
+    'content-type': 'application/fhir+json'
+  };
+  const submitParameters = {
+    resourceType: 'Parameters',
+    parameter: [
+      {
+        name: 'manifestUrl',
+        valueString: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}`
+      },
+      {
+        name: 'submitter',
+        valueIdentifier: {
+          value: 'bulk-export-submitter'
+        }
+      },
+      {
+        name: 'submissionId',
+        valueString: clientId
+      },
+      {
+        name: 'FHIRBaseUrl',
+        valueString: process.env.BULK_BASE_URL
+      }
+    ]
+  };
+  try {
+    const results = await axios.post(endpoint, submitParameters, { headers });
+    console.log('Kickoff submit-data resulted in status', results.status);
+  } catch (e) {
+    console.error('Kickoff submit-data resulted in error', e);
   }
 };
 
