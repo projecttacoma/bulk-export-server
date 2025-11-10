@@ -29,33 +29,29 @@ async function kickoffImport(request, reply) {
   if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     const parameters = gatherParams(request.method, request.query, request.body, reply);
     if (parameters.bulkSubmitEndpoint) {
-      const responseData = await getNDJsonURLs(reply, clientId);
-      const importManifest = {
-        resourceType: 'Parameters'
+      const submitParameters = {
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'manifestUrl',
+            valueString: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}`
+          },
+          {
+            name: 'submitter',
+            valueIdentifier: {
+              value: 'bulk-export-submitter'
+            }
+          },
+          {
+            name: 'submissionId',
+            valueString: clientId
+          },
+          {
+            name: 'FHIRBaseUrl',
+            valueString: process.env.BULK_BASE_URL
+          }
+        ]
       };
-      importManifest.parameter = responseData.map(exportFile => {
-        return {
-          name: 'input',
-          part: [
-            {
-              name: 'url',
-              valueUrl: exportFile.url
-            }
-          ]
-        };
-      });
-      // check if bulk status is byPatient, if so, add inputdetails
-      if (bulkStatus.byPatient) {
-        importManifest.parameter.push({
-          name: 'inputDetails',
-          part: [
-            {
-              name: 'subjectType',
-              valueCode: 'Patient'
-            }
-          ]
-        });
-      }
 
       // TODO: add provenance?
       const headers = {
@@ -64,8 +60,8 @@ async function kickoffImport(request, reply) {
       };
       try {
         // on success, pass through the response
-        const results = await axios.post(parameters.bulkSubmitEndpoint, importManifest, { headers });
-        reply.code(results.status).header('content-location', results.headers['content-location']).send(results.body);
+        const results = await axios.post(parameters.bulkSubmitEndpoint, submitParameters, { headers });
+        reply.code(results.status).send(results.body);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
         let receiverOutcome;
