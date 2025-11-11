@@ -83,7 +83,7 @@ async function kickoffImport(request, reply) {
     } else {
       reply.code(400).send(
         createOperationOutcome(
-          'The kickoff-import endpoint requires a receiver location be specified in the request Parameters.',
+          'The kickoff-import endpoint requires a bulkSubmitEndpoint location be specified in the request Parameters.',
           {
             issueCode: 400,
             severity: 'error'
