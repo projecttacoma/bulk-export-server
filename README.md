@@ -150,9 +150,12 @@ This server supports the bulk status endpoint in support of the [Export Request 
 
 Endpoint: `GET [fhir base]/bulkstatus/[client id]`
 
-The server additionally supports a related convenience endpoint which kicks off an `$import` operation for an existing export request. The exported data is selected for import to a data receiver server. This import server location should be specifed with parameters using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) with name `receiver` in the request body. The server will respond with the same bulk status information according to the progress of the existing export workflow.
+The server additionally supports a related convenience endpoint which kicks off a `$bulk-submit` operation for an existing export request. This method has a slightly different approach than that described in relevant implementation guides and in the below [Bulk Submit Kickoff](####bulk-submit-kickoff) section, so it is only present as a convenience. The exported data is selected for submission to a data receiver server. This import server location should be specifed with parameters using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) with name `bulkSubmitEndpoint` in the request body. The server will respond with the same bulk status information according to the progress of the existing export workflow.
 
 Endpoint: `POST [fhir base]/bulkstatus/[client id]/kickoff-import`
+
+#### Bulk Submit Kickoff
+All of the `$export` endpoints also support acting as a kickoff mechanism for a `$bulk-submit` operation. The user can pass in a `bulkSubmitEndpoint` parameter which specifies the location of the server endpoint for `$bulk-submit` (i.e. `{FHIR base url}/$bulk-submit`). The presence of this parameter indicates that a `$bulk-submit` operation should be kicked off. The user may also include the `bulkSubmitStatusEndpoint` parameter specifying the `$bulk-submit-status` operation endpoint. See https://hackmd.io/@argonaut/rJoqHZrPle#Relationship-to-Bulk-Export for more information.
 
 ## Supported Query Parameters
 

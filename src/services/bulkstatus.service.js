@@ -16,7 +16,7 @@ const RETRY_AFTER = 1;
 const REQUEST_TOLERANCE = 10;
 
 /**
- * Kicks off an $import request to the data receiver specified in the passed parameters.
+ * Kicks off an $bulk-submit request to the data receiver specified in the passed parameters.
  * @param {*} request the request object passed in by the user
  * @param {*} reply the response object
  */
@@ -28,34 +28,30 @@ async function kickoffImport(request, reply) {
   }
   if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     const parameters = gatherParams(request.method, request.query, request.body, reply);
-    if (parameters.receiver) {
-      const responseData = await getNDJsonURLs(reply, clientId);
-      const importManifest = {
-        resourceType: 'Parameters'
+    if (parameters.bulkSubmitEndpoint) {
+      const submitParameters = {
+        resourceType: 'Parameters',
+        parameter: [
+          {
+            name: 'manifestUrl',
+            valueString: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}`
+          },
+          {
+            name: 'submitter',
+            valueIdentifier: {
+              value: 'bulk-export-submitter'
+            }
+          },
+          {
+            name: 'submissionId',
+            valueString: clientId
+          },
+          {
+            name: 'FHIRBaseUrl',
+            valueString: process.env.BULK_BASE_URL
+          }
+        ]
       };
-      importManifest.parameter = responseData.map(exportFile => {
-        return {
-          name: 'input',
-          part: [
-            {
-              name: 'url',
-              valueUrl: exportFile.url
-            }
-          ]
-        };
-      });
-      // check if bulk status is byPatient, if so, add inputdetails
-      if (bulkStatus.byPatient) {
-        importManifest.parameter.push({
-          name: 'inputDetails',
-          part: [
-            {
-              name: 'subjectType',
-              valueCode: 'Patient'
-            }
-          ]
-        });
-      }
 
       // TODO: add provenance?
       const headers = {
@@ -64,8 +60,8 @@ async function kickoffImport(request, reply) {
       };
       try {
         // on success, pass through the response
-        const results = await axios.post(parameters.receiver, importManifest, { headers });
-        reply.code(results.status).header('content-location', results.headers['content-location']).send(results.body);
+        const results = await axios.post(parameters.bulkSubmitEndpoint, submitParameters, { headers });
+        reply.code(results.status).send(results.body);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
         let receiverOutcome;
@@ -75,7 +71,7 @@ async function kickoffImport(request, reply) {
           receiverOutcome = createOperationOutcome(e.message, { issueCode: e.status, severity: 'error' });
         }
         const outcome = createOperationOutcome(
-          `Import request for id ${clientId} to receiver ${parameters.receiver} failed with the contained error.`,
+          `Import request for id ${clientId} to receiver ${parameters.bulkSubmitEndpoint} failed with the contained error.`,
           {
             issueCode: 400,
             severity: 'error'
@@ -87,7 +83,7 @@ async function kickoffImport(request, reply) {
     } else {
       reply.code(400).send(
         createOperationOutcome(
-          'The kickoff-import endpoint requires a receiver location be specified in the request Parameters.',
+          'The kickoff-import endpoint requires a bulkSubmitEndpoint location be specified in the request Parameters.',
           {
             issueCode: 400,
             severity: 'error'

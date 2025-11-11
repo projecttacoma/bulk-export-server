@@ -47,7 +47,8 @@ const bulkExport = async (request, reply) => {
       typeFilter: request.query._typeFilter,
       systemLevelExport: true,
       elements: elements,
-      byPatient: parameters.organizeOutputBy === 'Patient'
+      byPatient: parameters.organizeOutputBy === 'Patient',
+      bulkSubmitEndpoint: parameters.bulkSubmitEndpoint
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -97,7 +98,8 @@ const patientBulkExport = async (request, reply) => {
       patient: parameters.patient,
       systemLevelExport: false,
       elements: elements,
-      byPatient: parameters.organizeOutputBy === 'Patient'
+      byPatient: parameters.organizeOutputBy === 'Patient',
+      bulkSubmitEndpoint: parameters.bulkSubmitEndpoint
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -163,7 +165,8 @@ const groupBulkExport = async (request, reply) => {
       systemLevelExport: false,
       patientIds: patientIds,
       elements: elements,
-      byPatient: parameters.organizeOutputBy === 'Patient'
+      byPatient: parameters.organizeOutputBy === 'Patient',
+      bulkSubmitEndpoint: parameters.bulkSubmitEndpoint
     };
     await exportQueue.createJob(job).save();
     reply.code(202).header('Content-location', `${process.env.BULK_BASE_URL}/bulkstatus/${clientEntry}`).send();
@@ -326,7 +329,19 @@ function validateExportParams(parameters, reply) {
 
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
-    if (!['_outputFormat', '_type', '_typeFilter', 'patient', '_elements', 'organizeOutputBy'].includes(param)) {
+    // Accept bulkSubmitStatusEndpoint, but currently do nothing with it
+    if (
+      ![
+        '_outputFormat',
+        '_type',
+        '_typeFilter',
+        'patient',
+        '_elements',
+        'organizeOutputBy',
+        'bulkSubmitEndpoint',
+        'bulkSubmitStatusEndpoint'
+      ].includes(param)
+    ) {
       unrecognizedParams.push(param);
     }
   });

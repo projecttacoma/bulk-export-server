@@ -37,6 +37,10 @@ const typeFilterWOValueSet = 'Procedure?type:in=http';
 const typeFilterWithInvalidType = 'Dog?type:in=http://example.com/example-valueset-1';
 const expectedFileNameInvalidType = './tmp/123456/Dog.ndjson';
 const expectedFileNameWOValueSet = './tmp/123456/Procedure.ndjson';
+
+const axios = require('axios');
+jest.mock('axios');
+
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
@@ -73,6 +77,25 @@ describe('check export logic', () => {
     });
     test('Expect folder created and export successful when _type parameter is not present in request', async () => {
       await exportToNDJson({ clientEntry: clientId });
+      expect(fs.existsSync(expectedFileName)).toBe(true);
+    });
+
+    test('Expect folder created, export successful, and submission endpoint called when bulkSubmitEndpoint is present', async () => {
+      axios.post.mockResolvedValue({ status: 200 });
+      await exportToNDJson({ clientEntry: clientId, bulkSubmitEndpoint: 'testEndpoint' });
+      expect(axios.post).toHaveBeenCalledWith(
+        'testEndpoint',
+        {
+          resourceType: 'Parameters',
+          parameter: [
+            { name: 'manifestUrl', valueString: 'http://localhost:3000/bulkstatus/123456' },
+            { name: 'submitter', valueIdentifier: { value: 'bulk-export-submitter' } },
+            { name: 'submissionId', valueString: '123456' },
+            { name: 'FHIRBaseUrl', valueString: 'http://localhost:3000' }
+          ]
+        },
+        { headers: { accept: 'application/fhir+json', 'content-type': 'application/fhir+json' } }
+      );
       expect(fs.existsSync(expectedFileName)).toBe(true);
     });
 
