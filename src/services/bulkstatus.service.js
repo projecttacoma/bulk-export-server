@@ -16,7 +16,7 @@ const RETRY_AFTER = 1;
 const REQUEST_TOLERANCE = 10;
 
 /**
- * Kicks off an $bulk-status request to the data receiver specified in the passed parameters.
+ * Kicks off an $bulk-submit request to the data receiver specified in the passed parameters.
  * @param {*} request the request object passed in by the user
  * @param {*} reply the response object
  */
