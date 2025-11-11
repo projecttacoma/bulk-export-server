@@ -134,9 +134,10 @@ async function checkBulkStatus(request, reply) {
   } else if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     reply.code(200).header('Expires', 'EXAMPLE_EXPIRATION_DATE');
     const responseData = await getNDJsonURLs(reply, clientId);
-    reply.send({
+    const manifest = {
       transactionTime: new Date(),
       requiresAccessToken: false,
+      request: bulkStatus.request,
       output: responseData,
       // When we eventually catch warnings, this will add them to the response object
       ...(bulkStatus.warnings.length === 0
@@ -149,7 +150,11 @@ async function checkBulkStatus(request, reply) {
               }
             ]
           })
-    });
+    };
+    if (bulkStatus.byPatient) {
+      manifest.outputOrganizedBy = 'Patient';
+    }
+    reply.send(manifest);
   } else {
     reply
       .code(bulkStatus.error?.code || 500)
