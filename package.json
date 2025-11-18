@@ -18,7 +18,7 @@
     "db:delete": "node src/scripts/deleteCollections.js",
     "db:reset": "npm run db:delete && npm run db:setup",
     "upload-bundles": "node src/scripts/uploadPremadeBundles.js",
-    "post-txn-bundles": "node src/scripts/postTransactionBundles.js"
+    "post-synthea-patients": "node src/scripts/uploadSyntheaPatients.js"
   },
   "repository": {
     "type": "git",
