@@ -114,6 +114,12 @@ For ease of use, the `directory-upload.sh` script can be used to run the transac
 - A directory path must be supplied via the `-d` option.
 - The script can support nested directories (one level deep).
 
+### Synthea Patients Upload
+
+For ease of uploading large amounts of patient bundles generated with Synthea, the `uploadSyntheaPatients.js` script can be used to run the transaction bundle upload on an input directory of Patient transaction bundles. Example:
+
+`npm run post-synthea-patients <path to output/fhir Synthea directory that contains patient bundles>`
+
 ## Server Endpoints
 
 The server supports the following endpoints:
@@ -155,6 +161,7 @@ The server additionally supports a related convenience endpoint which kicks off 
 Endpoint: `POST [fhir base]/bulkstatus/[client id]/kickoff-import`
 
 #### Bulk Submit Kickoff
+
 All of the `$export` endpoints also support acting as a kickoff mechanism for a `$bulk-submit` operation. The user can pass in a `bulkSubmitEndpoint` parameter which specifies the location of the server endpoint for `$bulk-submit` (i.e. `{FHIR base url}/$bulk-submit`). The presence of this parameter indicates that a `$bulk-submit` operation should be kicked off. The user may also include the `bulkSubmitStatusEndpoint` parameter specifying the `$bulk-submit-status` operation endpoint. See https://hackmd.io/@argonaut/rJoqHZrPle#Relationship-to-Bulk-Export for more information.
 
 ## Supported Query Parameters
