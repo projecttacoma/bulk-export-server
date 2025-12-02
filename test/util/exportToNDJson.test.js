@@ -89,7 +89,14 @@ describe('check export logic', () => {
           resourceType: 'Parameters',
           parameter: [
             { name: 'manifestUrl', valueString: 'http://localhost:3000/bulkstatus/123456' },
-            { name: 'submitter', valueIdentifier: { value: 'bulk-export-submitter' } },
+            {
+              name: 'submissionStatus',
+              valueCoding: {
+                system: 'http://hl7.org/fhir/uv/bulkdata/ValueSet/submission-status',
+                code: 'complete'
+              }
+            },
+            { name: 'submitter', valueIdentifier: { value: 'bulkExportSubmitter' } },
             { name: 'submissionId', valueString: '123456' },
             { name: 'FHIRBaseUrl', valueString: 'http://localhost:3000' }
           ]

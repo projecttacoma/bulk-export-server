@@ -37,9 +37,16 @@ async function kickoffImport(request, reply) {
             valueString: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}`
           },
           {
+            name: 'submissionStatus',
+            valueCoding: {
+              system: 'http://hl7.org/fhir/uv/bulkdata/ValueSet/submission-status',
+              code: 'complete'
+            }
+          },
+          {
             name: 'submitter',
             valueIdentifier: {
-              value: 'bulk-export-submitter'
+              value: 'bulkExportSubmitter'
             }
           },
           {
