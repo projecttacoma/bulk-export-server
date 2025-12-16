@@ -1,5 +1,4 @@
 const fs = require('fs');
-const axios = require('axios');
 const path = require('path');
 const env = require('dotenv');
 const mongoUtil = require('../util/mongo');
@@ -12,7 +11,6 @@ async function main() {
   const patientsDir = path.resolve(process.argv[2]);
   console.log(`Loading patients from directory ${patientsDir} to database.`);
 
-  const patientRegEx = new RegExp('Patient/[^/]*');
   // store uploaded patientIds to be added as members to FHIR Group (across all patients uploaded so far)
   const allPatientIds = [];
 
