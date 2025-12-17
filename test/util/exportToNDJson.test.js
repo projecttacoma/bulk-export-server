@@ -98,7 +98,7 @@ describe('check export logic', () => {
             },
             { name: 'submitter', valueIdentifier: { value: 'bulkExportSubmitter' } },
             { name: 'submissionId', valueString: '123456' },
-            { name: 'FHIRBaseUrl', valueString: 'http://localhost:3000' }
+            { name: 'fhirBaseUrl', valueString: 'http://localhost:3000' }
           ]
         },
         { headers: { accept: 'application/fhir+json', 'content-type': 'application/fhir+json' } }

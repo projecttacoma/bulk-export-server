@@ -283,7 +283,7 @@ const kickoffSubmit = async (endpoint, clientId) => {
         valueString: clientId
       },
       {
-        name: 'FHIRBaseUrl',
+        name: 'fhirBaseUrl',
         valueString: process.env.BULK_BASE_URL
       }
     ]

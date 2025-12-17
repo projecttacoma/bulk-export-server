@@ -54,7 +54,7 @@ async function kickoffImport(request, reply) {
             valueString: clientId
           },
           {
-            name: 'FHIRBaseUrl',
+            name: 'fhirBaseUrl',
             valueString: process.env.BULK_BASE_URL
           }
         ]
