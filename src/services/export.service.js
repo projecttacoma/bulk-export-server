@@ -6,6 +6,7 @@ const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
 const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
+const { createDataExchangeMeasureReport, createPatientBundle } = require('../util/collectDataUtils');
 
 /**
  * Exports data from a FHIR server, whether or not it is associated with a patient.
@@ -417,4 +418,115 @@ async function validatePatientReferences(patientParam, reply) {
   return false;
 }
 
-module.exports = { bulkExport, patientBulkExport, groupBulkExport };
+/**
+ * Implements $collect-data according to https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-collect-data.html
+ * Returns a set of bundles that have data of interest for the specified measure, organized by the specified subject
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
+ */
+const collectData = async (request, reply) => {
+  const parameters = gatherParams(request.method, request.query, request.body, reply);
+  // TODO: make sure measureId isn't specified differently in url and parameters
+  if (validateCollectDataParams(parameters, reply)) {
+    request.log.info('Measure >>> $collect-data');
+    const bundleArr = [];
+    reply.code(200).send(bundleArr);
+  }
+
+  // Easiest case (measureId and single patient subject) - TODO: handle other parameters, multiple patients/measures
+  //   Example:
+  //   {
+  //   "resourceType": "Parameters",
+  //   "parameter": [
+  //     {"name": "periodStart",
+  // 		 "valueDate": "2023-01-01"
+  // 		},
+  //     {"name": "periodEnd",
+  // 		 "valueDate": "2023-12-31"
+  // 		},
+  // 		{
+  //       "name": "measureId",
+  // 			"valueId": "measure1"
+  //     },
+  //     {
+  //       "name": "subject",
+  //       "valueString": "Patient/patient03"
+  //     }
+  //   ]
+  // }
+  // TODO: measureId (0..*) should be handled correctly when gathering parameters, add other 0..* are handled as arrays in gatherParams
+  // i.e., could have additional {"name": "measureId","valueId": "measure1"} specified
+
+  const measureId = parameters.measureId[0];
+  const measure = await findResourceById(measureId, 'Measure');
+  const patientIds = [parameters.subject.split('Patient/')[1]];
+
+  const bundles = await Promise.all(
+    patientIds.map(async id => {
+      const patient = await findResourceById(id, 'Patient');
+      return createPatientBundle(
+        patient,
+        [], //TODO: minimized patient resources ala minimizeTestCaseResources(currentPatients[id], measureBundle.content, drLookupByType),
+        patient.fullUrl ?? `urn:uuid:${id}`,
+        createDataExchangeMeasureReport(
+          measure,
+          {
+            start: parameters.periodStart,
+            end: parameters.periodEnd
+          },
+          id
+        )
+      );
+    })
+  );
+
+  reply.code(200).send(bundles);
+};
+
+/**
+ * Checks that the parameters input to $collect-data are valid. Returns true if all the
+ * export params are valid, meaning no errors were thrown in the process.
+ * @param {Object} parameters object containing a combination of request parameters from request query and body
+ * @param {Object} reply the response object
+ */
+function validateCollectDataParams(parameters, reply) {
+  // TODO: Update with additional validations (and not supporteds as applicable)
+
+  let unrecognizedParams = [];
+  Object.keys(parameters).forEach(param => {
+    if (
+      ![
+        'periodStart',
+        'periodEnd',
+        'measureId',
+        'measureIdentifier',
+        'measureUrl',
+        'measureResource',
+        'measure',
+        'subject',
+        'subjectGroup',
+        'practitioner',
+        'lastReceivedOn',
+        'organizationResource',
+        'organization',
+        'validateResources'
+      ].includes(param)
+    ) {
+      unrecognizedParams.push(param);
+    }
+  });
+  if (unrecognizedParams.length > 0) {
+    reply
+      .code(400)
+      .send(
+        createOperationOutcome(
+          `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
+          { issueCode: 400, severity: 'error' }
+        )
+      );
+    return false;
+  }
+  return true;
+}
+
+module.exports = { bulkExport, patientBulkExport, groupBulkExport, collectData };

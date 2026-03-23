@@ -31,7 +31,7 @@ function gatherParams(method, query, body, reply) {
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {
       if (!e.resource) {
-        if (e.name === 'patient') {
+        if (e.name === 'patient' || e.name === 'measureId') {
           if (!acc[e.name]) {
             acc[e.name] = [e.valueReference];
           } else {
