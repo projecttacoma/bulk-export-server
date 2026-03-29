@@ -6,7 +6,11 @@ const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
 const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
-const { createDataExchangeMeasureReport, createPatientBundle } = require('../util/collectDataUtils');
+const {
+  createDataExchangeMeasureReport,
+  createPatientBundle,
+  findPatientResources
+} = require('../util/collectDataUtils');
 
 /**
  * Exports data from a FHIR server, whether or not it is associated with a patient.
@@ -426,61 +430,65 @@ async function validatePatientReferences(patientParam, reply) {
  */
 const collectData = async (request, reply) => {
   const parameters = gatherParams(request.method, request.query, request.body, reply);
+
   // TODO: make sure measureId isn't specified differently in url and parameters
   if (validateCollectDataParams(parameters, reply)) {
     request.log.info('Measure >>> $collect-data');
-    const bundleArr = [];
-    reply.code(200).send(bundleArr);
+
+    // Easiest case (measureId and single patient subject) - TODO: handle other parameters, multiple patients/measures
+    //   Example:
+    //   {
+    //   "resourceType": "Parameters",
+    //   "parameter": [
+    //     {"name": "periodStart",
+    // 		 "valueDate": "2023-01-01"
+    // 		},
+    //     {"name": "periodEnd",
+    // 		 "valueDate": "2023-12-31"
+    // 		},
+    // 		{
+    //       "name": "measureId",
+    // 			"valueId": "measure1"
+    //     },
+    //     {
+    //       "name": "subject",
+    //       "valueString": "Patient/patient03"
+    //     }
+    //   ]
+    // }
+    // TODO: measureId (0..*) should be handled correctly when gathering parameters, add other 0..* are handled as arrays in gatherParams
+    // i.e., could have additional {"name": "measureId","valueId": "measure1"} specified
+
+    const measureId = parameters.measureId[0];
+    const measure = await findResourceById(measureId, 'Measure');
+    if (!measure) {
+      throw Error(`Unable to find measure with measureId ${measureId}`);
+    }
+    const patientIds = [parameters.subject.split('Patient/')[1]];
+
+    const bundles = await Promise.all(
+      patientIds.map(async id => {
+        const patient = await findResourceById(id, 'Patient');
+        return createPatientBundle(
+          patient,
+          (await findPatientResources(patient, measure)).map(r => {
+            return { resource: r };
+          }), //map from resources to BundleEntrys
+          patient.fullUrl ?? `urn:uuid:${id}`,
+          createDataExchangeMeasureReport(
+            measure,
+            {
+              start: parameters.periodStart,
+              end: parameters.periodEnd
+            },
+            id
+          )
+        );
+      })
+    );
+
+    reply.code(200).send(bundles);
   }
-
-  // Easiest case (measureId and single patient subject) - TODO: handle other parameters, multiple patients/measures
-  //   Example:
-  //   {
-  //   "resourceType": "Parameters",
-  //   "parameter": [
-  //     {"name": "periodStart",
-  // 		 "valueDate": "2023-01-01"
-  // 		},
-  //     {"name": "periodEnd",
-  // 		 "valueDate": "2023-12-31"
-  // 		},
-  // 		{
-  //       "name": "measureId",
-  // 			"valueId": "measure1"
-  //     },
-  //     {
-  //       "name": "subject",
-  //       "valueString": "Patient/patient03"
-  //     }
-  //   ]
-  // }
-  // TODO: measureId (0..*) should be handled correctly when gathering parameters, add other 0..* are handled as arrays in gatherParams
-  // i.e., could have additional {"name": "measureId","valueId": "measure1"} specified
-
-  const measureId = parameters.measureId[0];
-  const measure = await findResourceById(measureId, 'Measure');
-  const patientIds = [parameters.subject.split('Patient/')[1]];
-
-  const bundles = await Promise.all(
-    patientIds.map(async id => {
-      const patient = await findResourceById(id, 'Patient');
-      return createPatientBundle(
-        patient,
-        [], //TODO: minimized patient resources ala minimizeTestCaseResources(currentPatients[id], measureBundle.content, drLookupByType),
-        patient.fullUrl ?? `urn:uuid:${id}`,
-        createDataExchangeMeasureReport(
-          measure,
-          {
-            start: parameters.periodStart,
-            end: parameters.periodEnd
-          },
-          id
-        )
-      );
-    })
-  );
-
-  reply.code(200).send(bundles);
 };
 
 /**

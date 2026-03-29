@@ -31,11 +31,17 @@ function gatherParams(method, query, body, reply) {
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {
       if (!e.resource) {
-        if (e.name === 'patient' || e.name === 'measureId') {
+        if (e.name === 'patient') {
           if (!acc[e.name]) {
             acc[e.name] = [e.valueReference];
           } else {
             acc[e.name].push(e.valueReference);
+          }
+        } else if (e.name === 'measureId') {
+          if (!acc[e.name]) {
+            acc[e.name] = [e.valueId];
+          } else {
+            acc[e.name].push(e.valueId);
           }
         } else {
           // For now, all usable params are expected to be stored under one of these fives keys

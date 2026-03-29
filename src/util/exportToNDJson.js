@@ -440,7 +440,9 @@ const processVSTypeFilter = async function (valueSetQueries) {
       await Promise.all(results);
     }
   }
-
+  if (queryArray.length === 0) {
+    return {};
+  }
   return {
     $or: queryArray
   };
