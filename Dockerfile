@@ -1,4 +1,4 @@
-FROM node:18 as deps
+FROM dhi.io/node:24-dev AS deps
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -18,13 +18,10 @@ COPY --chown=node:node package*.json .
 # Install only runtime dependencies
 RUN npm install --omit=dev
 
-FROM node:18-slim as runner
+FROM dhi.io/node:24 AS runner
 
 USER node
 WORKDIR /home/node/app
-
-RUN mkdir node_modules
-RUN chown node:node node_modules
 
 COPY --from=deps --chown=node:node /home/node/app/node_modules ./node_modules
 COPY --chown=node:node package*.json .
@@ -32,8 +29,8 @@ COPY --chown=node:node src* ./src
 
 # Start app
 EXPOSE 3000
-ENV PORT 3000
-ENV REDIS_PORT 6379
-ENV DB_PORT 27017
-ENV HOST "0.0.0.0"
-CMD [ "npm", "start" ]
+ENV PORT=3000
+ENV REDIS_PORT=6379
+ENV DB_PORT=27017
+ENV HOST="0.0.0.0"
+CMD [ "node", "./src/server/server.js" ]
