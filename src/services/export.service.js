@@ -469,9 +469,10 @@ const collectData = async (request, reply) => {
     const bundles = await Promise.all(
       patientIds.map(async id => {
         const patient = await findResourceById(id, 'Patient');
+        const patientResources = await findPatientResources(patient, measure);
         return createPatientBundle(
           patient,
-          (await findPatientResources(patient, measure)).map(r => {
+          patientResources.map(r => {
             return { resource: r };
           }), //map from resources to BundleEntrys
           patient.fullUrl ?? `urn:uuid:${id}`,
@@ -481,7 +482,8 @@ const collectData = async (request, reply) => {
               start: parameters.periodStart,
               end: parameters.periodEnd
             },
-            id
+            id,
+            patientResources
           )
         );
       })

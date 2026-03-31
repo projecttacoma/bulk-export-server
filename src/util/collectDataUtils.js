@@ -18,16 +18,7 @@ function createPatientBundle(patient, entries, fullUrl, measureReport) {
     type: 'transaction',
     resourceType: 'Bundle',
     id: uuidv4(),
-    entry: [
-      {
-        resource: patient,
-        request: {
-          method: 'PUT',
-          url: `Patient/${patient.id}`
-        },
-        fullUrl: fullUrl
-      }
-    ]
+    entry: []
   };
   entries.forEach(entry => {
     bundle.entry?.push({
@@ -59,7 +50,7 @@ function createPatientBundle(patient, entries, fullUrl, measureReport) {
  * @param subjectId the patient id the MeasureReport is associated with
  * @returns { fhir4.MeasureReport } a data exchange measure report used to send Measure-relevant data to a server
  */
-function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId) {
+function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId, patientResources) {
   return {
     resourceType: 'MeasureReport',
     id: uuidv4(),
@@ -79,6 +70,9 @@ function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId) 
         valueCode: 'snapshot'
       }
     ],
+    evaluatedResource: patientResources.map(r => {
+      return { reference: `${r.resourceType}/${r.id}` };
+    }),
     contained: [{ resourceType: 'Organization', id: 'bulk-export-server' }]
   };
 }
@@ -144,6 +138,7 @@ function typeFiltersForMeasure(dataRequirements) {
   dataRequirements.forEach(dr => {
     //empty array is general _type query that overrides a more specific _typeFilter
     if (typeFilters[dr.type]?.length === 0) return;
+    // TODO: add profile conformance checking as specified in the data requirement
 
     if (
       dr.codeFilter?.some(cf => {
