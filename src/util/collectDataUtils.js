@@ -8,35 +8,37 @@ const _ = require('lodash');
  * Creates a patient bundle resource. Creates using a patient resource and
  * an array of the patient's associated resources
  * @param {Object} patient FHIR Patient object
- * @param {Array} entries array of FHIR BundleEntry's associated with the patient
- * @param {String} fullUrl fullUrl for patient
- * @param {Object} testMeasureReport MeasureReport specifying measure information for data exchagne
+ * @param {Array} resources array of resources associated with the patient
+ * @param {Array} measureReports array of MeasureReport specifying measure information for data exchange
  * @returns {Object} a FHIR patient bundle resource
  */
-function createPatientBundle(patient, entries, fullUrl, measureReport) {
+function createPatientBundle(patient, resources, measureReports) {
   const bundle = {
     type: 'transaction',
     resourceType: 'Bundle',
     id: uuidv4(),
     entry: []
   };
-  entries.forEach(entry => {
+  resources.forEach(r => {
     bundle.entry?.push({
-      ...entry,
+      resource: r,
       request: {
         method: 'PUT',
-        url: `${entry.resource?.resourceType}/${entry.resource?.id}`
-      }
+        url: `${r.resourceType}/${r.id}`
+      },
+      fullUrl: r.fullUrl ?? `urn:uuid:${r.id}`
     });
   });
 
-  bundle.entry?.push({
-    resource: measureReport,
-    request: {
-      method: 'PUT',
-      url: `MeasureReport/${measureReport.id}`
-    },
-    fullUrl: `urn:uuid:${measureReport.id}`
+  measureReports.forEach(measureReport => {
+    bundle.entry?.push({
+      resource: measureReport,
+      request: {
+        method: 'PUT',
+        url: `MeasureReport/${measureReport.id}`
+      },
+      fullUrl: measureReport.fullUrl ?? `urn:uuid:${measureReport.id}`
+    });
   });
 
   return bundle;
@@ -125,11 +127,9 @@ async function findPatientResources(patient, measure) {
       ])
     ).document;
   });
-  const allDocs = await Promise.all(typeDocs);
-  console.log('allDocs', allDocs.flat());
 
   //flatten all type arrays into a single array
-  return allDocs.flat();
+  return (await Promise.all(typeDocs)).flat();
 }
 
 function typeFiltersForMeasure(dataRequirements) {

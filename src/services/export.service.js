@@ -6,6 +6,7 @@ const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
 const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
+const _ = require('lodash');
 const {
   createDataExchangeMeasureReport,
   createPatientBundle,
@@ -459,33 +460,42 @@ const collectData = async (request, reply) => {
     // TODO: measureId (0..*) should be handled correctly when gathering parameters, add other 0..* are handled as arrays in gatherParams
     // i.e., could have additional {"name": "measureId","valueId": "measure1"} specified
 
-    const measureId = parameters.measureId[0];
-    const measure = await findResourceById(measureId, 'Measure');
-    if (!measure) {
-      throw Error(`Unable to find measure with measureId ${measureId}`);
-    }
     const patientIds = [parameters.subject.split('Patient/')[1]];
+    // Check for measure resolution - errors if there are any issues with measures passed
+    const measurePromises = parameters.measureId.map(async id => {
+      const measure = await findResourceById(id, 'Measure');
+      if (!measure) {
+        reply.code(404).send(new Error(`Unable to find measure with measureId ${id}`));
+      }
+      return measure;
+    });
+    const measures = await Promise.all(measurePromises);
 
     const bundles = await Promise.all(
       patientIds.map(async id => {
         const patient = await findResourceById(id, 'Patient');
-        const patientResources = await findPatientResources(patient, measure);
-        return createPatientBundle(
-          patient,
-          patientResources.map(r => {
-            return { resource: r };
-          }), //map from resources to BundleEntrys
-          patient.fullUrl ?? `urn:uuid:${id}`,
-          createDataExchangeMeasureReport(
-            measure,
-            {
-              start: parameters.periodStart,
-              end: parameters.periodEnd
-            },
-            id,
-            patientResources
-          )
+        const measureReports = [];
+        const patientResourcePromises = measures.map(async measure => {
+          const patientResources = await findPatientResources(patient, measure);
+          measureReports.push(
+            createDataExchangeMeasureReport(
+              measure,
+              {
+                start: parameters.periodStart,
+                end: parameters.periodEnd
+              },
+              id,
+              patientResources
+            )
+          );
+          return patientResources;
+        });
+        const patientResourcesArray = await Promise.all(patientResourcePromises);
+        const uniqueResources = _.uniqBy(
+          patientResourcesArray.flat(),
+          resource => `${resource.resourceType}/${resource.id}`
         );
+        return createPatientBundle(patient, uniqueResources, measureReports);
       })
     );
 
