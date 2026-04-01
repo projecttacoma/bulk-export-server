@@ -432,33 +432,9 @@ async function validatePatientReferences(patientParam, reply) {
 const collectData = async (request, reply) => {
   const parameters = gatherParams(request.method, request.query, request.body, reply);
 
-  // TODO: make sure measureId isn't specified differently in url and parameters
+  // TODO: validate measureId isn't specified differently in url and parameters
   if (validateCollectDataParams(parameters, reply)) {
     request.log.info('Measure >>> $collect-data');
-
-    // Easiest case (measureId and single patient subject) - TODO: handle other parameters, multiple patients/measures
-    //   Example:
-    //   {
-    //   "resourceType": "Parameters",
-    //   "parameter": [
-    //     {"name": "periodStart",
-    // 		 "valueDate": "2023-01-01"
-    // 		},
-    //     {"name": "periodEnd",
-    // 		 "valueDate": "2023-12-31"
-    // 		},
-    // 		{
-    //       "name": "measureId",
-    // 			"valueId": "measure1"
-    //     },
-    //     {
-    //       "name": "subject",
-    //       "valueString": "Patient/patient03"
-    //     }
-    //   ]
-    // }
-    // TODO: measureId (0..*) should be handled correctly when gathering parameters, add other 0..* are handled as arrays in gatherParams
-    // i.e., could have additional {"name": "measureId","valueId": "measure1"} specified
 
     const patientIds = [parameters.subject.split('Patient/')[1]];
     // Check for measure resolution - errors if there are any issues with measures passed
@@ -510,7 +486,7 @@ const collectData = async (request, reply) => {
  * @param {Object} reply the response object
  */
 function validateCollectDataParams(parameters, reply) {
-  // TODO: Update with additional validations (and not supporteds as applicable)
+  // TODO: Update with additional validations
 
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
@@ -529,7 +505,8 @@ function validateCollectDataParams(parameters, reply) {
         'lastReceivedOn',
         'organizationResource',
         'organization',
-        'validateResources'
+        'validateResources',
+        'dataEndpoint'
       ].includes(param)
     ) {
       unrecognizedParams.push(param);
@@ -542,6 +519,24 @@ function validateCollectDataParams(parameters, reply) {
         createOperationOutcome(
           `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
           { issueCode: 400, severity: 'error' }
+        )
+      );
+    return false;
+  }
+  // TODO: support other parameters that are currently unsupported
+  let unsupportedParams = [];
+  Object.keys(parameters).forEach(param => {
+    if (!['periodStart', 'periodEnd', 'measureId', 'subject'].includes(param)) {
+      unsupportedParams.push(param);
+    }
+  });
+  if (unsupportedParams.length > 0) {
+    reply
+      .code(501)
+      .send(
+        createOperationOutcome(
+          `The following parameters are not yet supported by the server: ${unsupportedParams.join(', ')}.`,
+          { issueCode: 501, severity: 'error' }
         )
       );
     return false;
