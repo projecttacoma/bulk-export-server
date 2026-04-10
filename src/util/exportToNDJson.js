@@ -39,7 +39,7 @@ const buildSearchParamList = resourceType => {
       }
     });
     return searchParams;
-  } catch (e) {
+  } catch {
     return {};
   }
 };

@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const { MongoClient } = require('mongodb');
 require('./dbconfig');
 
