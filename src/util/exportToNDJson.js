@@ -14,7 +14,7 @@ const {
 const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
 const { mandatoryElements } = require('fhir-spec-tools/build/data/mandatoryElements');
 const { choiceTypes } = require('fhir-spec-tools/build/data/choiceTypes');
-const QueryBuilder = require('@asymmetrik/fhir-qb');
+const QueryBuilder = require('@bluehalo/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
 const axios = require('axios');
 

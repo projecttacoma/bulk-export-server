@@ -5,7 +5,7 @@ const {
   getDocuments,
   buildSearchParamList
 } = require('../../src/util/exportToNDJson');
-const QueryBuilder = require('@asymmetrik/fhir-qb');
+const QueryBuilder = require('@bluehalo/fhir-qb');
 const { cleanUpDb, createTestResourceWithConnect } = require('../populateTestData');
 const testPatient = require('../fixtures/testPatient.json');
 const testEncounter = require('../fixtures/testEncounter.json');
