@@ -20,7 +20,8 @@ export default defineConfig([
     },
     rules: {
       ...jest.configs.recommended.rules,
-      'jest/prefer-to-have-length': 'warn'
+      'jest/prefer-to-have-length': 'warn',
+      'jest/expect-expect': ['error', { assertFunctionNames: ['expect', 'supertest.**.expect'] }]
     }
   }
 ]);
