@@ -1,0 +1,15 @@
+{
+    "resourceType" : "ValueSet",
+    "id" : "exampleVS",
+    "url" : "http://example.com/ValueSet/exampleVS",
+    "status" : "active",
+    "expansion" : {
+        "timestamp" : "2025-06-20T16:57:32-04:00",
+        "contains" : [
+            {
+                "system": "http://example.com",
+                "code": "example-code-2"
+            }
+        ]
+    }
+}

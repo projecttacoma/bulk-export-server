@@ -5,5 +5,13 @@
   "recordedDate": "2019-01-03T00:00:00Z",
   "subject": {
     "reference": "Patient/testPatient"
-  }
+  },
+  "code":{
+      "coding": [
+        {
+          "system": "http://example.com",
+          "code": "example-code-2"
+        }
+      ]
+    }
 }

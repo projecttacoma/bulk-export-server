@@ -424,21 +424,21 @@ async function validatePatientReferences(patientParam, reply) {
 }
 
 /**
- * Implements $collect-data according to https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-collect-data.html
- * Returns a set of bundles that have data of interest for the specified measure, organized by the specified subject
+ * Implements limited parameters for $collect-data according to https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-collect-data.html
+ * Returns a set of bundles that have data of interest for the specified measures, organized by the specified subject
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
  */
 const collectData = async (request, reply) => {
   const parameters = gatherParams(request.method, request.query, request.body, reply);
 
-  // TODO: validate measureId isn't specified differently in url and parameters
   if (validateCollectDataParams(parameters, reply)) {
     request.log.info('Measure >>> $collect-data');
 
     const patientIds = [parameters.subject.split('Patient/')[1]];
     // Check for measure resolution - errors if there are any issues with measures passed
-    const measurePromises = parameters.measureId.map(async id => {
+    const measureArr = Array.isArray(parameters.measureId) ? parameters.measureId : [parameters.measureId];
+    const measurePromises = measureArr.map(async id => {
       const measure = await findResourceById(id, 'Measure');
       if (!measure) {
         reply.code(404).send(new Error(`Unable to find measure with measureId ${id}`));
@@ -486,8 +486,6 @@ const collectData = async (request, reply) => {
  * @param {Object} reply the response object
  */
 function validateCollectDataParams(parameters, reply) {
-  // TODO: Update with additional validations
-
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
     if (
@@ -523,7 +521,7 @@ function validateCollectDataParams(parameters, reply) {
       );
     return false;
   }
-  // TODO: support other parameters that are currently unsupported
+
   let unsupportedParams = [];
   Object.keys(parameters).forEach(param => {
     if (!['periodStart', 'periodEnd', 'measureId', 'subject'].includes(param)) {

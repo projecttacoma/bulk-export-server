@@ -1,4 +1,9 @@
-const { bulkStatusSetup, cleanUpDb, createTestResource } = require('../populateTestData');
+const {
+  bulkStatusSetup,
+  cleanUpDb,
+  createTestResource,
+  createTestResourceWithConnect
+} = require('../populateTestData');
 const { db } = require('../../src/util/mongo');
 const build = require('../../src/server/app');
 const app = build();
@@ -6,6 +11,10 @@ const supertest = require('supertest');
 const queue = require('../../src/resources/exportQueue');
 const testPatient = require('../fixtures/testPatient.json');
 const testEncounter = require('../fixtures/testEncounter.json');
+const testCondition = require('../fixtures/testCondition.json');
+const testMeasure = require('../fixtures/testMeasure.json');
+const testMeasure2 = require('../fixtures/testMeasure2.json');
+const testValueSet = require('../fixtures/testValueSet.json');
 const testGroup = require('../fixtures/testGroup.json');
 
 // Mock export to do nothing
@@ -751,6 +760,205 @@ describe('Check organizeOutputBy=Patient export logic', () => {
         expect(response.body.issue[0].code).toEqual(400);
         expect(response.body.issue[0].details.text).toEqual(
           'When _type is specified with organizeOutputBy Patient, the Patient type must be included in the _type parameter.'
+        );
+      });
+  });
+
+  afterEach(async () => {
+    await cleanUpDb();
+  });
+});
+
+describe('Check collect-data logic', () => {
+  beforeEach(async () => {
+    await createTestResourceWithConnect(testPatient, 'Patient');
+    await createTestResource(testEncounter, 'Encounter');
+    await createTestResource(testCondition, 'Condition');
+    await createTestResource(testMeasure, 'Measure');
+    await createTestResource(testMeasure2, 'Measure');
+    await createTestResource(testValueSet, 'ValueSet');
+    await app.ready();
+  });
+
+  test('check 200 returned for valid GET request - one measure, single code', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureId=testMeasure2&subject=Patient/testPatient'
+      )
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        ); // check correct types
+        expect(response.body[0].entry).toEqual(
+          expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
+        ); // check specific resources
+      });
+  });
+
+  test('check 200 returned for valid POST request - one measure, single code', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureId',
+            valueId: 'testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueString: 'Patient/testPatient'
+          }
+        ]
+      })
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        ); // check correct types
+        expect(response.body[0].entry).toEqual(
+          expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
+        ); // check specific resources
+      });
+  });
+
+  test('check 200 returned for valid POST request - one measure, valueset and single code', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureId',
+            valueId: 'testMeasure'
+          },
+          {
+            name: 'subject',
+            valueString: 'Patient/testPatient'
+          }
+        ]
+      })
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body[0].entry).toHaveLength(3); //expect 1 measure report, encounter, and condition
+        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Condition', 'Encounter', 'MeasureReport'])
+        ); // check correct types
+        expect(response.body[0].entry).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' }),
+            expect.objectContaining({ fullUrl: 'urn:uuid:test-condition' })
+          ])
+        ); // check specific resources
+      });
+  });
+
+  test('check 200 returned for valid POST request - two measures', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureId',
+            valueId: 'testMeasure'
+          },
+          {
+            name: 'measureId',
+            valueId: 'testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueString: 'Patient/testPatient'
+          }
+        ]
+      })
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body[0].entry).toHaveLength(4); //expect 2 measure reports, encounter, and condition
+        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Condition', 'Encounter', 'MeasureReport', 'MeasureReport'])
+        ); // check correct types
+        expect(response.body[0].entry).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' }),
+            expect.objectContaining({ fullUrl: 'urn:uuid:test-condition' })
+          ])
+        ); // check specific resources
+      });
+  });
+
+  test('check 400 returned for unrecognized parameter', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureId',
+            valueId: 'testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueString: 'Patient/testPatient'
+          },
+          {
+            name: 'unrecognizedParam',
+            valueString: 'invalid'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following parameters are unrecognized by the server: unrecognizedParam.'
+        );
+      });
+  });
+
+  test('check 501 returned for unsupported valid parameter', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureId',
+            valueId: 'testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueString: 'Patient/testPatient'
+          },
+          {
+            name: 'validateResources',
+            valueBoolean: 'true'
+          }
+        ]
+      })
+      .expect(501)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following parameters are not yet supported by the server: validateResources.'
         );
       });
   });

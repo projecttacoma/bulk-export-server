@@ -50,6 +50,7 @@ function createPatientBundle(patient, resources, measureReports) {
  * @param measure FHIR Measure
  * @param measurementPeriod FHIR Period representing the measurement period
  * @param subjectId the patient id the MeasureReport is associated with
+ * @param patientResources the patient resources of relevance to the passed measure
  * @returns { fhir4.MeasureReport } a data exchange measure report used to send Measure-relevant data to a server
  */
 function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId, patientResources) {
@@ -61,7 +62,7 @@ function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId, 
     status: 'complete',
     type: 'data-collection',
     subject: { reference: `Patient/${subjectId}` },
-    date: jsDateToFHIRDate(new Date()),
+    date: new Date().toISOString(),
     reporter: { reference: 'Organization/bulk-export-server' }, //TODO: do we need to send an organization resource?
     meta: {
       profile: ['http://hl7.org/fhir/us/davinci-deqm/StructureDefinition/datax-measurereport-deqm']
@@ -72,25 +73,11 @@ function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId, 
         valueCode: 'snapshot'
       }
     ],
-    evaluatedResource: patientResources.map(r => {
+    evaluatedResource: patientResources?.map(r => {
       return { reference: `${r.resourceType}/${r.id}` };
     }),
     contained: [{ resourceType: 'Organization', id: 'bulk-export-server' }]
   };
-}
-
-/**
- * Converts a JS date to a FHIR date string
- * @param {Date} date JS date to be converted
- * @returns {String} a string representing a FHIR date
- */
-function jsDateToFHIRDate(date) {
-  // TODO: Just use .toISOString()???
-  const year = date.getFullYear();
-  // month is 0 indexed
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${year}-${month < 10 ? `0${month}` : month}-${day < 10 ? `0${day}` : day}`;
 }
 
 /**
@@ -100,7 +87,7 @@ function jsDateToFHIRDate(date) {
  * @returns {Array} an array of filtered fhir resources related to the passed patient
  */
 async function findPatientResources(patient, measure) {
-  const dataRequirements = measure.contained.find(c => c.id === 'effective-data-requirements').dataRequirement;
+  const dataRequirements = measure.contained?.find(c => c.id === 'effective-data-requirements').dataRequirement;
   const types = _.uniq(dataRequirements.map(dr => dr.type));
   const [patientTypes, nonPatientTypes] = types.reduce(
     ([patient, nonPatient], type) => {
@@ -109,9 +96,12 @@ async function findPatientResources(patient, measure) {
     },
     [[], []]
   );
-  // TODO: Handle non-patient types more elegantly/completely
+  // nonPatientTypes can be in data requirements when they may be referenced from other resources that reference patients
   // i.e. Patient references MedicationRequest references Medication could end up with Medication as non-patient type
-  console.warn('Ignoring non-patient types found in data requirements:', nonPatientTypes);
+  // ignored for now, but should either get all (non-patient query) or be able to do more complex query creation
+  if (nonPatientTypes.length > 0) {
+    console.warn('Ignoring non-patient types found in data requirements:', nonPatientTypes);
+  }
   const typeFilters = typeFiltersForMeasure(dataRequirements);
   // create lookup objects for (1) _typeFilter queries that contain search parameters, and (2) _typeFilter
   // queries that contain type:in/code:in/etc. queries
@@ -139,8 +129,7 @@ function typeFiltersForMeasure(dataRequirements) {
   const typeFilters = {};
   dataRequirements.forEach(dr => {
     //empty array is general _type query that overrides a more specific _typeFilter
-    if (typeFilters[dr.type]?.length === 0) return;
-    // TODO: add profile conformance checking as specified in the data requirement
+    if (typeFilters[dr.type]?.length === 0) return; // only handle data requirements with types for now
 
     if (
       dr.codeFilter?.some(cf => {
@@ -159,18 +148,18 @@ function typeFiltersForMeasure(dataRequirements) {
       const hasVS = cf.path && cf.valueSet;
       const hasCode = cf.path && cf.code && cf.code.every(coding => !!coding.code);
       if (hasVS && hasCode) {
-        // TODO: Is there a right way to do this case?
-        // filter returns items matching a code in the value set or one of the specified codes
-        // ORing these things together at this level doesn't seem to have a specified approach in https://hl7.org/fhir/R4/search.html#combining
-        // Try appending codes after vs url for lack of a better idea (i.e. type:in=[ValueSet-canonical-URL],1,2). This is almost definitely wrong
-        return `${cf.path}:in=${cf.valueSet},${cf.code?.map(coding => coding.code).join(',')}`;
+        // default to valueset method for now, but this should probably be expanded to a full list of codes from the vs with additional
+        // codes appended (or separated into separate top-leve queries where other included codeFilters are repeated
+        // Example: 'Procedure?code=1&category=3,4','Procedure?code=1&category:in=vs)')
+        return `${cf.path}:in=${cf.valueSet}`;
       } else if (hasVS) {
         return `${cf.path}:in=${cf.valueSet}`;
       } else {
         // hasCode
+        // potential multiple codes are comma-separated to be ORed for this path
         return `${cf.path}=${cf.code?.map(coding => coding.code).join(',')}`;
       }
-    }); // potential multiple codes are comma-separated to be ORed for this path
+    });
     const tfStr = `${dr.type}?${fhirQueries?.join('&')}`; //Example value: 'Procedure?code=1,2&category=3,4'
     if (typeFilters[dr.type]) {
       typeFilters[dr.type]?.push(tfStr);
