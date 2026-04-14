@@ -15,11 +15,11 @@ describe('CRUD operations for Patient resource', () => {
     await client.connect();
     await app.ready();
   });
-  test('test create returns 201', async () => {
+  test('create returns 201', async () => {
     await supertest(app.server).post('/Patient').send(testPatient).expect(201);
   });
 
-  test('test searchById should return 200 when patient is in db', async () => {
+  test('searchById should return 200 when patient is in db', async () => {
     await createTestResource(testPatient, 'Patient');
     await supertest(app.server)
       .get(`/Patient/${TEST_PATIENT_ID}`)
@@ -29,7 +29,7 @@ describe('CRUD operations for Patient resource', () => {
       });
   });
 
-  test('test searchById should return 404 when patient is not in db', async () => {
+  test('searchById should return 404 when patient is not in db', async () => {
     await supertest(app.server)
       .get(`/Patient/${INVALID_PATIENT_ID}`)
       .expect(404)
@@ -38,7 +38,7 @@ describe('CRUD operations for Patient resource', () => {
       });
   });
 
-  test('test search should return 200 when patients are in the db', async () => {
+  test('search should return 200 when patients are in the db', async () => {
     await createTestResource(testPatient, 'Patient');
     await supertest(app.server)
       .get(`/Patient`)
@@ -48,7 +48,7 @@ describe('CRUD operations for Patient resource', () => {
       });
   });
 
-  test('test search should return 404 if no patients are in the db', async () => {
+  test('search should return 404 if no patients are in the db', async () => {
     await supertest(app.server)
       .get(`/Patient`)
       .expect(404)
@@ -57,21 +57,21 @@ describe('CRUD operations for Patient resource', () => {
       });
   });
 
-  test('test update returns 200 when patient is in db', async () => {
+  test('update returns 200 when patient is in db', async () => {
     await createTestResource(testPatient, 'Patient');
     await supertest(app.server).put(`/Patient/${TEST_PATIENT_ID}`).send(updatedTestPatient).expect(200);
   });
 
-  test('test update returns 201 when patient is not in db', async () => {
+  test('update returns 201 when patient is not in db', async () => {
     await supertest(app.server).put(`/Patient/${TEST_PATIENT_ID}`).send(updatedTestPatient).expect(200);
   });
 
-  test('test delete returns 200 when patient in db', async () => {
+  test('delete returns 200 when patient in db', async () => {
     await createTestResource(testPatient, 'Patient');
     await supertest(app.server).delete(`/Patient/${TEST_PATIENT_ID}`).expect(200);
   });
 
-  test('test delete returns 404 when patient is not in db', async () => {
+  test('delete returns 404 when patient is not in db', async () => {
     await supertest(app.server)
       .delete(`/Patient/${TEST_PATIENT_ID}`)
       .expect(404)

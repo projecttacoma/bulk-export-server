@@ -5,7 +5,7 @@ const {
   getDocuments,
   buildSearchParamList
 } = require('../../src/util/exportToNDJson');
-const QueryBuilder = require('@asymmetrik/fhir-qb');
+const QueryBuilder = require('@bluehalo/fhir-qb');
 const { cleanUpDb, createTestResourceWithConnect } = require('../populateTestData');
 const testPatient = require('../fixtures/testPatient.json');
 const testEncounter = require('../fixtures/testEncounter.json');
@@ -157,7 +157,7 @@ describe('check export logic', () => {
           includeArchived: true
         });
         const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
-        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document).toHaveLength(1);
       });
 
       test('returns Condition document when _typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z&onset-date=gt2019-01-03T00:00:00Z', async () => {
@@ -173,7 +173,7 @@ describe('check export logic', () => {
           includeArchived: true
         });
         const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
-        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document).toHaveLength(1);
       });
 
       test('returns no documents when _typeFilter filters out all documents (_typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z&onset-date=lt2019-01-03T00:00:00Z', async () => {
@@ -188,7 +188,7 @@ describe('check export logic', () => {
           includeArchived: true
         });
         const docObj = await getDocuments('Condition', [filter.query], undefined, ['testPatient']);
-        expect(docObj.document.length).toEqual(0);
+        expect(docObj.document).toHaveLength(0);
       });
 
       test('returns Condition document when _typeFilter has "or" condition (_typeFilter=Condition?recorded-date=gt2019-01-03T00:00:00Z,onset-date=lt2019-01-03T00:00:00Z', async () => {
@@ -215,31 +215,31 @@ describe('check export logic', () => {
           undefined,
           ['testPatient']
         );
-        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document).toHaveLength(1);
       });
     });
 
     describe('Patient-based filtering tests', () => {
       test('Expect getDocuments to find a resource associated with a patient (Group export)', async () => {
         const docObj = await getDocuments('Encounter', undefined, undefined, ['testPatient']);
-        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document).toHaveLength(1);
       });
 
       test('Expect getDocuments to find the encounter resource with no patient association (Patient export)', async () => {
         const docObj = await getDocuments('Encounter', undefined, undefined, undefined);
-        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document).toHaveLength(1);
       });
 
       test('Expect getDocuments to return empty results for 0 patient association (empty Group)', async () => {
         const docObj = await getDocuments('Encounter', undefined, undefined, []);
-        expect(docObj.document.length).toEqual(0);
+        expect(docObj.document).toHaveLength(0);
       });
     });
 
     describe('_elements tests', () => {
       test('returns Condition document with only the id, resourceType and subject (mandatory elements for Condition), and the SUBSETTED tag when _elements=Condition.id', async () => {
         const docObj = await getDocuments('Condition', undefined, undefined, undefined, ['id']);
-        expect(docObj.document.length).toEqual(1);
+        expect(docObj.document).toHaveLength(1);
         expect(docObj.document[0]).toEqual({
           resourceType: 'Condition',
           id: 'test-condition',

@@ -17,11 +17,11 @@ describe('CRUD operations for Group resource', () => {
     await client.connect();
     await app.ready();
   });
-  test('test create returns 201', async () => {
+  test('create returns 201', async () => {
     await supertest(app.server).post('/Group').send(testGroup).expect(201);
   });
 
-  test('test searchById should return 200 when group is in db', async () => {
+  test('searchById should return 200 when group is in db', async () => {
     await createTestResource(testGroup, 'Group');
     await supertest(app.server)
       .get(`/Group/${TEST_GROUP_ID}`)
@@ -31,7 +31,7 @@ describe('CRUD operations for Group resource', () => {
       });
   });
 
-  test('test searchById should return 404 when group is not in db', async () => {
+  test('searchById should return 404 when group is not in db', async () => {
     await supertest(app.server)
       .get(`/Group/${INVALID_GROUP_ID}`)
       .expect(404)
@@ -40,7 +40,7 @@ describe('CRUD operations for Group resource', () => {
       });
   });
 
-  test('test search should return 200 when groups are in the db', async () => {
+  test('search should return 200 when groups are in the db', async () => {
     await createTestResource(testGroup, 'Group');
     await supertest(app.server)
       .get(`/Group`)
@@ -50,7 +50,7 @@ describe('CRUD operations for Group resource', () => {
       });
   });
 
-  test('test search should return 404 if no groups are in the db', async () => {
+  test('search should return 404 if no groups are in the db', async () => {
     await supertest(app.server)
       .get(`/Group`)
       .expect(404)
@@ -59,21 +59,21 @@ describe('CRUD operations for Group resource', () => {
       });
   });
 
-  test('test update returns 200 when group is in db', async () => {
+  test('update returns 200 when group is in db', async () => {
     await createTestResource(testGroup, 'Group');
     await supertest(app.server).put(`/Group/${TEST_GROUP_ID}`).send(updatedTestGroup).expect(200);
   });
 
-  test('test update returns 201 when group is not in db', async () => {
+  test('update returns 201 when group is not in db', async () => {
     await supertest(app.server).put(`/Group/${TEST_GROUP_ID}`).send(updatedTestGroup).expect(200);
   });
 
-  test('test delete returns 200 when group in db', async () => {
+  test('delete returns 200 when group in db', async () => {
     await createTestResource(testGroup, 'Group');
     await supertest(app.server).delete(`/Group/${TEST_GROUP_ID}`).expect(200);
   });
 
-  test('test delete returns 404 when group is not in db', async () => {
+  test('delete returns 404 when group is not in db', async () => {
     await supertest(app.server)
       .delete(`/Group/${TEST_GROUP_ID}`)
       .expect(404)
