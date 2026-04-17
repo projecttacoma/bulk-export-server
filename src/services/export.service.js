@@ -450,11 +450,10 @@ const collectData = async (request, reply) => {
     const bundles = await Promise.all(
       patientIds.map(async id => {
         const patient = await findResourceById(id, 'Patient');
-        const measureReports = [];
-        const patientResourcePromises = measures.map(async measure => {
-          const patientResources = await findPatientResources(patient, measure);
-          measureReports.push(
-            createDataExchangeMeasureReport(
+        const resourcesMRPairs = await Promise.all(
+          measures.map(async measure => {
+            const patientResources = await findPatientResources(patient, measure);
+            const measureReport = createDataExchangeMeasureReport(
               measure,
               {
                 start: parameters.periodStart,
@@ -462,11 +461,11 @@ const collectData = async (request, reply) => {
               },
               id,
               patientResources
-            )
-          );
-          return patientResources;
-        });
-        const patientResourcesArray = await Promise.all(patientResourcePromises);
+            );
+            return [patientResources, measureReport];
+          })
+        );
+        const [patientResourcesArray, measureReports] = _.unzip(resourcesMRPairs);
         const uniqueResources = _.uniqBy(
           patientResourcesArray.flat(),
           resource => `${resource.resourceType}/${resource.id}`
