@@ -9,7 +9,7 @@ const _ = require('lodash');
  * an array of the patient's associated resources
  * @param {Object} patient FHIR Patient object
  * @param {Array} resources array of resources associated with the patient
- * @param {Array} measureReports array of MeasureReport specifying measure information for data exchange
+ * @param {Array} measureReports array of MeasureReport resources specifying measure information for data exchange
  * @returns {Object} a FHIR patient bundle resource
  */
 function createPatientBundle(patient, resources, measureReports) {
@@ -46,7 +46,7 @@ function createPatientBundle(patient, resources, measureReports) {
 
 /**
  * Creates a FHIR data exchange MeasureReport from measure and subject data
- * https://build.fhir.org/ig/HL7/davinci-deqm/StructureDefinition-datax-measurereport-deqm.html
+ * https://hl7.org/fhir/us/davinci-deqm/STU5/StructureDefinition-datax-measurereport-deqm.html
  * @param measure FHIR Measure
  * @param measurementPeriod FHIR Period representing the measurement period
  * @param subjectId the patient id the MeasureReport is associated with
@@ -82,8 +82,8 @@ function createDataExchangeMeasureReport(measure, measurementPeriod, subjectId, 
 
 /**
  * Finds all resources related to the passed patient resource but limited by the data requirements on the passed measure
- * @param {Object} patient fhir patient resource
- * @param {Object} measure fhir measure resource
+ * @param {FHIR.Patient} patient fhir patient resource
+ * @param {FHIR.Measure} measure fhir measure resource
  * @returns {Array} an array of filtered fhir resources related to the passed patient
  */
 async function findPatientResources(patient, measure) {
@@ -149,20 +149,20 @@ function typeFiltersForMeasure(dataRequirements) {
       const hasCode = cf.path && cf.code && cf.code.every(coding => !!coding.code);
       if (hasVS && hasCode) {
         // default to valueset method for now, but this should probably be expanded to a full list of codes from the vs with additional
-        // codes appended (or separated into separate top-leve queries where other included codeFilters are repeated
-        // Example: 'Procedure?code=1&category=3,4','Procedure?code=1&category:in=vs)')
+        // codes appended (or separated into separate top-level queries where other included codeFilters are repeated
+        // Example: 'Procedure?code=1&category=3,4','Procedure?code=1&category:in=vs')
         return `${cf.path}:in=${cf.valueSet}`;
       } else if (hasVS) {
         return `${cf.path}:in=${cf.valueSet}`;
       } else {
         // hasCode
-        // potential multiple codes are comma-separated to be ORed for this path
+        // potential multiple codes are comma-separated to be OR'd for this path
         return `${cf.path}=${cf.code?.map(coding => coding.code).join(',')}`;
       }
     });
     const tfStr = `${dr.type}?${fhirQueries?.join('&')}`; //Example value: 'Procedure?code=1,2&category=3,4'
     if (typeFilters[dr.type]) {
-      typeFilters[dr.type]?.push(tfStr);
+      typeFilters[dr.type].push(tfStr);
     } else {
       typeFilters[dr.type] = [tfStr];
     }
