@@ -37,6 +37,12 @@ function gatherParams(method, query, body, reply) {
           } else {
             acc[e.name].push(e.valueReference);
           }
+        } else if (e.name === 'measureId') {
+          if (!acc[e.name]) {
+            acc[e.name] = [e.valueId];
+          } else {
+            acc[e.name].push(e.valueId);
+          }
         } else {
           // For now, all usable params are expected to be stored under one of these fives keys
           acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference;

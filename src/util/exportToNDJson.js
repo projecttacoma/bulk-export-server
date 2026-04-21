@@ -428,7 +428,7 @@ const processVSTypeFilter = async function (valueSetQueries) {
         let vs = await findOneResourceWithQuery({ url: value }, 'ValueSet');
         // throw an error if we don't have the value set
         if (!vs) {
-          throw new Error('Value set was not found in the database');
+          throw new Error(`Value set with value ${value} was not found in the database`);
         }
         const vsResolved = getCodesFromValueSet(vs);
         // extract the property (i.e. code, type)
@@ -440,7 +440,9 @@ const processVSTypeFilter = async function (valueSetQueries) {
       await Promise.all(results);
     }
   }
-
+  if (queryArray.length === 0) {
+    return {};
+  }
   return {
     $or: queryArray
   };

@@ -6,6 +6,12 @@ const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
 const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
+const _ = require('lodash');
+const {
+  createDataExchangeMeasureReport,
+  createPatientBundle,
+  findPatientResources
+} = require('../util/collectDataUtils');
 
 /**
  * Exports data from a FHIR server, whether or not it is associated with a patient.
@@ -417,4 +423,122 @@ async function validatePatientReferences(patientParam, reply) {
   return false;
 }
 
-module.exports = { bulkExport, patientBulkExport, groupBulkExport };
+/**
+ * Implements limited parameters for $collect-data according to https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-collect-data.html
+ * Returns a set of bundles that have data of interest for the specified measures, organized by the specified subject
+ * @param {Object} request the request object passed in by the user
+ * @param {Object} reply the response object
+ */
+const collectData = async (request, reply) => {
+  const parameters = gatherParams(request.method, request.query, request.body, reply);
+
+  if (validateCollectDataParams(parameters, reply)) {
+    request.log.info('Measure >>> $collect-data');
+
+    const patientIds = [parameters.subject.split('Patient/')[1]];
+    // Check for measure resolution - errors if there are any issues with measures passed
+    const measureArr = Array.isArray(parameters.measureId) ? parameters.measureId : [parameters.measureId];
+    const measurePromises = measureArr.map(async id => {
+      const measure = await findResourceById(id, 'Measure');
+      if (!measure) {
+        reply.code(404).send(new Error(`Unable to find measure with measureId ${id}`));
+      }
+      return measure;
+    });
+    const measures = await Promise.all(measurePromises);
+
+    const bundles = await Promise.all(
+      patientIds.map(async id => {
+        const patient = await findResourceById(id, 'Patient');
+        const resourcesMRPairs = await Promise.all(
+          measures.map(async measure => {
+            const patientResources = await findPatientResources(patient, measure);
+            const measureReport = createDataExchangeMeasureReport(
+              measure,
+              {
+                start: parameters.periodStart,
+                end: parameters.periodEnd
+              },
+              id,
+              patientResources
+            );
+            return [patientResources, measureReport];
+          })
+        );
+        const [patientResourcesArray, measureReports] = _.unzip(resourcesMRPairs);
+        const uniqueResources = _.uniqBy(
+          patientResourcesArray.flat(),
+          resource => `${resource.resourceType}/${resource.id}`
+        );
+        return createPatientBundle(patient, uniqueResources, measureReports);
+      })
+    );
+
+    reply.code(200).send(bundles);
+  }
+};
+
+/**
+ * Checks that the parameters input to $collect-data are valid. Returns true if all the
+ * export params are valid, meaning no errors were thrown in the process.
+ * @param {Object} parameters object containing a combination of request parameters from request query and body
+ * @param {Object} reply the response object
+ */
+function validateCollectDataParams(parameters, reply) {
+  let unrecognizedParams = [];
+  Object.keys(parameters).forEach(param => {
+    if (
+      ![
+        'periodStart',
+        'periodEnd',
+        'measureId',
+        'measureIdentifier',
+        'measureUrl',
+        'measureResource',
+        'measure',
+        'subject',
+        'subjectGroup',
+        'practitioner',
+        'lastReceivedOn',
+        'organizationResource',
+        'organization',
+        'validateResources',
+        'dataEndpoint'
+      ].includes(param)
+    ) {
+      unrecognizedParams.push(param);
+    }
+  });
+  if (unrecognizedParams.length > 0) {
+    reply
+      .code(400)
+      .send(
+        createOperationOutcome(
+          `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
+          { issueCode: 400, severity: 'error' }
+        )
+      );
+    return false;
+  }
+
+  let unsupportedParams = [];
+  Object.keys(parameters).forEach(param => {
+    if (!['periodStart', 'periodEnd', 'measureId', 'subject'].includes(param)) {
+      unsupportedParams.push(param);
+    }
+  });
+  if (unsupportedParams.length > 0) {
+    reply
+      .code(501)
+      .send(
+        createOperationOutcome(
+          `The following parameters are not yet supported by the server: ${unsupportedParams.join(', ')}.`,
+          { issueCode: 501, severity: 'error' }
+        )
+      );
+    return false;
+  }
+  return true;
+}
+
+module.exports = { bulkExport, patientBulkExport, groupBulkExport, collectData };

@@ -4,6 +4,7 @@
     "subject": {
       "reference": "Patient/testPatient"
     },
+    "status": "finished",
     "type": {
       "coding": [
         {

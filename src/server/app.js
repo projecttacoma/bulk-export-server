@@ -1,7 +1,7 @@
 const fastify = require('fastify');
 const cors = require('@fastify/cors');
 
-const { bulkExport, patientBulkExport, groupBulkExport } = require('../services/export.service');
+const { bulkExport, patientBulkExport, groupBulkExport, collectData } = require('../services/export.service');
 const { checkBulkStatus, kickoffImport } = require('../services/bulkstatus.service');
 const { returnNDJsonContent } = require('../services/ndjson.service');
 const { groupSearchById, groupSearch, groupCreate, groupUpdate, groupRemove } = require('../services/group.service');
@@ -39,6 +39,10 @@ function build(opts) {
   app.post('/Patient', patientCreate);
   app.put('/Patient/:patientId', patientUpdate);
   app.delete('/Patient/:patientId', patientRemove);
+  app.get('/Measure/$collect-data', collectData);
+  app.post('/Measure/$collect-data', collectData);
+  app.get('/Measure/:measureId/$collect-data', collectData);
+  app.post('/Measure/:measureId/$collect-data', collectData);
 
   return app;
 }

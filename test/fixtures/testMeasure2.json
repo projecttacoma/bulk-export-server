@@ -1,0 +1,29 @@
+{
+  "resourceType": "Measure",
+  "id": "testMeasure2",
+  "library": ["Library/testLibrary"],
+  "contained": [
+    {
+      "resourceType": "Library",
+      "id": "effective-data-requirements",
+      "dataRequirement": [
+        {
+          "type": "Encounter",
+          "profile": [
+            "http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-observation-clinical-result"
+          ],
+          "codeFilter": [
+            {
+              "path": "status",
+              "code": [
+                {
+                  "code": "finished"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
