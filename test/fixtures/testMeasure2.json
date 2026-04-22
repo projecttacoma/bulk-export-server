@@ -1,7 +1,11 @@
 {
   "resourceType": "Measure",
   "id": "testMeasure2",
-  "library": ["Library/testLibrary"],
+  "url": "http://example.com/Measure/testMeasure2",
+  "version": "1.0.1",
+  "library": [
+    "Library/testLibrary"
+  ],
   "contained": [
     {
       "resourceType": "Library",
