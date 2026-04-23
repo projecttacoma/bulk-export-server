@@ -13,6 +13,7 @@ const testPatient = require('../fixtures/testPatient.json');
 const testEncounter = require('../fixtures/testEncounter.json');
 const testCondition = require('../fixtures/testCondition.json');
 const testMeasure = require('../fixtures/testMeasure.json');
+const testMeasureV2 = require('../fixtures/testMeasureV2.json');
 const testMeasure2 = require('../fixtures/testMeasure2.json');
 const testValueSet = require('../fixtures/testValueSet.json');
 const testGroup = require('../fixtures/testGroup.json');
@@ -775,6 +776,7 @@ describe('Check collect-data logic', () => {
     await createTestResource(testEncounter, 'Encounter');
     await createTestResource(testCondition, 'Condition');
     await createTestResource(testMeasure, 'Measure');
+    await createTestResource(testMeasureV2, 'Measure');
     await createTestResource(testMeasure2, 'Measure');
     await createTestResource(testValueSet, 'ValueSet');
     await app.ready();
@@ -783,7 +785,7 @@ describe('Check collect-data logic', () => {
   test('check 200 returned for valid GET request - one measure with url, single code', async () => {
     await supertest(app.server)
       .get(
-        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http://example.com/Measure/testMeasure2&subject=Patient/testPatient'
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/testPatient'
       )
       .expect(200)
       .then(response => {
@@ -801,7 +803,7 @@ describe('Check collect-data logic', () => {
   test('check 200 returned for valid GET request - one measure with url and version, single code', async () => {
     await supertest(app.server)
       .get(
-        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http://example.com/Measure/testMeasure2|1.0.1&subject=Patient/testPatient'
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2%7C1.0.1&subject=Patient/testPatient'
       )
       .expect(200)
       .then(response => {
@@ -826,7 +828,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'measureUrl',
-            valueUri: 'http://example.com/Measure/testMeasure2|1.0.1'
+            valueCanonical: 'http://example.com/Measure/testMeasure2|1.0.1'
           },
           {
             name: 'subject',
@@ -857,11 +859,11 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'measureUrl',
-            valueUri: 'http://example.com/Measure/testMeasure'
+            valueCanonical: 'http://example.com/Measure/testMeasure|1.0.0'
           },
           {
             name: 'measureUrl',
-            valueUri: 'http://example.com/Measure/testMeasure2|1.0.1'
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
           },
           {
             name: 'subject',
@@ -895,7 +897,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'measureUrl',
-            valueUrl: 'http://example.com/Measure/testMeasure2|2.0.0'
+            valueCanonical: 'http://example.com/Measure/testMeasure'
           },
           {
             name: 'subject',
@@ -907,12 +909,12 @@ describe('Check collect-data logic', () => {
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
-          'Measure with url http://example.com/Measure/nonExist not found.'
+          'Multiple versions of http://example.com/Measure/testMeasure were found.'
         );
       });
   });
 
-  test('check 400 returned for measure by url with version that cannot be found', async () => {
+  test('check 404 returned for measure by url with version that cannot be found', async () => {
     await supertest(app.server)
       .post('/Measure/$collect-data')
       .send({
@@ -922,7 +924,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'measureUrl',
-            valueUrl: 'http://example.com/Measure/testMeasure2|2.0.0'
+            valueCanonical: 'http://example.com/Measure/testMeasure2|2.1.0'
           },
           {
             name: 'subject',
@@ -930,16 +932,16 @@ describe('Check collect-data logic', () => {
           }
         ]
       })
-      .expect(400)
+      .expect(404)
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
-          'Measure with url http://example.com/Measure/nonExist not found.'
+          'Measure with url http://example.com/Measure/testMeasure2|2.1.0 not found.'
         );
       });
   });
 
-  test('check 400 returned for measure by url that cannot be found', async () => {
+  test('check 404 returned for measure by url that cannot be found', async () => {
     await supertest(app.server)
       .post('/Measure/$collect-data')
       .send({
@@ -949,7 +951,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'measureUrl',
-            valueUrl: 'http://example.com/Measure/nonExist'
+            valueCanonical: 'http://example.com/Measure/nonExist'
           },
           {
             name: 'subject',
@@ -957,7 +959,7 @@ describe('Check collect-data logic', () => {
           }
         ]
       })
-      .expect(400)
+      .expect(404)
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
@@ -1033,7 +1035,7 @@ describe('Check collect-data logic', () => {
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
-          'The following parameters are unrecognized by the server: unrecognizedParam.'
+          'The following parameters are unrecognized by the server: measureId, unrecognizedParam.'
         );
       });
   });
@@ -1048,7 +1050,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'measureUrl',
-            valueUrl: 'http://example.com/Measure/testMeasure2'
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
           },
           {
             name: 'subject',

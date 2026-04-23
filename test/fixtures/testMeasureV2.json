@@ -1,0 +1,45 @@
+{
+  "resourceType": "Measure",
+  "id": "testMeasure",
+  "url": "http://example.com/Measure/testMeasure",
+  "version": "2.0.0",
+  "library": [
+    "Library/testLibrary"
+  ],
+  "contained": [
+    {
+      "resourceType": "Library",
+      "id": "effective-data-requirements",
+      "dataRequirement": [
+        {
+          "type": "Encounter",
+          "profile": [
+            "http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-observation-clinical-result"
+          ],
+          "codeFilter": [
+            {
+              "path": "status",
+              "code": [
+                {
+                  "code": "finished"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Condition",
+          "profile": [
+            "http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-condition-problems-health-concerns"
+          ],
+          "codeFilter": [
+            {
+              "path": "code",
+              "valueSet": "http://example.com/ValueSet/exampleVS"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

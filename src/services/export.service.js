@@ -1,4 +1,4 @@
-const { addPendingBulkExportRequest, findResourceById } = require('../util/mongo.controller');
+const { addPendingBulkExportRequest, findResourceById, findResourceByCanonical } = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources').filter(r => r !== 'ValueSet'); //exclude ValueSet (may be stored but not exported)
 const exportQueue = require('../resources/exportQueue');
 const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
@@ -437,15 +437,31 @@ const collectData = async (request, reply) => {
 
     const patientIds = [parameters.subject.split('Patient/')[1]];
     // Check for measure resolution - errors if there are any issues with measures passed
-    const measureArr = Array.isArray(parameters.measureId) ? parameters.measureId : [parameters.measureId];
-    const measurePromises = measureArr.map(async id => {
-      const measure = await findResourceById(id, 'Measure');
-      if (!measure) {
-        reply.code(404).send(new Error(`Unable to find measure with measureId ${id}`));
+    const measureArr = Array.isArray(parameters.measureUrl) ? parameters.measureUrl : [parameters.measureUrl];
+    const measures = [];
+    for (let url of measureArr) {
+      const resources = await findResourceByCanonical(url, 'Measure');
+
+      if (resources.length > 1) {
+        reply
+          .code(400)
+          .send(
+            createOperationOutcome(`Multiple versions of ${url} were found.`, { issueCode: 400, severity: 'error' })
+          );
+        return;
+      } else if (resources.length === 1) {
+        measures.push(resources[0]);
+      } else {
+        // return if we cant find a measure
+        reply.code(404).send(
+          createOperationOutcome(`Measure with url ${url} not found.`, {
+            issueCode: 404,
+            severity: 'error'
+          })
+        );
+        return;
       }
-      return measure;
-    });
-    const measures = await Promise.all(measurePromises);
+    }
 
     const bundles = await Promise.all(
       patientIds.map(async id => {
@@ -491,11 +507,7 @@ function validateCollectDataParams(parameters, reply) {
       ![
         'periodStart',
         'periodEnd',
-        'measureId',
-        'measureIdentifier',
         'measureUrl',
-        'measureResource',
-        'measure',
         'subject',
         'subjectGroup',
         'practitioner',
@@ -523,7 +535,7 @@ function validateCollectDataParams(parameters, reply) {
 
   let unsupportedParams = [];
   Object.keys(parameters).forEach(param => {
-    if (!['periodStart', 'periodEnd', 'measureId', 'subject'].includes(param)) {
+    if (!['periodStart', 'periodEnd', 'measureUrl', 'subject'].includes(param)) {
       unsupportedParams.push(param);
     }
   });
