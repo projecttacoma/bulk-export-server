@@ -17,6 +17,11 @@ const {
 // set bodyLimit to 50mb
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
+  app.addContentTypeParser(
+    ['application/json+fhir', 'application/fhir+json'],
+    { parseAs: 'string' },
+    app.getDefaultJsonParser('ignore', 'ignore')
+  );
   app.register(cors, { exposedHeaders: ['content-location', 'expires', 'x-progress', 'retry-after'] });
   app.get('/metadata', generateCapabilityStatement);
   app.get('/$export', bulkExport);
