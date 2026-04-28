@@ -968,6 +968,37 @@ describe('Check collect-data logic', () => {
       });
   });
 
+  test('check 400 returned for invalid POST missing measureUrl', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'subject',
+            valueString: 'Patient/testPatient'
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe('At least one measureUrl is required.');
+      });
+  });
+
+  test('check 400 returned for invalid GET request missing measureUrl', async () => {
+    await supertest(app.server)
+      .get('/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&subject=Patient/testPatient')
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe('At least one measureUrl is required.');
+      });
+  });
+
   test('check 400 returned for invalid GET request using measureId', async () => {
     await supertest(app.server)
       .get(

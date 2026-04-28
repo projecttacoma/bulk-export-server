@@ -72,7 +72,7 @@ async function main() {
     const bundlePath = path.resolve(process.argv[2]);
     try {
       if (!searchPattern) {
-        searchPattern = /-bundle.json$/;
+        searchPattern = /.json$/;
       }
       console.log(`Finding bundles in ${bundlePath}.`);
       getBundleFiles(bundlePath, searchPattern);

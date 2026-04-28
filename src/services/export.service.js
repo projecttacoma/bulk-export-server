@@ -550,6 +550,12 @@ function validateCollectDataParams(parameters, reply) {
       );
     return false;
   }
+  if (!parameters.measureUrl) {
+    reply
+      .code(400)
+      .send(createOperationOutcome('At least one measureUrl is required.', { issueCode: 400, severity: 'error' }));
+    return false;
+  }
   return true;
 }
 
