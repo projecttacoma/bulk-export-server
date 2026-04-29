@@ -1,8 +1,8 @@
 {
   "resourceType": "Measure",
-  "id": "testMeasure2",
-  "url": "http://example.com/Measure/testMeasure2",
-  "version": "1.0.1",
+  "id": "testMeasure",
+  "url": "http://example.com/Measure/testMeasure",
+  "version": "2.0.0",
   "library": [
     "Library/testLibrary"
   ],
@@ -24,6 +24,18 @@
                   "code": "finished"
                 }
               ]
+            }
+          ]
+        },
+        {
+          "type": "Condition",
+          "profile": [
+            "http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-condition-problems-health-concerns"
+          ],
+          "codeFilter": [
+            {
+              "path": "code",
+              "valueSet": "http://example.com/ValueSet/exampleVS"
             }
           ]
         }

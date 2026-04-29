@@ -37,15 +37,16 @@ function gatherParams(method, query, body, reply) {
           } else {
             acc[e.name].push(e.valueReference);
           }
-        } else if (e.name === 'measureId') {
+        } else if (e.name === 'measureUrl') {
           if (!acc[e.name]) {
-            acc[e.name] = [e.valueId];
+            acc[e.name] = [e.valueCanonical];
           } else {
-            acc[e.name].push(e.valueId);
+            acc[e.name].push(e.valueCanonical);
           }
         } else {
-          // For now, all usable params are expected to be stored under one of these fives keys
-          acc[e.name] = e.valueDate || e.valueString || e.valueId || e.valueCode || e.valueReference;
+          // For now, all usable params are expected to be stored under one of these six keys
+          acc[e.name] =
+            e.valueDate || e.valueString || e.valueId || e.valueCanonical || e.valueCode || e.valueReference;
         }
       }
       return acc;

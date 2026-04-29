@@ -30,6 +30,23 @@ const findResourceById = async (id, resourceType) => {
 };
 
 /**
+ * searches the database for the desired resource by canonical url
+ * @param {*} url canonical of desired resource
+ * @param {*} resourceType type of desired resource, signifies collection resource is stored in
+ * @returns the data of the found document
+ */
+const findResourceByCanonical = async (canonical, resourceType) => {
+  // break apart version if it exists
+  const [url, version] = canonical.split('|');
+  console.log(`Looking for measure ${url} with version ${version}`);
+  const collection = db.collection(resourceType);
+
+  return version
+    ? await collection.find({ url, version }, { projection: { _id: 0 } }).toArray()
+    : await collection.find({ url }, { projection: { _id: 0 } }).toArray();
+};
+
+/**
  * searches the database for the one resource based on a mongo query and returns the data
  * @param {Object} query the mongo query to use
  * @param {string} resourceType type of desired resource, signifies collection resource is stored in
@@ -192,6 +209,7 @@ const pushBulkStatusWarning = async (clientId, warning) => {
 module.exports = {
   findResourcesWithQuery,
   findResourceById,
+  findResourceByCanonical,
   findOneResourceWithQuery,
   createResource,
   removeResource,
