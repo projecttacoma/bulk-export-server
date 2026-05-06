@@ -82,7 +82,7 @@ Debugging with terminal input can be facilitated with `stdin_open: true` and `tt
 
 #### Building new Docker Images
 
-If you have permission to push to the tacoma organization on Docker Hub, simply run `docker-build.sh` to build a multi-platform image and push to docker hub tagged as `latest`.
+If you have permission to push to the mitrehealthdocker organization on Docker Hub, simply run `docker-build.sh` to build a multi-platform image and push to docker hub tagged as `latest`.
 
 ## Usage
 
