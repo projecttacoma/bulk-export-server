@@ -559,4 +559,11 @@ function validateCollectDataParams(parameters, reply) {
   return true;
 }
 
-module.exports = { bulkExport, patientBulkExport, groupBulkExport, collectData };
+module.exports = {
+  bulkExport,
+  patientBulkExport,
+  groupBulkExport,
+  collectData,
+  validateExportParams,
+  filterPatientResourceTypes
+};

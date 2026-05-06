@@ -19,7 +19,7 @@
 
 ### Prerequisites
 
-- [Node.js >=16.11.0](https://nodejs.org/en/)
+- [Node.js >=18.0.0](https://nodejs.org/en/)
 - [MongoDB >= 5.0](https://www.mongodb.com)
 - [Git](https://git-scm.com/)
 - [Docker](https://docs.docker.com/get-docker/)
@@ -139,6 +139,36 @@ FHIR Operation to obtain a detailed set of FHIR resources of diverse resource ty
 Endpoint: `GET [fhir base]/Group/[id]/$export`
 
 Alternatively, a POST request (`POST [fhir base]/Group/[id]/$export`) can be sent. The export parameters must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) in the request body.
+
+#### Natural Language Patient Cohort Export
+
+FHIR Operation to describe a patient cohort in natural language, use PhenoML's Cohort API to generate structured FHIR search queries, resolve the resulting patient cohort, and start a Bulk Data `$export` for those patients.
+
+Endpoint: `POST [fhir base]/Group/$export-from-description`
+
+The request body must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) with a required `text` parameter. The operation also accepts the same export parameters as the Patient/Group `$export` endpoints, except for `patient`.
+
+Example:
+
+```json
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {
+      "name": "text",
+      "valueString": "female patients over 65 with diabetes but not hypertension"
+    },
+    {
+      "name": "_type",
+      "valueString": "Patient,Condition,Encounter,Observation"
+    }
+  ]
+}
+```
+
+The server responds with `202 Accepted` and a `Content-location` header for the bulk status endpoint.
+
+PhenoML credentials can be configured with `PHENOML_TOKEN`, or with `PHENOML_CLIENT_ID` and `PHENOML_CLIENT_SECRET`. `PHENOML_BASE_URL` may be set to point at a dedicated PhenoML instance; otherwise the SDK default is used.
 
 #### System Level Export
 
