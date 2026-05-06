@@ -2,7 +2,7 @@ version: '3'
 
 services:
   fhir:
-    image: tacoma/bulk-export-server
+    image: mitrehealthdocker/bulk-export-server
     depends_on:
       - mongo
       - redis
