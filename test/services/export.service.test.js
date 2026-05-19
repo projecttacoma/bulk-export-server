@@ -289,7 +289,7 @@ describe('Check barebones bulk export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -311,7 +311,7 @@ describe('Check barebones bulk export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -451,7 +451,7 @@ describe('Check patient-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueReference: { reference: 'Patient/unknown_patient' }
+            valueReference: { reference: 'Patient/unknown-patient' }
           }
         ]
       })
@@ -460,7 +460,7 @@ describe('Check patient-level export logic (failure)', () => {
         expect(response.body.resourceType).toEqual('OperationOutcome');
         expect(response.body.issue[0].code).toEqual(404);
         expect(response.body.issue[0].details.text).toEqual(
-          'The following patient ids are not available on the server: Patient/unknown_patient'
+          'The following patient ids are not available on the server: Patient/unknown-patient'
         );
       });
   });
@@ -473,7 +473,7 @@ describe('Check patient-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -597,7 +597,7 @@ describe('Check group-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueReference: { reference: 'Patient/unknown_patient' }
+            valueReference: { reference: 'Patient/unknown-patient' }
           }
         ]
       })
@@ -606,7 +606,7 @@ describe('Check group-level export logic (failure)', () => {
         expect(response.body.resourceType).toEqual('OperationOutcome');
         expect(response.body.issue[0].code).toEqual(404);
         expect(response.body.issue[0].details.text).toEqual(
-          `The following patient ids are not members of the group ${GROUP_ID}: Patient/unknown_patient`
+          `The following patient ids are not members of the group ${GROUP_ID}: Patient/unknown-patient`
         );
       });
   });
@@ -640,7 +640,7 @@ describe('Check group-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -832,7 +832,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -867,7 +867,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -901,7 +901,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -928,7 +928,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -955,7 +955,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -964,6 +964,34 @@ describe('Check collect-data logic', () => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
           'Measure with url http://example.com/Measure/nonExist not found.'
+        );
+      });
+  });
+
+  test('check 404 for patient reference not on server', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/unknownPatient'
+      )
+      .expect(404)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following patient ids are not available on the server: Patient/unknownPatient'
+        );
+      });
+  });
+
+  test('check 404 for group reference not on server', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Group/unknownGroup'
+      )
+      .expect(404)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following group id is not available on the server: unknownGroup'
         );
       });
   });
@@ -978,7 +1006,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -989,6 +1017,46 @@ describe('Check collect-data logic', () => {
       });
   });
 
+  test('check 400 returned for invalid POST missing periodStart', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureUrl',
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueReference: { reference: 'Patient/testPatient' }
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following required parameters are missing for $collect-data: periodStart.'
+        );
+      });
+  });
+
+  test('check 400 returned for invalid GET request missing periodEnd', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/testPatient'
+      )
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following required parameters are missing for $collect-data: periodEnd.'
+        );
+      });
+  });
+
   test('check 400 returned for invalid GET request missing measureUrl', async () => {
     await supertest(app.server)
       .get('/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&subject=Patient/testPatient')
@@ -996,6 +1064,50 @@ describe('Check collect-data logic', () => {
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe('At least one measureUrl is required.');
+      });
+  });
+
+  test('check 200 returned when neither subject nor subjectGroup is provided', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2'
+      )
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body).toHaveLength(1);
+        expect(response.body[0].entry).toHaveLength(2);
+        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        );
+      });
+  });
+
+  test('check 400 returned when subject and subjectGroup are both provided', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/testPatient&subjectGroup=Group/testGroup'
+      )
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'Only one of subject or subjectGroup may be specified for $collect-data.'
+        );
+      });
+  });
+
+  test('check 400 returned for invalid subject reference', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=testPatient'
+      )
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The subject parameter must be a Patient or Group reference of the format "Patient/{id}".'
+        );
       });
   });
 
@@ -1027,7 +1139,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -1054,7 +1166,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           },
           {
             name: 'unrecognizedParam',
@@ -1085,7 +1197,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           },
           {
             name: 'validateResources',

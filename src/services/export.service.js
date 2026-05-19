@@ -1,4 +1,9 @@
-const { addPendingBulkExportRequest, findResourceById, findResourceByCanonical } = require('../util/mongo.controller');
+const {
+  addPendingBulkExportRequest,
+  findResourceById,
+  findResourceByCanonical,
+  findResourcesWithQuery
+} = require('../util/mongo.controller');
 const supportedResources = require('../util/supportedResources').filter(r => r !== 'ValueSet'); //exclude ValueSet (may be stored but not exported)
 const exportQueue = require('../resources/exportQueue');
 const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
@@ -179,6 +184,24 @@ const groupBulkExport = async (request, reply) => {
   }
 };
 
+// Preferable over truthy check to allow for boolean or 0
+function paramPresent(parameters, param) {
+  const value = parameters[param];
+  return value !== undefined && value !== null && value !== '';
+}
+
+// Accept bulkSubmitStatusEndpoint, but currently do nothing with it
+const EXPORT_RECOGNIZED_PARAMS = [
+  '_outputFormat',
+  '_type',
+  '_typeFilter',
+  'patient',
+  '_elements',
+  'organizeOutputBy',
+  'bulkSubmitEndpoint',
+  'bulkSubmitStatusEndpoint'
+];
+
 /**
  * Checks that the parameters input to $export are valid. Returns true if all the
  * export params are valid, meaning no errors were thrown in the process.
@@ -191,7 +214,7 @@ function validateExportParams(parameters, reply) {
    * account for abbreviated representations of ndjson
    */
   const ACCEPTEDOUTPUTFORMATS = ['application/fhir+ndjson', 'application/ndjson+fhir', 'application/ndjson', 'ndjson'];
-  if (parameters._outputFormat) {
+  if (paramPresent(parameters, '_outputFormat')) {
     if (!ACCEPTEDOUTPUTFORMATS.includes(parameters._outputFormat)) {
       reply
         .code(400)
@@ -204,7 +227,7 @@ function validateExportParams(parameters, reply) {
     }
   }
 
-  if (parameters.organizeOutputBy && parameters.organizeOutputBy !== 'Patient') {
+  if (paramPresent(parameters, 'organizeOutputBy') && parameters.organizeOutputBy !== 'Patient') {
     reply.code(400).send(
       createOperationOutcome(`Server does not support the organizeOutputBy parameter for values other than Patient.`, {
         issueCode: 400,
@@ -214,7 +237,7 @@ function validateExportParams(parameters, reply) {
     return false;
   }
 
-  if (parameters._type) {
+  if (paramPresent(parameters, '_type')) {
     // type filter is comma-delimited
     const requestTypes = parameters._type.split(',');
     const unsupportedTypes = [];
@@ -249,7 +272,7 @@ function validateExportParams(parameters, reply) {
     }
   }
 
-  if (parameters._typeFilter) {
+  if (paramPresent(parameters, '_typeFilter')) {
     const typeFilterArray = Array.isArray(parameters._typeFilter)
       ? parameters._typeFilter
       : parameters._typeFilter.split(',');
@@ -280,7 +303,7 @@ function validateExportParams(parameters, reply) {
   }
 
   // add validation for the _elements query param
-  if (parameters._elements) {
+  if (paramPresent(parameters, '_elements')) {
     const elementsArray = parameters._elements.split(',');
     const unsupportedResourceTypes = [];
     const unsupportedElementTypes = [];
@@ -322,11 +345,11 @@ function validateExportParams(parameters, reply) {
     }
   }
 
-  if (parameters.patient) {
-    const referenceFormat = /^Patient\/[\w-]+$/;
+  if (paramPresent(parameters, 'patient')) {
+    const referenceFormat = /^Patient\/[\w.-]+$/;
     const errorMessage = 'All patient references must be of the format "Patient/{id}" for the "patient" parameter.';
     parameters.patient.forEach(p => {
-      if (!referenceFormat.test(p.reference)) {
+      if (!referenceFormat.test(p)) {
         reply.code(400).send(createOperationOutcome(errorMessage, { issueCode: 400, severity: 'error' }));
         return false;
       }
@@ -335,19 +358,7 @@ function validateExportParams(parameters, reply) {
 
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
-    // Accept bulkSubmitStatusEndpoint, but currently do nothing with it
-    if (
-      ![
-        '_outputFormat',
-        '_type',
-        '_typeFilter',
-        'patient',
-        '_elements',
-        'organizeOutputBy',
-        'bulkSubmitEndpoint',
-        'bulkSubmitStatusEndpoint'
-      ].includes(param)
-    ) {
+    if (!EXPORT_RECOGNIZED_PARAMS.includes(param)) {
       unrecognizedParams.push(param);
     }
   });
@@ -404,12 +415,13 @@ function filterPatientResourceTypes(request, reply, types) {
  * @param {Object} reply the response object
  */
 async function validatePatientReferences(patientParam, reply) {
+  // TODO: Move validation functions like this one from this file to a new validationUtils file in the util folder
   const unknownPatientPromises = patientParam.map(async p => {
-    const splitRef = p.reference.split('/');
+    const splitRef = p.split('/');
     const patientId = splitRef[splitRef.length - 1];
     const patient = await findResourceById(patientId, 'Patient');
     if (!patient) {
-      return p.reference;
+      return p;
     }
     return null;
   });
@@ -423,8 +435,35 @@ async function validatePatientReferences(patientParam, reply) {
   return false;
 }
 
+async function collectDataPatientIds(parameters, reply) {
+  if (parameters.subject) {
+    if (parameters.subject.startsWith('Patient')) {
+      validatePatientReferences([parameters.subject], reply);
+      return [parameters.subject.split('Patient/')[1]];
+    } else if (parameters.subject.startsWith('Group')) {
+      const groupId = parameters.subject.split('Group/')[1];
+      const group = await findResourceById(groupId, 'Group');
+      if (!group) {
+        const errorMessage = `The following group id is not available on the server: ${groupId}`;
+        reply.code(404).send(createOperationOutcome(errorMessage, { issueCode: 404, severity: 'error' }));
+      }
+      return group.member.map(m => m.entity.reference.split('Patient/')[1]);
+    }
+  } else if (parameters.subjectGroup) {
+    const patientReferences = parameters.subjectGroup.member.map(m => m.entity.reference);
+    validatePatientReferences(patientReferences, reply);
+    // TODO: add at least one unit test for subjectGroup. Group defined https://hl7.org/fhir/R4/group.html
+    // Group "type" should be "person", "actual" should be true, "member" should be an array of size two where each entity is a patient reference
+    return parameters.subjectGroup.member.map(m => m.entity.reference.split('Patient/')[1]);
+  }
+
+  // if neither subject nor subjectGroup are provided, default to all patients
+  const patients = await findResourcesWithQuery({}, 'Patient', { projection: { _id: 0, id: 1 } });
+  return patients.map(patient => patient.id);
+}
+
 /**
- * Implements limited parameters for $collect-data according to https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-collect-data.html
+ * Implements limited parameters for $collect-data according to https://build.fhir.org/ig/HL7/davinci-deqm/en/OperationDefinition-collect-data.html
  * Returns a set of bundles that have data of interest for the specified measures, organized by the specified subject
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
@@ -435,7 +474,7 @@ const collectData = async (request, reply) => {
   if (validateCollectDataParams(parameters, reply)) {
     request.log.info('Measure >>> $collect-data');
 
-    const patientIds = [parameters.subject.split('Patient/')[1]];
+    const patientIds = await collectDataPatientIds(parameters, reply);
     // Check for measure resolution - errors if there are any issues with measures passed
     const measureArr = Array.isArray(parameters.measureUrl) ? parameters.measureUrl : [parameters.measureUrl];
     const measures = [];
@@ -494,30 +533,36 @@ const collectData = async (request, reply) => {
   }
 };
 
+const COLLECT_DATA_RECOGNIZED_PARAMS = [
+  'measureUrl',
+  'periodStart',
+  'periodEnd',
+  'subject',
+  'subjectGroup',
+  'reporter',
+  'reporterResource',
+  'location',
+  'lastReceivedOn',
+  'parameters',
+  'manifest',
+  'validateResources',
+  'dataEndpoint'
+];
+
+const COLLECT_DATA_SUPPORTED_PARAMS = ['measureUrl', 'periodStart', 'periodEnd', 'subject', 'subjectGroup'];
+const COLLECT_DATA_REQUIRED_PARAMS = ['measureUrl', 'periodStart', 'periodEnd'];
+const COLLECT_DATA_SINGLE_CARDINALITY_PARAMS = ['periodStart', 'periodEnd', 'subject', 'subjectGroup'];
+
 /**
  * Checks that the parameters input to $collect-data are valid. Returns true if all the
- * export params are valid, meaning no errors were thrown in the process.
+ * collect-data params are valid, meaning no errors were thrown in the process.
  * @param {Object} parameters object containing a combination of request parameters from request query and body
  * @param {Object} reply the response object
  */
 function validateCollectDataParams(parameters, reply) {
   let unrecognizedParams = [];
   Object.keys(parameters).forEach(param => {
-    if (
-      ![
-        'periodStart',
-        'periodEnd',
-        'measureUrl',
-        'subject',
-        'subjectGroup',
-        'practitioner',
-        'lastReceivedOn',
-        'organizationResource',
-        'organization',
-        'validateResources',
-        'dataEndpoint'
-      ].includes(param)
-    ) {
+    if (!COLLECT_DATA_RECOGNIZED_PARAMS.includes(param)) {
       unrecognizedParams.push(param);
     }
   });
@@ -533,9 +578,57 @@ function validateCollectDataParams(parameters, reply) {
     return false;
   }
 
+  const missingRequiredParams = COLLECT_DATA_REQUIRED_PARAMS.filter(param => !paramPresent(parameters, param));
+  if (missingRequiredParams.length > 0) {
+    if (missingRequiredParams.length === 1 && missingRequiredParams[0] === 'measureUrl') {
+      reply
+        .code(400)
+        .send(createOperationOutcome('At least one measureUrl is required.', { issueCode: 400, severity: 'error' }));
+    } else {
+      reply
+        .code(400)
+        .send(
+          createOperationOutcome(
+            `The following required parameters are missing for $collect-data: ${missingRequiredParams.join(', ')}.`,
+            { issueCode: 400, severity: 'error' }
+          )
+        );
+    }
+    return false;
+  }
+
+  const repeatedSingleCardinalityParams = COLLECT_DATA_SINGLE_CARDINALITY_PARAMS.filter(param =>
+    Array.isArray(parameters[param])
+  );
+  if (repeatedSingleCardinalityParams.length > 0) {
+    reply
+      .code(400)
+      .send(
+        createOperationOutcome(
+          `The following parameters can only be provided once for $collect-data: ${repeatedSingleCardinalityParams.join(
+            ', '
+          )}.`,
+          { issueCode: 400, severity: 'error' }
+        )
+      );
+    return false;
+  }
+
+  const hasSubject = paramPresent(parameters, 'subject');
+  const hasSubjectGroup = paramPresent(parameters, 'subjectGroup');
+  if (hasSubject && hasSubjectGroup) {
+    reply.code(400).send(
+      createOperationOutcome('Only one of subject or subjectGroup may be specified for $collect-data.', {
+        issueCode: 400,
+        severity: 'error'
+      })
+    );
+    return false;
+  }
+
   let unsupportedParams = [];
   Object.keys(parameters).forEach(param => {
-    if (!['periodStart', 'periodEnd', 'measureUrl', 'subject'].includes(param)) {
+    if (!COLLECT_DATA_SUPPORTED_PARAMS.includes(param)) {
       unsupportedParams.push(param);
     }
   });
@@ -550,10 +643,18 @@ function validateCollectDataParams(parameters, reply) {
       );
     return false;
   }
-  if (!parameters.measureUrl) {
-    reply
-      .code(400)
-      .send(createOperationOutcome('At least one measureUrl is required.', { issueCode: 400, severity: 'error' }));
+
+  const subjectReference = parameters.subject;
+  if (hasSubject && !/^(Patient|Group)\/[\w.-]+$/.test(subjectReference)) {
+    reply.code(400).send(
+      createOperationOutcome(
+        'The subject parameter must be a Patient or Group reference of the format "Patient/{id}".',
+        {
+          issueCode: 400,
+          severity: 'error'
+        }
+      )
+    );
     return false;
   }
   return true;

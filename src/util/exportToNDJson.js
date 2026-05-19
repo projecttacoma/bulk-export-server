@@ -150,9 +150,8 @@ const exportToNDJson = async jobOptions => {
     const exportTypes = systemLevelExport ? requestTypes.filter(t => t !== 'ValueSet') : requestTypes;
 
     // if 'patient' parameter is present, apply additional filtering on the resources related to these patients
-    // strip off '.reference' to align with the format of the patientIds array
     const patientParamIds = patient?.map(p => {
-      const splitRef = p.reference.split('/');
+      const splitRef = p.split('/');
       return splitRef[splitRef.length - 1];
     });
 
