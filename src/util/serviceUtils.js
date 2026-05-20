@@ -30,7 +30,9 @@ function gatherParams(method, query, body, reply) {
   const params = { ...query };
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {
-      if (!e.resource) {
+      if (e.resource) {
+        acc[e.name] = e.resource;
+      } else {
         if (e.name === 'patient') {
           if (!acc[e.name]) {
             acc[e.name] = [e.valueReference.reference];
@@ -52,8 +54,7 @@ function gatherParams(method, query, body, reply) {
             e.valueCanonical ||
             e.valueCode ||
             e.valueReference?.reference ||
-            e.valueBoolean ||
-            e.valueGroup;
+            e.valueBoolean;
         }
       }
       return acc;

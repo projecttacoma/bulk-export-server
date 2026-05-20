@@ -782,6 +782,15 @@ describe('Check collect-data logic', () => {
     await app.ready();
   });
 
+  const getCollectDataBundles = body => {
+    expect(body.resourceType).toEqual('Parameters');
+    expect(body.parameter).toBeDefined();
+    return body.parameter.map(parameter => {
+      expect(parameter.name).toEqual('return');
+      return parameter.resource;
+    });
+  };
+
   test('check 200 returned for valid GET request - one measure with url, single code', async () => {
     await supertest(app.server)
       .get(
@@ -790,11 +799,12 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
       });
@@ -808,11 +818,12 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
       });
@@ -839,11 +850,12 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
       });
@@ -868,7 +880,7 @@ describe('Check collect-data logic', () => {
             },
             {
               name: 'subjectGroup',
-              valueGroup: {
+              resource: {
                 resourceType: 'Group',
                 type: 'person',
                 actual: true,
@@ -891,8 +903,9 @@ describe('Check collect-data logic', () => {
         .expect(200)
         .then(response => {
           expect(response.body).toBeDefined();
-          expect(response.body).toHaveLength(2);
-          const measureReportSubjectReferences = response.body.map(bundle => {
+          const bundles = getCollectDataBundles(response.body);
+          expect(bundles).toHaveLength(2);
+          const measureReportSubjectReferences = bundles.map(bundle => {
             return bundle.entry.find(e => e.resource.resourceType === 'MeasureReport').resource.subject.reference;
           });
           expect(measureReportSubjectReferences).toEqual(
@@ -929,11 +942,12 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(4); //expect 2 measure reports, encounter, and condition
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(4); //expect 2 measure reports, encounter, and condition
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Condition', 'Encounter', 'MeasureReport', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([
             expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' }),
             expect.objectContaining({ fullUrl: 'urn:uuid:test-condition' })
@@ -1130,9 +1144,10 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body).toHaveLength(1);
-        expect(response.body[0].entry).toHaveLength(2);
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles).toHaveLength(1);
+        expect(bundles[0].entry).toHaveLength(2);
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         );
       });
@@ -1256,7 +1271,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'validateResources',
-            valueBoolean: 'true'
+            valueBoolean: true
           }
         ]
       })
