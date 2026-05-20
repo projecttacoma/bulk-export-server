@@ -447,13 +447,13 @@ async function collectDataPatientIds(parameters, reply) {
         const errorMessage = `The following group id is not available on the server: ${groupId}`;
         reply.code(404).send(createOperationOutcome(errorMessage, { issueCode: 404, severity: 'error' }));
       }
+      // TODO: create a successful unit test that returns 200 for a subject that uses a Group reference, 
+      // referring to a Group that exists in the database
       return group.member.map(m => m.entity.reference.split('Patient/')[1]);
     }
   } else if (parameters.subjectGroup) {
     const patientReferences = parameters.subjectGroup.member.map(m => m.entity.reference);
     validatePatientReferences(patientReferences, reply);
-    // TODO: add at least one unit test for subjectGroup. Group defined https://hl7.org/fhir/R4/group.html
-    // Group "type" should be "person", "actual" should be true, "member" should be an array of size two where each entity is a patient reference
     return parameters.subjectGroup.member.map(m => m.entity.reference.split('Patient/')[1]);
   }
 
@@ -502,6 +502,7 @@ const collectData = async (request, reply) => {
       }
     }
 
+    // TODO: Bundles should be packaged into a FHIR R4 Parameters object with parameters of name: 'return' and valueBundle: each bundle?
     const bundles = await Promise.all(
       patientIds.map(async id => {
         const patient = await findResourceById(id, 'Patient');

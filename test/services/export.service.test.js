@@ -849,6 +849,61 @@ describe('Check collect-data logic', () => {
       });
   });
 
+  test('check 200 returned for valid POST request with subjectGroup', async () => {
+    const secondPatient = { ...testPatient, id: 'testPatient2' };
+    delete secondPatient._id;
+    await createTestResource(secondPatient, 'Patient');
+
+    try {
+      await supertest(app.server)
+        .post('/Measure/$collect-data')
+        .send({
+          resourceType: 'Parameters',
+          parameter: [
+            { name: 'periodStart', valueDate: '2025-01-01' },
+            { name: 'periodEnd', valueDate: '2025-12-31' },
+            {
+              name: 'measureUrl',
+              valueCanonical: 'http://example.com/Measure/testMeasure2'
+            },
+            {
+              name: 'subjectGroup',
+              valueGroup: {
+                resourceType: 'Group',
+                type: 'person',
+                actual: true,
+                member: [
+                  {
+                    entity: {
+                      reference: 'Patient/testPatient'
+                    }
+                  },
+                  {
+                    entity: {
+                      reference: 'Patient/testPatient2'
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        })
+        .expect(200)
+        .then(response => {
+          expect(response.body).toBeDefined();
+          expect(response.body).toHaveLength(2);
+          const measureReportSubjectReferences = response.body.map(bundle => {
+            return bundle.entry.find(e => e.resource.resourceType === 'MeasureReport').resource.subject.reference;
+          });
+          expect(measureReportSubjectReferences).toEqual(
+            expect.arrayContaining(['Patient/testPatient', 'Patient/testPatient2'])
+          );
+        });
+    } finally {
+      await db.collection('Patient').deleteOne({ id: secondPatient.id });
+    }
+  });
+
   test('check 200 returned for valid POST request - two measures with url', async () => {
     await supertest(app.server)
       .post('/Measure/$collect-data')
