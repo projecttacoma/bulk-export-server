@@ -779,6 +779,7 @@ describe('Check collect-data logic', () => {
     await createTestResource(testMeasureV2, 'Measure');
     await createTestResource(testMeasure2, 'Measure');
     await createTestResource(testValueSet, 'ValueSet');
+    await createTestResource(testGroup, 'Group');
     await app.ready();
   });
 
@@ -826,6 +827,25 @@ describe('Check collect-data logic', () => {
         expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
+      });
+  });
+
+  test('check 200 returned for valid GET request with subject Group reference', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Group/testGroup'
+      )
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles).toHaveLength(1);
+        expect(bundles[0].entry).toHaveLength(2);
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        );
+        const measureReport = bundles[0].entry.find(e => e.resource.resourceType === 'MeasureReport').resource;
+        expect(measureReport.subject.reference).toBe('Patient/testPatient');
       });
   });
 
@@ -953,6 +973,23 @@ describe('Check collect-data logic', () => {
             expect.objectContaining({ fullUrl: 'urn:uuid:test-condition' })
           ])
         ); // check specific resources
+      });
+  });
+
+  test('check 200 returned when neither subject nor subjectGroup is provided', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2'
+      )
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles).toHaveLength(1);
+        expect(bundles[0].entry).toHaveLength(2);
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        );
       });
   });
 
@@ -1133,23 +1170,6 @@ describe('Check collect-data logic', () => {
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe('At least one measureUrl is required.');
-      });
-  });
-
-  test('check 200 returned when neither subject nor subjectGroup is provided', async () => {
-    await supertest(app.server)
-      .get(
-        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2'
-      )
-      .expect(200)
-      .then(response => {
-        expect(response.body).toBeDefined();
-        const bundles = getCollectDataBundles(response.body);
-        expect(bundles).toHaveLength(1);
-        expect(bundles[0].entry).toHaveLength(2);
-        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
-          expect.arrayContaining(['Encounter', 'MeasureReport'])
-        );
       });
   });
 
