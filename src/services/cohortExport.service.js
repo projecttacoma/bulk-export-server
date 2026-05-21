@@ -56,6 +56,7 @@ const phenomlCohortBulkExport = async (request, reply) => {
   let cohortResponse;
   try {
     cohortResponse = await postCohort(description);
+    console.log(cohortResponse);
   } catch (e) {
     sendPhenomlError(e, reply);
     return;
