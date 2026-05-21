@@ -312,6 +312,15 @@ function validateCollectDataParams(parameters, reply) {
     );
     return false;
   }
+  if (hasSubjectGroup && parameters.subjectGroup.resourceType !== 'Group') {
+    reply.code(400).send(
+      createOperationOutcome('Parameter subjectGroup must be a resource of type Group.', {
+        issueCode: 400,
+        severity: 'error'
+      })
+    );
+    return false;
+  }
 
   let unsupportedParams = [];
   Object.keys(parameters).forEach(param => {

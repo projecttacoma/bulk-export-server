@@ -46,7 +46,7 @@ function gatherParams(method, query, body, reply) {
             acc[e.name].push(e.valueCanonical);
           }
         } else {
-          // For now, all usable params are expected to be stored under one of these eight keys
+          // For now, all usable params are expected to be stored under one of these seven keys
           acc[e.name] =
             e.valueDate ||
             e.valueString ||

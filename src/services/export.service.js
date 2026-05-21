@@ -221,7 +221,7 @@ function filterPatientResourceTypes(request, reply, types) {
 }
 
 /**
- * Implements limited parameters for $collect-data according to https://build.fhir.org/ig/HL7/davinci-deqm/en/OperationDefinition-collect-data.html
+ * Implements limited parameters for $collect-data according to https://hl7.org/fhir/uv/deqm/2026May/en/OperationDefinition-collect-data.html
  * Returns a set of bundles that have data of interest for the specified measures, organized by the specified subject
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object

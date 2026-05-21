@@ -1175,15 +1175,73 @@ describe('Check collect-data logic', () => {
 
   test('check 400 returned when subject and subjectGroup are both provided', async () => {
     await supertest(app.server)
-      .get(
-        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/testPatient&subjectGroup=Group/testGroup'
-      )
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureUrl',
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueReference: { reference: 'Patient/testPatient' }
+          },
+          {
+            name: 'subjectGroup',
+            resource: {
+              resourceType: 'Group',
+              type: 'person',
+              actual: true,
+              member: [
+                {
+                  entity: {
+                    reference: 'Patient/testPatient'
+                  }
+                },
+                {
+                  entity: {
+                    reference: 'Patient/testPatient2'
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      })
       .expect(400)
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
           'Only one of subject or subjectGroup may be specified for $collect-data.'
         );
+      });
+  });
+
+  test('check 400 returned when incorrect reference-based subjectGroup format is provided', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureUrl',
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
+          },
+          {
+            name: 'subjectGroup',
+            valueReference: { reference: 'Group/testGroup' }
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe('Parameter subjectGroup must be a resource of type Group.');
       });
   });
 
