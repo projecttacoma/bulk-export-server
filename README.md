@@ -164,6 +164,16 @@ Endpoint: `POST [fhir base]/bulkstatus/[client id]/kickoff-import`
 
 All of the `$export` endpoints also support acting as a kickoff mechanism for a `$bulk-submit` operation. The user can pass in a `bulkSubmitEndpoint` parameter which specifies the location of the server endpoint for `$bulk-submit` (i.e. `{FHIR base url}/$bulk-submit`). The presence of this parameter indicates that a `$bulk-submit` operation should be kicked off. The user may also include the `bulkSubmitStatusEndpoint` parameter specifying the `$bulk-submit-status` operation endpoint. See https://hackmd.io/@argonaut/rJoqHZrPle#Relationship-to-Bulk-Export for more information.
 
+#### Measure Collect Data
+
+FHIR Operation to obtain data of interest for one or more Measure resources, organized by a specified patient subject. This implementation supports a limited subset of the [Da Vinci DEQM $collect-data operation](https://hl7.org/fhir/uv/deqm/2026May/en/OperationDefinition-collect-data.html) and returns a Parameters object containing FHIR Bundles, organized by subject. Each returned Bundle contains the patient resources found for the Measure data requirements and a data-collection MeasureReport for each requested Measure.
+
+Endpoint: `POST [fhir base]/Measure/$collect-data`
+
+The collect-data parameters must be supplied using a FHIR [Parameters Resource](http://hl7.org/fhir/R4/parameters.html) in the request body. Alternatively, a GET request (`GET [fhir base]/Measure/$collect-data`) can be sent using URL parameters as long as all parameters are primitive types. 
+
+The currently supported parameters are `periodStart`, `periodEnd`, `measureUrl`, `subject`, and `subjectGroup`. At least one `measureUrl` is required, and multiple `measureUrl` parameters may be supplied. Measures are resolved by canonical URL, with an optional version suffix (for example, `http://example.com/Measure/testMeasure|1.0.0`). If a version is not supplied and multiple Measure versions match the canonical URL, the server returns an error. The `subject` parameter should identify a patient or group using the `Patient/[id]` or `Group/[id]` format. The `subjectGroup` parameter should pass a Group resource that identifies a set of patients.
+
 ## Supported Query Parameters
 
 The server supports the following query parameters:

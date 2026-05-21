@@ -46,7 +46,7 @@ function createPatientBundle(patient, resources, measureReports) {
 
 /**
  * Creates a FHIR data exchange MeasureReport from measure and subject data
- * https://hl7.org/fhir/us/davinci-deqm/STU5/StructureDefinition-datax-measurereport-deqm.html
+ * https://hl7.org/fhir/uv/deqm/2026May/en/StructureDefinition-deqm-dataexchangemeasurereport.html
  * @param measure FHIR Measure
  * @param measurementPeriod FHIR Period representing the measurement period
  * @param subjectId the patient id the MeasureReport is associated with
