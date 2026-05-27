@@ -47,8 +47,8 @@ function verifyPatientsInGroup(patientParam, groupId, groupMembers, reply) {
   const unknownPatientReferences = [];
 
   patientParam.forEach(p => {
-    if (!groupMembers.find(member => member === p.reference)) {
-      unknownPatientReferences.push(p.reference);
+    if (!groupMembers.find(member => member === p)) {
+      unknownPatientReferences.push(p);
     }
   });
 

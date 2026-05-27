@@ -1,11 +1,20 @@
-const { addPendingBulkExportRequest, findResourceById, findResourceByCanonical } = require('../util/mongo.controller');
-const supportedResources = require('../util/supportedResources').filter(r => r !== 'ValueSet'); //exclude ValueSet (may be stored but not exported)
+const {
+  addPendingBulkExportRequest,
+  findResourceById,
+  findResourceByCanonical,
+  findResourcesWithQuery
+} = require('../util/mongo.controller');
 const exportQueue = require('../resources/exportQueue');
 const { patientAttributePaths } = require('fhir-spec-tools/build/data/patient-attribute-paths');
 const patientResourceTypes = Object.keys(patientAttributePaths);
 const { createOperationOutcome } = require('../util/errorUtils');
 const { verifyPatientsInGroup, actualizeGroup } = require('../util/groupUtils');
 const { gatherParams } = require('../util/serviceUtils');
+const {
+  validateCollectDataParams,
+  validateExportParams,
+  validatePatientReferences
+} = require('../util/validationUtils');
 const _ = require('lodash');
 const {
   createDataExchangeMeasureReport,
@@ -180,192 +189,6 @@ const groupBulkExport = async (request, reply) => {
 };
 
 /**
- * Checks that the parameters input to $export are valid. Returns true if all the
- * export params are valid, meaning no errors were thrown in the process.
- * @param {Object} parameters object containing a combination of request parameters from request query and body
- * @param {Object} reply the response object
- */
-function validateExportParams(parameters, reply) {
-  /**
-   * According to http://hl7.org/fhir/async.html, we should also
-   * account for abbreviated representations of ndjson
-   */
-  const ACCEPTEDOUTPUTFORMATS = ['application/fhir+ndjson', 'application/ndjson+fhir', 'application/ndjson', 'ndjson'];
-  if (parameters._outputFormat) {
-    if (!ACCEPTEDOUTPUTFORMATS.includes(parameters._outputFormat)) {
-      reply
-        .code(400)
-        .send(
-          new Error(
-            `The following output format is not supported for _outputFormat param for $export: ${parameters._outputFormat}`
-          )
-        );
-      return false;
-    }
-  }
-
-  if (parameters.organizeOutputBy && parameters.organizeOutputBy !== 'Patient') {
-    reply.code(400).send(
-      createOperationOutcome(`Server does not support the organizeOutputBy parameter for values other than Patient.`, {
-        issueCode: 400,
-        severity: 'error'
-      })
-    );
-    return false;
-  }
-
-  if (parameters._type) {
-    // type filter is comma-delimited
-    const requestTypes = parameters._type.split(',');
-    const unsupportedTypes = [];
-    requestTypes.forEach(type => {
-      if (!supportedResources.includes(type)) {
-        unsupportedTypes.push(type);
-      }
-    });
-    if (unsupportedTypes.length > 0) {
-      reply
-        .code(400)
-        .send(
-          createOperationOutcome(
-            `The following resourceTypes are not supported for _type param for $export: ${unsupportedTypes.join(
-              ', '
-            )}.`,
-            { issueCode: 400, severity: 'error' }
-          )
-        );
-      return false;
-    }
-    if (parameters.organizeOutputBy === 'Patient' && !requestTypes.includes('Patient')) {
-      reply
-        .code(400)
-        .send(
-          createOperationOutcome(
-            `When _type is specified with organizeOutputBy Patient, the Patient type must be included in the _type parameter.`,
-            { issueCode: 400, severity: 'error' }
-          )
-        );
-      return false;
-    }
-  }
-
-  if (parameters._typeFilter) {
-    const typeFilterArray = Array.isArray(parameters._typeFilter)
-      ? parameters._typeFilter
-      : parameters._typeFilter.split(',');
-    const unsupportedTypeFilterTypes = [];
-    typeFilterArray.forEach(line => {
-      const resourceType = line.substring(0, line.indexOf('?'));
-      // consider the query "unsupported" if no resource type is provided in query
-      if (!resourceType) {
-        unsupportedTypeFilterTypes.push(line);
-        // consider the query "unsupported" if the resource type is not supported by the server
-      } else if (!supportedResources.includes(resourceType)) {
-        unsupportedTypeFilterTypes.push(resourceType);
-      }
-    });
-    if (unsupportedTypeFilterTypes.length > 0) {
-      reply
-        .code(400)
-        .send(
-          createOperationOutcome(
-            `The following resourceTypes are not supported for _typeFilter param for $export: ${unsupportedTypeFilterTypes.join(
-              ', '
-            )}.`,
-            { issueCode: 400, severity: 'error' }
-          )
-        );
-      return false;
-    }
-  }
-
-  // add validation for the _elements query param
-  if (parameters._elements) {
-    const elementsArray = parameters._elements.split(',');
-    const unsupportedResourceTypes = [];
-    const unsupportedElementTypes = [];
-    elementsArray.forEach(line => {
-      // split each of the elements up by a '.' if it has one. If it does, the first part is the resourceType and the second is the element name
-      // if there is no '.', we assume that the element is just the element name
-      let resourceType = 'all';
-      if (line.includes('.')) {
-        resourceType = line.split('.')[0];
-        if (!supportedResources.includes(resourceType)) {
-          unsupportedResourceTypes.push(resourceType);
-        }
-      }
-    });
-    if (unsupportedResourceTypes.length > 0) {
-      reply
-        .code(400)
-        .send(
-          createOperationOutcome(
-            `The following resourceTypes are not supported for _element param for $export: ${unsupportedResourceTypes.join(
-              ', '
-            )}.`,
-            { issueCode: 400, severity: 'error' }
-          )
-        );
-      return false;
-    } else if (unsupportedElementTypes.length > 0) {
-      reply
-        .code(400)
-        .send(
-          createOperationOutcome(
-            `The following resourceType and element names are not supported for _element param for $export: ${unsupportedResourceTypes.join(
-              ', '
-            )}.`,
-            { issueCode: 400, severity: 'error' }
-          )
-        );
-      return false;
-    }
-  }
-
-  if (parameters.patient) {
-    const referenceFormat = /^Patient\/[\w-]+$/;
-    const errorMessage = 'All patient references must be of the format "Patient/{id}" for the "patient" parameter.';
-    parameters.patient.forEach(p => {
-      if (!referenceFormat.test(p.reference)) {
-        reply.code(400).send(createOperationOutcome(errorMessage, { issueCode: 400, severity: 'error' }));
-        return false;
-      }
-    });
-  }
-
-  let unrecognizedParams = [];
-  Object.keys(parameters).forEach(param => {
-    // Accept bulkSubmitStatusEndpoint, but currently do nothing with it
-    if (
-      ![
-        '_outputFormat',
-        '_type',
-        '_typeFilter',
-        'patient',
-        '_elements',
-        'organizeOutputBy',
-        'bulkSubmitEndpoint',
-        'bulkSubmitStatusEndpoint'
-      ].includes(param)
-    ) {
-      unrecognizedParams.push(param);
-    }
-  });
-  if (unrecognizedParams.length > 0) {
-    reply
-      .code(400)
-      .send(
-        createOperationOutcome(
-          `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
-          { issueCode: 400, severity: 'error' }
-        )
-      );
-    return false;
-  }
-  return true;
-}
-
-/**
  * Checks provided types against the recommended resource types for patient-level export.
  * Filters resource types that do not appear in the patient compartment definition and throws
  * OperationOutcome if none of the provided types are present in the patient compartment definition.
@@ -398,33 +221,7 @@ function filterPatientResourceTypes(request, reply, types) {
 }
 
 /**
- * Validates whether all the specified patients are available in the database.
- * Throws OperationOutcome if patients are specified that do not exist in the database.
- * @param {Array} patientParam array of patient references
- * @param {Object} reply the response object
- */
-async function validatePatientReferences(patientParam, reply) {
-  const unknownPatientPromises = patientParam.map(async p => {
-    const splitRef = p.reference.split('/');
-    const patientId = splitRef[splitRef.length - 1];
-    const patient = await findResourceById(patientId, 'Patient');
-    if (!patient) {
-      return p.reference;
-    }
-    return null;
-  });
-
-  const results = (await Promise.all(unknownPatientPromises)).filter(p => p);
-
-  if (results.length > 0) {
-    const errorMessage = `The following patient ids are not available on the server: ${results.join(', ')}`;
-    reply.code(404).send(createOperationOutcome(errorMessage, { issueCode: 404, severity: 'error' }));
-  }
-  return false;
-}
-
-/**
- * Implements limited parameters for $collect-data according to https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-collect-data.html
+ * Implements limited parameters for $collect-data according to https://hl7.org/fhir/uv/deqm/2026May/en/OperationDefinition-collect-data.html
  * Returns a set of bundles that have data of interest for the specified measures, organized by the specified subject
  * @param {Object} request the request object passed in by the user
  * @param {Object} reply the response object
@@ -435,7 +232,7 @@ const collectData = async (request, reply) => {
   if (validateCollectDataParams(parameters, reply)) {
     request.log.info('Measure >>> $collect-data');
 
-    const patientIds = [parameters.subject.split('Patient/')[1]];
+    const patientIds = await collectDataPatientIds(parameters, reply);
     // Check for measure resolution - errors if there are any issues with measures passed
     const measureArr = Array.isArray(parameters.measureUrl) ? parameters.measureUrl : [parameters.measureUrl];
     const measures = [];
@@ -490,73 +287,46 @@ const collectData = async (request, reply) => {
       })
     );
 
-    reply.code(200).send(bundles);
+    reply.code(200).send({
+      resourceType: 'Parameters',
+      parameter: bundles.map(bundle => ({
+        name: 'return',
+        resource: bundle
+      }))
+    });
   }
 };
 
 /**
- * Checks that the parameters input to $collect-data are valid. Returns true if all the
- * export params are valid, meaning no errors were thrown in the process.
- * @param {Object} parameters object containing a combination of request parameters from request query and body
+ * Collects patient ids for a collect-data request from a Patient subject, Group subject,
+ * subjectGroup parameter, or all available patients when no subject filter is provided.
+ * @param {Object} parameters object containing collect-data request parameters
  * @param {Object} reply the response object
+ * @returns {Promise<string[]>} array of patient ids to collect data for
  */
-function validateCollectDataParams(parameters, reply) {
-  let unrecognizedParams = [];
-  Object.keys(parameters).forEach(param => {
-    if (
-      ![
-        'periodStart',
-        'periodEnd',
-        'measureUrl',
-        'subject',
-        'subjectGroup',
-        'practitioner',
-        'lastReceivedOn',
-        'organizationResource',
-        'organization',
-        'validateResources',
-        'dataEndpoint'
-      ].includes(param)
-    ) {
-      unrecognizedParams.push(param);
+async function collectDataPatientIds(parameters, reply) {
+  if (parameters.subject) {
+    if (parameters.subject.startsWith('Patient')) {
+      validatePatientReferences([parameters.subject], reply);
+      return [parameters.subject.split('Patient/')[1]];
+    } else if (parameters.subject.startsWith('Group')) {
+      const groupId = parameters.subject.split('Group/')[1];
+      const group = await findResourceById(groupId, 'Group');
+      if (!group) {
+        const errorMessage = `The following group id is not available on the server: ${groupId}`;
+        reply.code(404).send(createOperationOutcome(errorMessage, { issueCode: 404, severity: 'error' }));
+      }
+      return group.member.map(m => m.entity.reference.split('Patient/')[1]);
     }
-  });
-  if (unrecognizedParams.length > 0) {
-    reply
-      .code(400)
-      .send(
-        createOperationOutcome(
-          `The following parameters are unrecognized by the server: ${unrecognizedParams.join(', ')}.`,
-          { issueCode: 400, severity: 'error' }
-        )
-      );
-    return false;
+  } else if (parameters.subjectGroup) {
+    const patientReferences = parameters.subjectGroup.member.map(m => m.entity.reference);
+    validatePatientReferences(patientReferences, reply);
+    return parameters.subjectGroup.member.map(m => m.entity.reference.split('Patient/')[1]);
   }
 
-  let unsupportedParams = [];
-  Object.keys(parameters).forEach(param => {
-    if (!['periodStart', 'periodEnd', 'measureUrl', 'subject'].includes(param)) {
-      unsupportedParams.push(param);
-    }
-  });
-  if (unsupportedParams.length > 0) {
-    reply
-      .code(501)
-      .send(
-        createOperationOutcome(
-          `The following parameters are not yet supported by the server: ${unsupportedParams.join(', ')}.`,
-          { issueCode: 501, severity: 'error' }
-        )
-      );
-    return false;
-  }
-  if (!parameters.measureUrl) {
-    reply
-      .code(400)
-      .send(createOperationOutcome('At least one measureUrl is required.', { issueCode: 400, severity: 'error' }));
-    return false;
-  }
-  return true;
+  // if neither subject nor subjectGroup are provided, default to all patients
+  const patients = await findResourcesWithQuery({}, 'Patient', { projection: { _id: 0, id: 1 } });
+  return patients.map(patient => patient.id);
 }
 
 module.exports = { bulkExport, patientBulkExport, groupBulkExport, collectData };

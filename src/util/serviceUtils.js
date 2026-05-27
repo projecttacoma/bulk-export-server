@@ -30,12 +30,14 @@ function gatherParams(method, query, body, reply) {
   const params = { ...query };
   if (body && body.parameter) {
     body.parameter.reduce((acc, e) => {
-      if (!e.resource) {
+      if (e.resource) {
+        acc[e.name] = e.resource;
+      } else {
         if (e.name === 'patient') {
           if (!acc[e.name]) {
-            acc[e.name] = [e.valueReference];
+            acc[e.name] = [e.valueReference.reference];
           } else {
-            acc[e.name].push(e.valueReference);
+            acc[e.name].push(e.valueReference.reference);
           }
         } else if (e.name === 'measureUrl') {
           if (!acc[e.name]) {
@@ -44,9 +46,15 @@ function gatherParams(method, query, body, reply) {
             acc[e.name].push(e.valueCanonical);
           }
         } else {
-          // For now, all usable params are expected to be stored under one of these six keys
+          // For now, all usable params are expected to be stored under one of these seven keys
           acc[e.name] =
-            e.valueDate || e.valueString || e.valueId || e.valueCanonical || e.valueCode || e.valueReference;
+            e.valueDate ||
+            e.valueString ||
+            e.valueId ||
+            e.valueCanonical ||
+            e.valueCode ||
+            e.valueReference?.reference ||
+            e.valueBoolean;
         }
       }
       return acc;

@@ -289,7 +289,7 @@ describe('Check barebones bulk export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -311,7 +311,7 @@ describe('Check barebones bulk export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -451,7 +451,7 @@ describe('Check patient-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueReference: { reference: 'Patient/unknown_patient' }
+            valueReference: { reference: 'Patient/unknown-patient' }
           }
         ]
       })
@@ -460,7 +460,7 @@ describe('Check patient-level export logic (failure)', () => {
         expect(response.body.resourceType).toEqual('OperationOutcome');
         expect(response.body.issue[0].code).toEqual(404);
         expect(response.body.issue[0].details.text).toEqual(
-          'The following patient ids are not available on the server: Patient/unknown_patient'
+          'The following patient ids are not available on the server: Patient/unknown-patient'
         );
       });
   });
@@ -473,7 +473,7 @@ describe('Check patient-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -597,7 +597,7 @@ describe('Check group-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueReference: { reference: 'Patient/unknown_patient' }
+            valueReference: { reference: 'Patient/unknown-patient' }
           }
         ]
       })
@@ -606,7 +606,7 @@ describe('Check group-level export logic (failure)', () => {
         expect(response.body.resourceType).toEqual('OperationOutcome');
         expect(response.body.issue[0].code).toEqual(404);
         expect(response.body.issue[0].details.text).toEqual(
-          `The following patient ids are not members of the group ${GROUP_ID}: Patient/unknown_patient`
+          `The following patient ids are not members of the group ${GROUP_ID}: Patient/unknown-patient`
         );
       });
   });
@@ -640,7 +640,7 @@ describe('Check group-level export logic (failure)', () => {
         parameter: [
           {
             name: 'patient',
-            valueString: 'test'
+            valueReference: { reference: 'Patient/test' }
           }
         ]
       })
@@ -779,8 +779,18 @@ describe('Check collect-data logic', () => {
     await createTestResource(testMeasureV2, 'Measure');
     await createTestResource(testMeasure2, 'Measure');
     await createTestResource(testValueSet, 'ValueSet');
+    await createTestResource(testGroup, 'Group');
     await app.ready();
   });
+
+  const getCollectDataBundles = body => {
+    expect(body.resourceType).toEqual('Parameters');
+    expect(body.parameter).toBeDefined();
+    return body.parameter.map(parameter => {
+      expect(parameter.name).toEqual('return');
+      return parameter.resource;
+    });
+  };
 
   test('check 200 returned for valid GET request - one measure with url, single code', async () => {
     await supertest(app.server)
@@ -790,11 +800,12 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
       });
@@ -808,13 +819,33 @@ describe('Check collect-data logic', () => {
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
+      });
+  });
+
+  test('check 200 returned for valid GET request with subject Group reference', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Group/testGroup'
+      )
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles).toHaveLength(1);
+        expect(bundles[0].entry).toHaveLength(2);
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        );
+        const measureReport = bundles[0].entry.find(e => e.resource.resourceType === 'MeasureReport').resource;
+        expect(measureReport.subject.reference).toBe('Patient/testPatient');
       });
   });
 
@@ -832,21 +863,78 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(2); //expect 1 measure report and encounter
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(2); //expect 1 measure report and encounter
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Encounter', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' })])
         ); // check specific resources
       });
+  });
+
+  test('check 200 returned for valid POST request with subjectGroup', async () => {
+    const secondPatient = { ...testPatient, id: 'testPatient2' };
+    delete secondPatient._id;
+    await createTestResource(secondPatient, 'Patient');
+
+    try {
+      await supertest(app.server)
+        .post('/Measure/$collect-data')
+        .send({
+          resourceType: 'Parameters',
+          parameter: [
+            { name: 'periodStart', valueDate: '2025-01-01' },
+            { name: 'periodEnd', valueDate: '2025-12-31' },
+            {
+              name: 'measureUrl',
+              valueCanonical: 'http://example.com/Measure/testMeasure2'
+            },
+            {
+              name: 'subjectGroup',
+              resource: {
+                resourceType: 'Group',
+                type: 'person',
+                actual: true,
+                member: [
+                  {
+                    entity: {
+                      reference: 'Patient/testPatient'
+                    }
+                  },
+                  {
+                    entity: {
+                      reference: 'Patient/testPatient2'
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        })
+        .expect(200)
+        .then(response => {
+          expect(response.body).toBeDefined();
+          const bundles = getCollectDataBundles(response.body);
+          expect(bundles).toHaveLength(2);
+          const measureReportSubjectReferences = bundles.map(bundle => {
+            return bundle.entry.find(e => e.resource.resourceType === 'MeasureReport').resource.subject.reference;
+          });
+          expect(measureReportSubjectReferences).toEqual(
+            expect.arrayContaining(['Patient/testPatient', 'Patient/testPatient2'])
+          );
+        });
+    } finally {
+      await db.collection('Patient').deleteOne({ id: secondPatient.id });
+    }
   });
 
   test('check 200 returned for valid POST request - two measures with url', async () => {
@@ -867,23 +955,41 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
       .expect(200)
       .then(response => {
         expect(response.body).toBeDefined();
-        expect(response.body[0].entry).toHaveLength(4); //expect 2 measure reports, encounter, and condition
-        expect(response.body[0].entry.map(e => e.resource.resourceType)).toEqual(
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles[0].entry).toHaveLength(4); //expect 2 measure reports, encounter, and condition
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
           expect.arrayContaining(['Condition', 'Encounter', 'MeasureReport', 'MeasureReport'])
         ); // check correct types
-        expect(response.body[0].entry).toEqual(
+        expect(bundles[0].entry).toEqual(
           expect.arrayContaining([
             expect.objectContaining({ fullUrl: 'urn:uuid:testEncounter' }),
             expect.objectContaining({ fullUrl: 'urn:uuid:test-condition' })
           ])
         ); // check specific resources
+      });
+  });
+
+  test('check 200 returned when neither subject nor subjectGroup is provided', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2'
+      )
+      .expect(200)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        const bundles = getCollectDataBundles(response.body);
+        expect(bundles).toHaveLength(1);
+        expect(bundles[0].entry).toHaveLength(2);
+        expect(bundles[0].entry.map(e => e.resource.resourceType)).toEqual(
+          expect.arrayContaining(['Encounter', 'MeasureReport'])
+        );
       });
   });
 
@@ -901,7 +1007,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -928,7 +1034,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -955,7 +1061,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -964,6 +1070,34 @@ describe('Check collect-data logic', () => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe(
           'Measure with url http://example.com/Measure/nonExist not found.'
+        );
+      });
+  });
+
+  test('check 404 for patient reference not on server', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/unknownPatient'
+      )
+      .expect(404)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following patient ids are not available on the server: Patient/unknownPatient'
+        );
+      });
+  });
+
+  test('check 404 for group reference not on server', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Group/unknownGroup'
+      )
+      .expect(404)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following group id is not available on the server: unknownGroup'
         );
       });
   });
@@ -978,7 +1112,7 @@ describe('Check collect-data logic', () => {
           { name: 'periodEnd', valueDate: '2025-12-31' },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -989,6 +1123,46 @@ describe('Check collect-data logic', () => {
       });
   });
 
+  test('check 400 returned for invalid POST missing periodStart', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureUrl',
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueReference: { reference: 'Patient/testPatient' }
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following required parameters are missing for $collect-data: periodStart.'
+        );
+      });
+  });
+
+  test('check 400 returned for invalid GET request missing periodEnd', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=Patient/testPatient'
+      )
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The following required parameters are missing for $collect-data: periodEnd.'
+        );
+      });
+  });
+
   test('check 400 returned for invalid GET request missing measureUrl', async () => {
     await supertest(app.server)
       .get('/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&subject=Patient/testPatient')
@@ -996,6 +1170,92 @@ describe('Check collect-data logic', () => {
       .then(response => {
         expect(response.body).toBeDefined();
         expect(response.body.issue[0].details.text).toBe('At least one measureUrl is required.');
+      });
+  });
+
+  test('check 400 returned when subject and subjectGroup are both provided', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureUrl',
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
+          },
+          {
+            name: 'subject',
+            valueReference: { reference: 'Patient/testPatient' }
+          },
+          {
+            name: 'subjectGroup',
+            resource: {
+              resourceType: 'Group',
+              type: 'person',
+              actual: true,
+              member: [
+                {
+                  entity: {
+                    reference: 'Patient/testPatient'
+                  }
+                },
+                {
+                  entity: {
+                    reference: 'Patient/testPatient2'
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'Only one of subject or subjectGroup may be specified for $collect-data.'
+        );
+      });
+  });
+
+  test('check 400 returned when incorrect reference-based subjectGroup format is provided', async () => {
+    await supertest(app.server)
+      .post('/Measure/$collect-data')
+      .send({
+        resourceType: 'Parameters',
+        parameter: [
+          { name: 'periodStart', valueDate: '2025-01-01' },
+          { name: 'periodEnd', valueDate: '2025-12-31' },
+          {
+            name: 'measureUrl',
+            valueCanonical: 'http://example.com/Measure/testMeasure2'
+          },
+          {
+            name: 'subjectGroup',
+            valueReference: { reference: 'Group/testGroup' }
+          }
+        ]
+      })
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe('Parameter subjectGroup must be a resource of type Group.');
+      });
+  });
+
+  test('check 400 returned for invalid subject reference', async () => {
+    await supertest(app.server)
+      .get(
+        '/Measure/$collect-data?periodStart=2025-01-01&periodEnd=2025-12-31&measureUrl=http%3A%2F%2Fexample.com%2FMeasure%2FtestMeasure2&subject=testPatient'
+      )
+      .expect(400)
+      .then(response => {
+        expect(response.body).toBeDefined();
+        expect(response.body.issue[0].details.text).toBe(
+          'The subject parameter must be a Patient or Group reference of the format "Patient/{id}".'
+        );
       });
   });
 
@@ -1027,7 +1287,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           }
         ]
       })
@@ -1054,7 +1314,7 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           },
           {
             name: 'unrecognizedParam',
@@ -1085,11 +1345,11 @@ describe('Check collect-data logic', () => {
           },
           {
             name: 'subject',
-            valueString: 'Patient/testPatient'
+            valueReference: { reference: 'Patient/testPatient' }
           },
           {
             name: 'validateResources',
-            valueBoolean: 'true'
+            valueBoolean: true
           }
         ]
       })
