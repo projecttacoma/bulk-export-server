@@ -15,6 +15,7 @@
     "lint:fix": "eslint \"**/*.js\" --fix",
     "check": "npm run test && npm run lint && npm run prettier",
     "db:setup": "node src/scripts/createCollections.js",
+    "db:indexes": "node src/scripts/createIndexes.js",
     "db:delete": "node src/scripts/deleteCollections.js",
     "db:reset": "npm run db:delete && npm run db:setup",
     "upload-bundles": "node src/scripts/uploadPremadeBundles.js",

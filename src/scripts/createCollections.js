@@ -1,5 +1,6 @@
 const mongoUtil = require('../util/mongo');
 const supportedResources = require('../util/supportedResources');
+const { ensureIndexesForResource } = require('../util/mongoIndexes');
 
 async function main() {
   // Use connect method to connect to the server
@@ -7,7 +8,15 @@ async function main() {
   console.log('Connected successfully to server');
 
   const creations = supportedResources.map(async resourceType => {
-    await (await mongoUtil.db.createCollection(resourceType)).createIndex({ id: 1 }, { unique: true });
+    const collection = await mongoUtil.db.createCollection(resourceType);
+    const results = await ensureIndexesForResource(collection, resourceType);
+    const failures = results.filter(result => result.error);
+    failures.forEach(failure => {
+      console.error(`Failed to create index ${failure.name} on ${resourceType}: ${failure.error.message}`);
+    });
+    if (failures.length > 0) {
+      throw new Error(`Failed to create ${failures.length} indexes on ${resourceType}`);
+    }
     console.log('Created collection', resourceType);
   });
 
