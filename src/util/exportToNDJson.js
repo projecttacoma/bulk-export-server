@@ -16,7 +16,7 @@ const { mandatoryElements } = require('fhir-spec-tools/build/data/mandatoryEleme
 const { choiceTypes } = require('fhir-spec-tools/build/data/choiceTypes');
 const QueryBuilder = require('@bluehalo/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
-const axios = require('axios');
+const FHIRClient = require('../util/fhirClient');
 
 const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
 
@@ -288,7 +288,16 @@ const kickoffSubmit = async (endpoint, clientId) => {
     ]
   };
   try {
-    const results = await axios.post(endpoint, submitParameters, { headers });
+    let baseUrl, submitEndpoint;
+    if (endpoint.endsWith('$bulk-submit')) {
+      submitEndpoint = endpoint;
+      baseUrl = endpoint.slice(0, -12); // slice off "$bulk-submit"
+    } else {
+      baseUrl = endpoint;
+      submitEndpoint = endpoint + (endpoint.endsWith('/') ? '' : '/') + '$bulk-submit';
+    }
+    const client = new FHIRClient(baseUrl);
+    const results = await client.post(submitEndpoint, submitParameters, { headers });
     console.log('Kickoff submit-data resulted in status', results.status);
   } catch (e) {
     console.error('Kickoff submit-data resulted in error', e);

@@ -41,6 +41,11 @@ const expectedFileNameWOValueSet = './tmp/123456/Procedure.ndjson';
 const axios = require('axios');
 jest.mock('axios');
 
+// $bulk-submit uses FHIRClient, which creates an Axios instance and invokes
+// instance.request rather than the top-level axios.post function.
+const fhirClientAxios = { request: jest.fn() };
+axios.create.mockReturnValue(fhirClientAxios);
+
 describe('check export logic', () => {
   beforeAll(async () => {
     await createTestResourceWithConnect(testPatient, 'Patient');
@@ -81,11 +86,12 @@ describe('check export logic', () => {
     });
 
     test('Expect folder created, export successful, and submission endpoint called when bulkSubmitEndpoint is present', async () => {
-      axios.post.mockResolvedValue({ status: 200 });
+      fhirClientAxios.request.mockResolvedValue({ status: 202, data: {} });
       await exportToNDJson({ clientEntry: clientId, bulkSubmitEndpoint: 'testEndpoint' });
-      expect(axios.post).toHaveBeenCalledWith(
-        'testEndpoint',
-        {
+      expect(fhirClientAxios.request).toHaveBeenCalledWith({
+        method: 'POST',
+        url: 'testEndpoint/$bulk-submit',
+        data: {
           resourceType: 'Parameters',
           parameter: [
             { name: 'manifestUrl', valueString: 'http://localhost:3000/bulkstatus/123456' },
@@ -101,8 +107,12 @@ describe('check export logic', () => {
             { name: 'fhirBaseUrl', valueString: 'http://localhost:3000' }
           ]
         },
-        { headers: { accept: 'application/fhir+json', 'content-type': 'application/fhir+json' } }
-      );
+        headers: {
+          'Content-Type': 'application/fhir+json',
+          accept: 'application/fhir+json',
+          'content-type': 'application/fhir+json'
+        }
+      });
       expect(fs.existsSync(expectedFileName)).toBe(true);
     });
 

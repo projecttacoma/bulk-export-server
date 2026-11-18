@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
 const { gatherParams } = require('../util/serviceUtils');
-const axios = require('axios');
+const FHIRClient = require('../util/fhirClient');
 /** The time a client is expected to wait between bulkstatus requests in seconds*/
 const RETRY_AFTER = 1;
 /** The number of requests we allow inside the retry after window before throwing a 429 error */
@@ -67,15 +67,26 @@ async function kickoffImport(request, reply) {
       };
       try {
         // on success, pass through the response
-        const results = await axios.post(parameters.bulkSubmitEndpoint, submitParameters, { headers });
-        reply.code(results.status).send(results.body);
+        let baseUrl, submitEndpoint;
+        if (parameters.bulkSubmitEndpoint.endsWith('$bulk-submit')) {
+          submitEndpoint = parameters.bulkSubmitEndpoint;
+          baseUrl = parameters.bulkSubmitEndpoint.slice(0, -12); // slice off "$bulk-submit"
+        } else {
+          baseUrl = parameters.bulkSubmitEndpoint;
+          submitEndpoint =
+            parameters.bulkSubmitEndpoint + (parameters.bulkSubmitEndpoint.endsWith('/') ? '' : '/') + '$bulk-submit';
+        }
+        const client = new FHIRClient(baseUrl);
+        const results = await client.post(submitEndpoint, submitParameters, { headers });
+        reply.code(results.status).send(results.data);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
         let receiverOutcome;
-        if (e.response.data.resourceType === 'OperationOutcome') {
-          receiverOutcome = e.response.data;
+        const receiverResponse = e.cause?.response ?? e.response;
+        if (receiverResponse?.data?.resourceType === 'OperationOutcome') {
+          receiverOutcome = receiverResponse.data;
         } else {
-          receiverOutcome = createOperationOutcome(e.message, { issueCode: e.status, severity: 'error' });
+          receiverOutcome = createOperationOutcome(e.message);
         }
         const outcome = createOperationOutcome(
           `Import request for id ${clientId} to receiver ${parameters.bulkSubmitEndpoint} failed with the contained error.`,
