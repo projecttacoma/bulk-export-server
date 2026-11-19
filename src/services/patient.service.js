@@ -1,11 +1,5 @@
-const { createSearchsetBundle } = require('../util/bundleUtils');
-const {
-  findResourceById,
-  findResourcesWithQuery,
-  createResource,
-  updateResource,
-  removeResource
-} = require('../util/mongo.controller');
+const { baseSearchById, baseSearch } = require('./base.service');
+const { findResourceById, createResource, updateResource, removeResource } = require('../util/mongo.controller');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -15,11 +9,7 @@ const { v4: uuidv4 } = require('uuid');
  * @param {Object} reply the response object
  */
 const patientSearchById = async (request, reply) => {
-  const result = await findResourceById(request.params.patientId, 'Patient');
-  if (!result) {
-    reply.code(404).send(new Error(`The requested patient ${request.params.patientId} was not found.`));
-  }
-  return result;
+  return baseSearchById(request.params.patientId, 'Patient', reply);
 };
 
 /**
@@ -28,11 +18,7 @@ const patientSearchById = async (request, reply) => {
  * @param {Object} reply the response object
  */
 const patientSearch = async (request, reply) => {
-  const result = await findResourcesWithQuery({}, 'Patient');
-  if (!result.length > 0) {
-    reply.code(404).send(new Error('No Patient resources were found on the server'));
-  }
-  return createSearchsetBundle(result);
+  return baseSearch(request, 'Patient', reply);
 };
 
 /**
