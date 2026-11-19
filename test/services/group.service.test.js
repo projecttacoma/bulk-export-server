@@ -36,7 +36,16 @@ describe('CRUD operations for Group resource', () => {
       .get(`/Group/${INVALID_GROUP_ID}`)
       .expect(404)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual('The requested group INVALID was not found.');
+        expect(response.body).toMatchObject({
+          resourceType: 'OperationOutcome',
+          issue: [
+            {
+              severity: 'error',
+              code: 'ResourceNotFound',
+              details: { text: 'No resource found in collection: Group, with: id INVALID' }
+            }
+          ]
+        });
       });
   });
 
@@ -50,12 +59,12 @@ describe('CRUD operations for Group resource', () => {
       });
   });
 
-  test('search should return 404 if no groups are in the db', async () => {
+  test('search should return an empty searchset if no groups are in the db', async () => {
     await supertest(app.server)
       .get(`/Group`)
-      .expect(404)
+      .expect(200)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual('No Group resources were found on the server');
+        expect(response.body).toMatchObject({ resourceType: 'Bundle', type: 'searchset', total: 0, entry: [] });
       });
   });
 

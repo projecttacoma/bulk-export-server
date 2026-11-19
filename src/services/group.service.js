@@ -1,11 +1,5 @@
-const { createSearchsetBundle } = require('../util/bundleUtils');
-const {
-  findResourceById,
-  findResourcesWithQuery,
-  createResource,
-  updateResource,
-  removeResource
-} = require('../util/mongo.controller');
+const { baseSearchById, baseSearch } = require('./base.service');
+const { findResourceById, createResource, updateResource, removeResource } = require('../util/mongo.controller');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -15,11 +9,7 @@ const { v4: uuidv4 } = require('uuid');
  * @param {Object} reply the response object
  */
 const groupSearchById = async (request, reply) => {
-  const result = await findResourceById(request.params.groupId, 'Group');
-  if (!result) {
-    reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
-  }
-  return result;
+  return baseSearchById(request.params.groupId, 'Group', reply);
 };
 
 /**
@@ -28,11 +18,7 @@ const groupSearchById = async (request, reply) => {
  * @param {Object} reply the response object
  */
 const groupSearch = async (request, reply) => {
-  const result = await findResourcesWithQuery({}, 'Group');
-  if (!result.length > 0) {
-    reply.code(404).send(new Error('No Group resources were found on the server'));
-  }
-  return createSearchsetBundle(result);
+  return baseSearch(request, 'Group', reply);
 };
 
 /**

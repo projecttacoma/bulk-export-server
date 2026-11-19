@@ -7,9 +7,11 @@ const { returnNDJsonContent } = require('../services/ndjson.service');
 const { groupSearchById, groupSearch, groupCreate, groupUpdate, groupRemove } = require('../services/group.service');
 const { uploadTransactionOrBatchBundle } = require('../services/bundle.service');
 const { generateCapabilityStatement } = require('../services/metadata.service');
+const { buildServiceModule } = require('../services/base.service');
+const supportedResources = require('../util/supportedResources');
 const {
-  patientSearch,
   patientSearchById,
+  patientSearch,
   patientCreate,
   patientUpdate,
   patientRemove
@@ -48,6 +50,12 @@ function build(opts) {
   app.post('/Measure/$collect-data', collectData);
   app.get('/Measure/:measureId/$collect-data', collectData);
   app.post('/Measure/:measureId/$collect-data', collectData);
+  for (const resourceType of supportedResources) {
+    if (resourceType === 'Patient' || resourceType === 'Group') continue;
+    const service = buildServiceModule(resourceType);
+    app.get(`/${resourceType}/:id`, service.searchById);
+    app.get(`/${resourceType}`, service.search);
+  }
 
   return app;
 }
