@@ -6,7 +6,7 @@ const { z } = require('zod');
 const JwtAuthConfigSchema = z.object({
   type: z.literal('jwt'),
   url: z.string(),
-  authUrl: z.string(),
+  authUrl: z.string().optional(),
   clientId: z.string()
 });
 
