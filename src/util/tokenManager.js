@@ -4,7 +4,6 @@ const { existsSync } = require('node:fs');
 const fs = require('node:fs/promises');
 const { v4 } = require('uuid');
 const { getExtAuthConfig } = require('../config/extAuthConfig');
-const logger = console; // require('../server/logger'); // TODO
 const privateKeyFile = process.env.JWT_PRIVATE_KEY_FILE;
 const SUPPORTED_ALGORITHMS = ['ES384', 'RS384'];
 // if a token expires in this many ms or sooner, don't use it, fetch a new one
@@ -45,20 +44,19 @@ class TokenManager {
   }
   static async acquireToken(fhirBaseUrl) {
     const authConfig = await getExtAuthConfig(fhirBaseUrl);
-    const { clientId, authUrl: customEndpoint } = authConfig?.type === 'jwt' ? authConfig : {};
-    const customScopes = null;
+    const { clientId, authUrl: customEndpoint, customScopes } = authConfig?.type === 'jwt' ? authConfig : {};
     // TODO, if unknown server return null
     if (clientId == null) {
       return null;
     }
     const tokenEndpoint = customEndpoint ?? (await getTokenEndpoint(fhirBaseUrl));
-    logger.debug(`using tokenEndpoint ${tokenEndpoint}`);
+    console.debug(`using tokenEndpoint ${tokenEndpoint}`);
     // generate the signed JWT first
     const jwt = await generateJWT(clientId, tokenEndpoint);
-    logger.debug(`constructed JWT ${jwt}`);
+    console.debug(`constructed JWT ${jwt}`);
     // get the bearer token
     const rawToken = await getAccessToken(tokenEndpoint, jwt.toString(), customScopes);
-    logger.debug(`got token: ${rawToken.access_token}`);
+    console.debug(`got token: ${rawToken.access_token}`);
     const tokenState = {
       bearerToken: formatBearerToken(rawToken.access_token),
       // expires_in is time until expiration in seconds, Date.now() is in milliseconds
@@ -104,6 +102,20 @@ async function getAccessToken(url, jwt, customScopes) {
   }
   return response.data;
 }
+
+function getSigningAlgorithm(key) {
+  // PEM files do not carry an algorithm;
+  // fallback to a SMART baseline algorithm based on the key type.
+  const defaults = { RSA: 'RS384', EC: 'ES384' };
+  const algorithm = key.alg || defaults[key.kty];
+
+  if (!SUPPORTED_ALGORITHMS.includes(algorithm) || !key.algorithms('sign').includes(algorithm)) {
+    throw new Error('Private key does not support RS384 or ES384 signing');
+  }
+
+  return algorithm;
+}
+
 /**
  * Generate a signed JWT used for authenticating
  */
@@ -119,7 +131,7 @@ async function generateJWT(client_id, aud) {
   return jose.JWS.createSign(
     {
       format: 'compact',
-      fields: { alg: key.alg, kid: key.kid }
+      fields: { alg: getSigningAlgorithm(key), kid: key.kid, typ: 'JWT' }
     },
     key
   )
@@ -135,9 +147,17 @@ async function getPrivateKey() {
   }
   const keyFileText = await fs.readFile(privateKeyFile, 'utf8');
   if (keyFileText.trimStart().startsWith('{')) {
-    // it's a JWK
+    // Expected format: a JWKS object ({ "keys": [...] }) containing a private key with:
+    // - alg: "RS384" or "ES384"
+    // - key_ops: ["sign"] (required by this loader for now, note this is optional in JWK spec)
+    // - the private key material needed for signing
     const keys = JSON.parse(keyFileText);
-    const keyAsJson = keys.keys.find(k => SUPPORTED_ALGORITHMS.includes(k['alg']) && k['key_ops'].includes('sign'));
+    const keyAsJson = keys.keys.find(k => SUPPORTED_ALGORITHMS.includes(k['alg']) && k['key_ops']?.includes('sign'));
+    if (!keyAsJson) {
+      throw new Error(
+        'No supported signing key found in JWT_PRIVATE_KEY_FILE. Expected a private signing key with "alg" RS384 or ES384 and "key_ops" containing "sign"'
+      );
+    }
     return await jose.JWK.asKey(keyAsJson);
   }
   if (keyFileText.trimStart().startsWith('-')) {
