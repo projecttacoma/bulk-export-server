@@ -7,6 +7,14 @@ const fs = require('fs');
 // import queue to close open handles after tests pass
 // TODO: investigate why queues are leaving open handles in this file
 const queue = require('../../src/resources/exportQueue');
+const axios = require('axios');
+jest.mock('axios');
+
+// $bulk-submit uses FHIRClient, which creates an Axios instance and invokes
+// instance.request rather than the top-level axios.post function.
+const fhirClientAxios = { request: jest.fn() };
+axios.create.mockReturnValue(fhirClientAxios);
+
 describe('checkBulkStatus logic', () => {
   const clientId = 'testClient';
   beforeAll(async () => {
