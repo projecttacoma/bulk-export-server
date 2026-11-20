@@ -16,8 +16,7 @@ const { mandatoryElements } = require('fhir-spec-tools/build/data/mandatoryEleme
 const { choiceTypes } = require('fhir-spec-tools/build/data/choiceTypes');
 const QueryBuilder = require('@bluehalo/fhir-qb');
 const { getSearchParameters } = require('@projecttacoma/node-fhir-server-core');
-const FHIRClient = require('../util/fhirClient');
-
+const { performBulkSubmit } = require('./bulkSubmit');
 const qb = new QueryBuilder({ implementationParameters: { archivedParamPath: '_isArchived' } });
 
 /**
@@ -253,51 +252,8 @@ const exportToNDJson = async jobOptions => {
 };
 
 const kickoffSubmit = async (endpoint, clientId) => {
-  const headers = {
-    accept: 'application/fhir+json',
-    'content-type': 'application/fhir+json'
-  };
-  const submitParameters = {
-    resourceType: 'Parameters',
-    parameter: [
-      {
-        name: 'manifestUrl',
-        valueString: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}`
-      },
-      {
-        name: 'submissionStatus',
-        valueCoding: {
-          system: 'http://hl7.org/fhir/uv/bulkdata/ValueSet/submission-status',
-          code: 'complete'
-        }
-      },
-      {
-        name: 'submitter',
-        valueIdentifier: {
-          value: 'bulkExportSubmitter'
-        }
-      },
-      {
-        name: 'submissionId',
-        valueString: clientId
-      },
-      {
-        name: 'fhirBaseUrl',
-        valueString: process.env.BULK_BASE_URL
-      }
-    ]
-  };
   try {
-    let baseUrl, submitEndpoint;
-    if (endpoint.endsWith('$bulk-submit')) {
-      submitEndpoint = endpoint;
-      baseUrl = endpoint.slice(0, -12); // slice off "$bulk-submit"
-    } else {
-      baseUrl = endpoint;
-      submitEndpoint = endpoint + (endpoint.endsWith('/') ? '' : '/') + '$bulk-submit';
-    }
-    const client = new FHIRClient(baseUrl);
-    const results = await client.post(submitEndpoint, submitParameters, { headers });
+    const results = await performBulkSubmit(endpoint, clientId);
     console.log('Kickoff submit-data resulted in status', results.status);
   } catch (e) {
     console.error('Kickoff submit-data resulted in error', e);

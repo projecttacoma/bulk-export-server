@@ -87,24 +87,31 @@ describe('check export logic', () => {
 
     test('Expect folder created, export successful, and submission endpoint called when bulkSubmitEndpoint is present', async () => {
       fhirClientAxios.request.mockResolvedValue({ status: 202, data: {} });
-      await exportToNDJson({ clientEntry: clientId, bulkSubmitEndpoint: 'testEndpoint' });
+      const receiverBaseUrl = 'http://receiver.example/fhir';
+      await exportToNDJson({ clientEntry: clientId, bulkSubmitEndpoint: receiverBaseUrl });
       expect(fhirClientAxios.request).toHaveBeenCalledWith({
         method: 'POST',
-        url: 'testEndpoint/$bulk-submit',
+        url: `${receiverBaseUrl}/$bulk-submit`,
         data: {
           resourceType: 'Parameters',
           parameter: [
-            { name: 'manifestUrl', valueString: 'http://localhost:3000/bulkstatus/123456' },
+            { name: 'manifestUrl', valueUrl: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}` },
             {
               name: 'submissionStatus',
               valueCoding: {
-                system: 'http://hl7.org/fhir/uv/bulkdata/ValueSet/submission-status',
-                code: 'complete'
+                system: 'http://hl7.org/fhir/event-status',
+                code: 'completed'
               }
             },
-            { name: 'submitter', valueIdentifier: { value: 'bulkExportSubmitter' } },
-            { name: 'submissionId', valueString: '123456' },
-            { name: 'fhirBaseUrl', valueString: 'http://localhost:3000' }
+            {
+              name: 'submitter',
+              valueIdentifier: {
+                value: 'https://github.com/projecttacoma/bulk-export-server',
+                system: 'urn:ietf:rfc:3986'
+              }
+            },
+            { name: 'submissionId', valueString: clientId },
+            { name: 'fhirBaseUrl', valueUrl: process.env.BULK_BASE_URL }
           ]
         },
         headers: {
