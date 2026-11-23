@@ -153,15 +153,4 @@ const baseSearch = async (req, resourceType, reply, paramDefs) => {
   return searchBundle;
 };
 
-/**
- * Build a basic service module for a given resource type. Supports read and search operations.
- *
- * @param {string} resourceType Name of the resource to make a basic resource for.
- * @returns {Object} The resource service module.
- */
-const buildServiceModule = resourceType => ({
-  searchById: (request, reply) => baseSearchById(request.params.id, resourceType, reply),
-  search: (request, reply) => baseSearch(request, resourceType, reply)
-});
-
-module.exports = { baseSearchById, baseSearch, buildServiceModule };
+module.exports = { baseSearchById, baseSearch };

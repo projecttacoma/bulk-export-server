@@ -1,25 +1,5 @@
-const { baseSearchById, baseSearch } = require('./base.service');
 const { findResourceById, createResource, updateResource, removeResource } = require('../util/mongo.controller');
 const { v4: uuidv4 } = require('uuid');
-
-/**
- * Result of sending a GET request to [base]/Patient/[id].
- * Searches for a Patient resource with the passed in id
- * @param {Object} request the request object passed in by the user
- * @param {Object} reply the response object
- */
-const patientSearchById = async (request, reply) => {
-  return baseSearchById(request.params.patientId, 'Patient', reply);
-};
-
-/**
- * Result of sending a GET request to [base]/Patient to find all available Patients.
- * @param {Object} request the request object passed in by the user
- * @param {Object} reply the response object
- */
-const patientSearch = async (request, reply) => {
-  return baseSearch(request, 'Patient', reply);
-};
 
 /**
  * Creates a Patient object and generates an id for it regardless of the id passed in.
@@ -61,8 +41,6 @@ const patientRemove = async (request, reply) => {
 };
 
 module.exports = {
-  patientSearchById,
-  patientSearch,
   patientCreate,
   patientUpdate,
   patientRemove

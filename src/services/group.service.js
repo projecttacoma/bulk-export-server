@@ -1,25 +1,5 @@
-const { baseSearchById, baseSearch } = require('./base.service');
 const { findResourceById, createResource, updateResource, removeResource } = require('../util/mongo.controller');
 const { v4: uuidv4 } = require('uuid');
-
-/**
- * Result of sending a GET request to [base]/Group/[id].
- * Searches for a Group resource with the passed in id
- * @param {Object} request the request object passed in by the user
- * @param {Object} reply the response object
- */
-const groupSearchById = async (request, reply) => {
-  return baseSearchById(request.params.groupId, 'Group', reply);
-};
-
-/**
- * Result of sending a GET request to [base]/Group to find all available Groups.
- * @param {Object} request the request object passed in by the user
- * @param {Object} reply the response object
- */
-const groupSearch = async (request, reply) => {
-  return baseSearch(request, 'Group', reply);
-};
 
 /**
  * Creates a Group object and generates an id for it regardless of the id passed in.
@@ -61,8 +41,6 @@ const groupRemove = async (request, reply) => {
 };
 
 module.exports = {
-  groupSearchById,
-  groupSearch,
   groupCreate,
   groupUpdate,
   groupRemove
