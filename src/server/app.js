@@ -43,8 +43,10 @@ function build(opts) {
   app.post('/Measure/:measureId/$collect-data', collectData);
 
   for (const resourceType of supportedResources) {
-    app.get(`/${resourceType}`, (request, reply) => baseSearch(request, resourceType, reply));
-    app.get(`/${resourceType}/:id`, (request, reply) => baseSearchById(request.params.id, resourceType, reply));
+    app.get(`/${resourceType}/:id?`, (request, reply) => {
+      const { id } = request.params;
+      return id ? baseSearchById(id, resourceType, reply) : baseSearch(request, resourceType, reply);
+    });
   }
 
   return app;

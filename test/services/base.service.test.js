@@ -44,9 +44,9 @@ describe('base.service', () => {
   });
 
   describe('search', () => {
-    test('search with correct args and headers', async () => {
+    test.each(['/Patient', '/Patient/'])('search at %s with correct args and headers', async path => {
       await supertest(app.server)
-        .get('/Patient')
+        .get(path)
         .set('Accept', 'application/json+fhir')
         .expect(200)
         .then(response => {
@@ -59,9 +59,9 @@ describe('base.service', () => {
         });
     });
 
-    test('search with unsupported parameter', async () => {
+    test.each(['/Patient', '/Patient/'])('search at %s with unsupported parameter', async path => {
       await supertest(app.server)
-        .get('/Patient?publisher=abc')
+        .get(`${path}?publisher=abc`)
         .set('Accept', 'application/json+fhir')
         .expect(400)
         .then(response => {
