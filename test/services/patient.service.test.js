@@ -34,7 +34,16 @@ describe('CRUD operations for Patient resource', () => {
       .get(`/Patient/${INVALID_PATIENT_ID}`)
       .expect(404)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual('The requested patient INVALID was not found.');
+        expect(response.body).toMatchObject({
+          resourceType: 'OperationOutcome',
+          issue: [
+            {
+              severity: 'error',
+              code: 'ResourceNotFound',
+              details: { text: 'No resource found in collection: Patient, with: id INVALID' }
+            }
+          ]
+        });
       });
   });
 
@@ -48,12 +57,12 @@ describe('CRUD operations for Patient resource', () => {
       });
   });
 
-  test('search should return 404 if no patients are in the db', async () => {
+  test('search should return an empty searchset if no patients are in the db', async () => {
     await supertest(app.server)
       .get(`/Patient`)
-      .expect(404)
+      .expect(200)
       .then(response => {
-        expect(JSON.parse(response.text).message).toEqual('No Patient resources were found on the server');
+        expect(response.body).toMatchObject({ resourceType: 'Bundle', type: 'searchset', total: 0, entry: [] });
       });
   });
 

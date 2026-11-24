@@ -1,39 +1,5 @@
-const { createSearchsetBundle } = require('../util/bundleUtils');
-const {
-  findResourceById,
-  findResourcesWithQuery,
-  createResource,
-  updateResource,
-  removeResource
-} = require('../util/mongo.controller');
+const { findResourceById, createResource, updateResource, removeResource } = require('../util/mongo.controller');
 const { v4: uuidv4 } = require('uuid');
-
-/**
- * Result of sending a GET request to [base]/Group/[id].
- * Searches for a Group resource with the passed in id
- * @param {Object} request the request object passed in by the user
- * @param {Object} reply the response object
- */
-const groupSearchById = async (request, reply) => {
-  const result = await findResourceById(request.params.groupId, 'Group');
-  if (!result) {
-    reply.code(404).send(new Error(`The requested group ${request.params.groupId} was not found.`));
-  }
-  return result;
-};
-
-/**
- * Result of sending a GET request to [base]/Group to find all available Groups.
- * @param {Object} request the request object passed in by the user
- * @param {Object} reply the response object
- */
-const groupSearch = async (request, reply) => {
-  const result = await findResourcesWithQuery({}, 'Group');
-  if (!result.length > 0) {
-    reply.code(404).send(new Error('No Group resources were found on the server'));
-  }
-  return createSearchsetBundle(result);
-};
 
 /**
  * Creates a Group object and generates an id for it regardless of the id passed in.
@@ -75,8 +41,6 @@ const groupRemove = async (request, reply) => {
 };
 
 module.exports = {
-  groupSearchById,
-  groupSearch,
   groupCreate,
   groupUpdate,
   groupRemove

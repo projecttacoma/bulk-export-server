@@ -4,16 +4,13 @@ const cors = require('@fastify/cors');
 const { bulkExport, patientBulkExport, groupBulkExport, collectData } = require('../services/export.service');
 const { checkBulkStatus, kickoffImport } = require('../services/bulkstatus.service');
 const { returnNDJsonContent } = require('../services/ndjson.service');
-const { groupSearchById, groupSearch, groupCreate, groupUpdate, groupRemove } = require('../services/group.service');
+const { groupCreate, groupUpdate, groupRemove } = require('../services/group.service');
 const { uploadTransactionOrBatchBundle } = require('../services/bundle.service');
 const { generateCapabilityStatement } = require('../services/metadata.service');
-const {
-  patientSearch,
-  patientSearchById,
-  patientCreate,
-  patientUpdate,
-  patientRemove
-} = require('../services/patient.service');
+const { baseSearchById, baseSearch } = require('../services/base.service');
+const supportedResources = require('../util/supportedResources');
+const { patientCreate, patientUpdate, patientRemove } = require('../services/patient.service');
+
 // set bodyLimit to 50mb
 function build(opts) {
   const app = fastify({ ...opts, bodyLimit: 50 * 1024 * 1024 });
@@ -33,14 +30,10 @@ function build(opts) {
   app.post('/bulkstatus/:clientId/kickoff-import', kickoffImport);
   app.get('/bulkstatus/:clientId', checkBulkStatus);
   app.get('/:clientId/:fileName', returnNDJsonContent);
-  app.get('/Group/:groupId', groupSearchById);
-  app.get('/Group', groupSearch);
   app.post('/Group', groupCreate);
   app.put('/Group/:groupId', groupUpdate);
   app.delete('/Group/:groupId', groupRemove);
   app.post('/', uploadTransactionOrBatchBundle);
-  app.get('/Patient/:patientId', patientSearchById);
-  app.get('/Patient', patientSearch);
   app.post('/Patient', patientCreate);
   app.put('/Patient/:patientId', patientUpdate);
   app.delete('/Patient/:patientId', patientRemove);
@@ -48,6 +41,13 @@ function build(opts) {
   app.post('/Measure/$collect-data', collectData);
   app.get('/Measure/:measureId/$collect-data', collectData);
   app.post('/Measure/:measureId/$collect-data', collectData);
+
+  for (const resourceType of supportedResources) {
+    app.get(`/${resourceType}/:id?`, (request, reply) => {
+      const { id } = request.params;
+      return id ? baseSearchById(id, resourceType, reply) : baseSearch(request, resourceType, reply);
+    });
+  }
 
   return app;
 }
