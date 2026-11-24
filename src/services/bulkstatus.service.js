@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { createOperationOutcome } = require('../util/errorUtils');
 const { gatherParams } = require('../util/serviceUtils');
-const axios = require('axios');
+const { performBulkSubmit } = require('../util/bulkSubmit');
 /** The time a client is expected to wait between bulkstatus requests in seconds*/
 const RETRY_AFTER = 1;
 /** The number of requests we allow inside the retry after window before throwing a 429 error */
@@ -29,53 +29,18 @@ async function kickoffImport(request, reply) {
   if (bulkStatus.status === BULKSTATUS_COMPLETED) {
     const parameters = gatherParams(request.method, request.query, request.body, reply);
     if (parameters.bulkSubmitEndpoint) {
-      const submitParameters = {
-        resourceType: 'Parameters',
-        parameter: [
-          {
-            name: 'manifestUrl',
-            valueString: `${process.env.BULK_BASE_URL}/bulkstatus/${clientId}`
-          },
-          {
-            name: 'submissionStatus',
-            valueCoding: {
-              system: 'http://hl7.org/fhir/uv/bulkdata/ValueSet/submission-status',
-              code: 'complete'
-            }
-          },
-          {
-            name: 'submitter',
-            valueIdentifier: {
-              value: 'bulkExportSubmitter'
-            }
-          },
-          {
-            name: 'submissionId',
-            valueString: clientId
-          },
-          {
-            name: 'fhirBaseUrl',
-            valueString: process.env.BULK_BASE_URL
-          }
-        ]
-      };
-
-      // TODO: add provenance?
-      const headers = {
-        accept: 'application/fhir+json',
-        'content-type': 'application/fhir+json'
-      };
       try {
+        const results = await performBulkSubmit(parameters.bulkSubmitEndpoint, clientId);
         // on success, pass through the response
-        const results = await axios.post(parameters.bulkSubmitEndpoint, submitParameters, { headers });
-        reply.code(results.status).send(results.body);
+        reply.code(results.status).send(results.data);
       } catch (e) {
         // on fail, pass through wrapper error 400 that contains contained resource for the operationoutcome from the receiver
         let receiverOutcome;
-        if (e.response.data.resourceType === 'OperationOutcome') {
-          receiverOutcome = e.response.data;
+        const receiverResponse = e.cause?.response ?? e.response;
+        if (receiverResponse?.data?.resourceType === 'OperationOutcome') {
+          receiverOutcome = receiverResponse.data;
         } else {
-          receiverOutcome = createOperationOutcome(e.message, { issueCode: e.status, severity: 'error' });
+          receiverOutcome = createOperationOutcome(e.message);
         }
         const outcome = createOperationOutcome(
           `Import request for id ${clientId} to receiver ${parameters.bulkSubmitEndpoint} failed with the contained error.`,
